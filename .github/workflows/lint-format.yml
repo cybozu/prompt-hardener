@@ -1,0 +1,20 @@
+name: Lint and Format
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: chartboost/ruff-action@v1
+        with:
+          args: 'check' # Lint 
+      - uses: chartboost/ruff-action@v1
+        with:
+          args: 'format --check' # Format
