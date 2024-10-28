@@ -1,4 +1,7 @@
 # Prompt Hardener
+<img width="300" alt="prompt-hardener-logo" src="https://github.com/user-attachments/assets/f2a6d1eb-f733-419a-9e2c-d0f0ccbe6049">
+
+
 Prompt Hardener is a tool designed to evaluate and enhance the securify of system prompts for RAG systems.
 
 It uses LLMs to assess whether measures such as tagging user inputs and securely wrapping system instructions are properly implemented. Additionally, this tool provides improvement suggestions based on prompt hardening strategies, helping RAG system developers build safer and more robust prompts.
