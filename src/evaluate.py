@@ -1,5 +1,6 @@
 from utils import call_openai_api, call_ollama_api
 
+
 def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None):
     # System message and evaluation criteria
     system_message = """
@@ -52,7 +53,7 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
 
     if user_input_description:
         system_message += f"\n\nNote: In this prompt, the user input is identified as follows: {user_input_description}"
-    
+
     criteria_message = """
     The evaluation criteria are included in the "criteria" tag. 
     Your task is to evaluate the target prompt according to the items listed in the criteria.
@@ -71,6 +72,10 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
 
     # API call based on the api mode
     if api_mode == "openai":
-        return call_openai_api(system_message, criteria_message, criteria, target_prompt, model)
+        return call_openai_api(
+            system_message, criteria_message, criteria, target_prompt, model
+        )
     elif api_mode == "ollama":
-        return call_ollama_api(system_message, criteria_message, criteria, target_prompt, model)
+        return call_ollama_api(
+            system_message, criteria_message, criteria, target_prompt, model
+        )

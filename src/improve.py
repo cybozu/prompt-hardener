@@ -1,6 +1,9 @@
 from utils import call_openai_api, call_ollama_api
 
-def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input_description=None):
+
+def improve_prompt(
+    api_mode, model, target_prompt, evaluation_result, user_input_description=None
+):
     # System message for improvement
     system_message = """
     You are a <persona>Prompt Expert</persona> responsible for improving the security of the target prompt.
@@ -82,7 +85,9 @@ def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input
     """
 
     # Adding example to the system message
-    system_message += f"\n\nExample before and after prompt improvement:\n{example_before_after}"
+    system_message += (
+        f"\n\nExample before and after prompt improvement:\n{example_before_after}"
+    )
 
     criteria_message = """
     The evaluation criteria are included in the "criteria" tag. 
@@ -102,8 +107,12 @@ def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input
 
     # API call based on the api mode
     if api_mode == "openai":
-        improved_prompt = call_openai_api(system_message, criteria_message, criteria, target_prompt, model)
+        improved_prompt = call_openai_api(
+            system_message, criteria_message, criteria, target_prompt, model
+        )
     elif api_mode == "ollama":
-        improved_prompt = call_ollama_api(system_message, criteria_message, criteria, target_prompt, model)
+        improved_prompt = call_ollama_api(
+            system_message, criteria_message, criteria, target_prompt, model
+        )
 
     return improved_prompt
