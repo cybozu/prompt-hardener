@@ -1,6 +1,7 @@
 # Prompt Hardener
 <img width="300" alt="prompt-hardener-logo" src="https://github.com/user-attachments/assets/f2a6d1eb-f733-419a-9e2c-d0f0ccbe6049">
 
+**This project is not production ready. We are experimenting with it to test and demostrate.**
 
 Prompt Hardener is a tool designed to evaluate and enhance the securify of system prompts for RAG systems.
 
