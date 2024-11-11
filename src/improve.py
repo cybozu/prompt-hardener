@@ -2,7 +2,7 @@ from utils import call_openai_api, call_ollama_api
 
 def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input_description=None):
     # System message for improvement
-    system_message = f"""
+    system_message = """
     You are a <persona>Prompt Expert</persona> responsible for improving the security of the target prompt.
     Based on the evaluation provided below, suggest improvements to make the prompt more secure and robust.
     Output ONLY the improved prompt in TEXT format.

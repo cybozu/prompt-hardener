@@ -1,8 +1,6 @@
-import os
 import argparse
 import random
 import string
-import json
 from openai import OpenAI
 import requests
 
@@ -88,7 +86,7 @@ def call_ollama_completion_api(prompt, model):
     """
     try:
         response = requests.post(
-            f"http://localhost:11434/api/generate",
+            "http://localhost:11434/api/generate",
             json={
                 "model": model,
                 "prompt": prompt,
