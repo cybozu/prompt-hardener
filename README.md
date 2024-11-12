@@ -10,6 +10,11 @@ It uses LLMs to assess whether measures such as tagging user inputs and securely
 ## Features
 The foundational prompt hardening strategies for evaluation and improvement are as follows:
 - Tag user inputs
+- Handle inappropriate user inputs
+- Handle persona switching user inputs
+- Handle new instructions
+- Handle prompt attacks
+- Handle encoding/decoding requirements
 - Use thinking and answer tags
 - Wrap system instructions in a single pair of salted sequence tags
 
