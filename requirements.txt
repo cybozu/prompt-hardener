@@ -1,4 +1,4 @@
 requests==2.32.3
-openai==1.45.0
+openai==1.56.1
 argparse==1.4.0
 ruff==0.7.3
