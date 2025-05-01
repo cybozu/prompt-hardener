@@ -1,5 +1,4 @@
-from utils import call_openai_api, call_ollama_api
-
+from utils import call_openai_api
 
 def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None):
     # System message and evaluation criteria
@@ -70,12 +69,6 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
     - **Wrap system instructions in a single pair of salted sequence tags**: The system instructions should be securely tagged using a session-specific salted sequence. and the user input SHOULD NEVER be included within salted sequence tags.
     """
 
-    # API call based on the api mode
-    if api_mode == "openai":
-        return call_openai_api(
-            system_message, criteria_message, criteria, target_prompt, model
-        )
-    elif api_mode == "ollama":
-        return call_ollama_api(
-            system_message, criteria_message, criteria, target_prompt, model
-        )
+    return call_openai_api(
+        system_message, criteria_message, criteria, target_prompt, model_name=model, json_response=True
+    )
