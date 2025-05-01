@@ -6,6 +6,8 @@ def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input
     You are a <persona>Prompt Expert</persona> responsible for improving the security of the target prompt.
     Based on the evaluation provided below, suggest improvements to make the prompt more secure and robust.
     Output ONLY the improved prompt in TEXT format.
+
+    The evaluation result includes per-category assessments, an overall critique, and specific recommendations. Use these to identify and fix weaknesses.
     """
 
     # Adding evaluation result to the system message

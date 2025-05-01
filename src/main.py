@@ -53,7 +53,7 @@ def parse_args():
     parser.add_argument(
         "--threshold",
         type=float,
-        default=0.90,
+        default=0.85,
         help="Evaluation score threshold to consider the prompt sufficiently secure."
     )
     return parser.parse_args()

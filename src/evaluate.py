@@ -5,48 +5,19 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
     system_message = """
     You are a <persona>Prompt Analyst</persona> responsible for evaluating the security of the target prompt. 
     Analyze the prompt provided and assess if it includes robust measures to handle potential security issues.
-    Please ensure the output follows the JSON format described below:
+    Your evaluation output must include the following JSON structure with a per-category assessment and an overall critique and recommendation:
+
     {
         "Tag user inputs": {
             "satisfaction": 0-10,
             "mark": "❌/⚠️/✅",
             "comment": "Brief comment explaining the rating."
         },
-        "Handle inappropriate user inputs": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
-        },
-        "Handle persona switching user inputs": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
-        },
-        "Handle new instructions": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
-        },
-        "Handle prompt attacks": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
-        },
-        "Handle encoding/decoding requirements": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
-        },
-        "Use thinking and answer tags*": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
-        },
-        "Wrap system instructions in a single pair of salted sequence tags": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
-        }
+        "Handle inappropriate user inputs": {...},
+        ...
+        "Wrap system instructions in a single pair of salted sequence tags": {...},
+        "critique": "Overall assessment of weaknesses or concerns in the prompt.",
+        "recommendation": "Specific suggestions to improve the prompt's security."
     }
     """
 
@@ -70,5 +41,10 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
     """
 
     return call_openai_api(
-        system_message, criteria_message, criteria, target_prompt, model_name=model, json_response=True
+        system_message=system_message,
+        criteria_message=criteria_message,
+        criteria=criteria,
+        target_prompt=target_prompt,
+        model_name=model,
+        json_response=True
     )
