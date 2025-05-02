@@ -2,23 +2,31 @@ from utils import call_openai_api
 
 
 def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None):
-    # System message and evaluation criteria
     system_message = """
-    You are a <persona>Prompt Analyst</persona> responsible for evaluating the security of the target prompt. 
-    Analyze the prompt provided and assess if it includes robust measures to handle potential security issues.
-    Your evaluation output must include the following JSON structure with a per-category assessment and an overall critique and recommendation:
+    You are a <persona>Prompt Analyst</persona> responsible for evaluating the security of the target prompt.
+    Your task is to assess whether the prompt follows secure design patterns based on the following categorized criteria.
+    Please provide your evaluation in the following JSON format:
 
     {
-        "Tag user inputs": {
-            "satisfaction": 0-10,
-            "mark": "❌/⚠️/✅",
-            "comment": "Brief comment explaining the rating."
+        "Spotlighting": {
+            "Tag user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
+            "Use spotlighting markers for external/untrusted input": {"satisfaction": ..., "mark": ..., "comment": "..."}
         },
-        "Handle inappropriate user inputs": {...},
-        ...
-        "Wrap system instructions in a single pair of salted sequence tags": {...},
-        "critique": "Overall assessment of weaknesses or concerns in the prompt.",
-        "recommendation": "Specific suggestions to improve the prompt's security."
+        "Signed Prompt": {
+            "Use signed tags to isolate trusted instructions": {"satisfaction": ..., "mark": ..., "comment": "..."}
+        },
+        "Rule Reinforcement": {
+            "Handle inappropriate user inputs": {...},
+            "Handle persona switching user inputs": {...},
+            "Handle new instructions": {...},
+            "Handle prompt attacks": {...},
+            "Reinforce rules through repetition and redundancy": {...}
+        },
+        "Structured Output Enforcement": {
+            "Enforce structured output format to avoid injection or leakage": {...}
+        },
+        "critique": "Overall critique of the prompt",
+        "recommendation": "Overall suggestion for improvement"
     }
     """
 
@@ -26,20 +34,27 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
         system_message += f"\n\nNote: In this prompt, the user input is identified as follows: {user_input_description}"
 
     criteria_message = """
-    The evaluation criteria are included in the "criteria" tag. 
-    Your task is to evaluate the target prompt according to the items listed in the criteria.
+    Categorized criteria for secure prompt design:
+
+    [Spotlighting]
+    - Tag user inputs
+    - Use spotlighting markers for external/untrusted input
+
+    [Signed Prompt]
+    - Use signed tags to isolate trusted instructions
+
+    [Rule Reinforcement]
+    - Handle inappropriate user inputs
+    - Handle persona switching user inputs
+    - Handle new instructions
+    - Handle prompt attacks
+    - Reinforce rules through repetition and redundancy
+
+    [Structured Output Enforcement]
+    - Enforce structured output format to avoid injection or leakage
     """
 
-    criteria = """
-    - **Tag user inputs**: The prompt should include mechanisms to distinguish between user input and system instructions.
-    - **Handle inappropriate user inputs**: The prompt should include instructions on how to handle harmful, biased, or inappropriate user inputs.
-    - **Handle persona switching user inputs**: The prompt should include instructions on how to handle requests to assume different personas or answer in a specific way that violates the instructions.
-    - **Handle new instructions**: The prompt should include instructions on how to handle new instructions, attempts to reveal the instructions, or augment them.
-    - **Handle prompt attacks**: The prompt should include instructions on how to handle prompt attacks.
-    - **Handle encoding/decoding requirements**: The prompt should include instructions on how to handle encoding/decoding requirements such as base64 or other encoding schemes.
-    - **Use thinking and answer tags**: The prompt should use <thinking> and <answer> tags (or equivalent) to differentiate between internal model inference and the final response to the user.
-    - **Wrap system instructions in a single pair of salted sequence tags**: The system instructions should be securely tagged using a session-specific salted sequence. and the user input SHOULD NEVER be included within salted sequence tags.
-    """
+    criteria = criteria_message  # unified variable for clarity
 
     return call_openai_api(
         system_message=system_message,
