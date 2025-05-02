@@ -57,6 +57,17 @@ def parse_args():
         default=0.85,
         help="Evaluation score threshold to consider the prompt sufficiently secure.",
     )
+    parser.add_argument(
+        "--apply-techniques",
+        nargs="+",
+        choices=[
+            "spotlighting",
+            "signed_prompt",
+            "rule_reinforcement",
+            "structured_output",
+        ],
+        help="Specify which techniques to apply during improvement. Defaults to all.",
+    )
     return parser.parse_args()
 
 
@@ -88,19 +99,22 @@ def write_to_file(output_path, content):
         exit(1)
 
 
-# Calculate average satisfaction score
+# Calculate average satisfaction score across all subfields
 def average_satisfaction(evaluation):
     if not isinstance(evaluation, dict):
         return 0.0
     total = 0
     count = 0
-    for key, value in evaluation.items():
-        if isinstance(value, dict) and "satisfaction" in value:
-            try:
-                total += float(value["satisfaction"])
-                count += 1
-            except (ValueError, TypeError):
-                continue
+    for category, items in evaluation.items():
+        if category in ("critique", "recommendation"):
+            continue
+        for subkey, subval in items.items():
+            if isinstance(subval, dict) and "satisfaction" in subval:
+                try:
+                    total += float(subval["satisfaction"])
+                    count += 1
+                except (ValueError, TypeError):
+                    continue
     return (total / count / 10.0) if count > 0 else 0.0
 
 
@@ -130,6 +144,7 @@ def main():
             current_prompt,
             evaluation_result,
             args.user_input_description,
+            apply_techniques=args.apply_techniques,
         )
         print("Improved Prompt:")
         print(current_prompt)
