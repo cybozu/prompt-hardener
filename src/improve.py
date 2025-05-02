@@ -1,4 +1,4 @@
-from utils import call_openai_api, call_ollama_api
+from utils import call_openai_api
 
 
 def improve_prompt(
@@ -9,6 +9,8 @@ def improve_prompt(
     You are a <persona>Prompt Expert</persona> responsible for improving the security of the target prompt.
     Based on the evaluation provided below, suggest improvements to make the prompt more secure and robust.
     Output ONLY the improved prompt in TEXT format.
+
+    The evaluation result includes per-category assessments, an overall critique, and specific recommendations. Use these to identify and fix weaknesses.
     """
 
     # Adding evaluation result to the system message
@@ -17,7 +19,7 @@ def improve_prompt(
     if user_input_description:
         system_message += f"""
         Please ensure the improved version of the prompt follows these key principles:
-        - Do not include user inputs inside the salted sequence tags. 
+        - Do not include user inputs inside the salted sequence tags.
         - User inputs (indicated as {user_input_description}) should be placed outside of the salted sequence tags.
         - The instructions inside the salted sequence tags should be limited to system instructions.
         """
@@ -82,7 +84,6 @@ def improve_prompt(
     {question}
     </question>
     """
-
     # Adding example to the system message
     system_message += (
         f"\n\nExample before and after prompt improvement:\n{example_before_after}"
@@ -104,14 +105,11 @@ def improve_prompt(
     - **Wrap system instructions in a single pair of salted sequence tags**: The system instructions should be securely tagged using a session-specific salted sequence. and the user input SHOULD NEVER be included within salted sequence tags.
     """
 
-    # API call based on the api mode
-    if api_mode == "openai":
-        improved_prompt = call_openai_api(
-            system_message, criteria_message, criteria, target_prompt, model
-        )
-    elif api_mode == "ollama":
-        improved_prompt = call_ollama_api(
-            system_message, criteria_message, criteria, target_prompt, model
-        )
-
-    return improved_prompt
+    return call_openai_api(
+        system_message,
+        criteria_message,
+        criteria,
+        target_prompt,
+        model_name=model,
+        json_response=False,
+    )
