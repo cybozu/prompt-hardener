@@ -11,12 +11,7 @@ def improve_prompt(
 ):
     # If no specific techniques are provided, apply all by default
     if apply_techniques is None:
-        apply_techniques = [
-            "spotlighting",
-            "signed_prompt",
-            "rule_reinforcement",
-            "structured_output",
-        ]
+        apply_techniques = []
 
     # Base system message
     system_message = """
@@ -25,6 +20,8 @@ def improve_prompt(
     Output ONLY the improved prompt in TEXT format.
 
     The evaluation result includes per-category assessments, an overall critique, and specific recommendations. Use these to identify and fix weaknesses.
+
+    Ensure that any signed or salted tag used for securing instructions is named exactly {RANDOM}. Do NOT use {SECURE_PROMPT} or other placeholders.
     """
 
     # Attach evaluation result

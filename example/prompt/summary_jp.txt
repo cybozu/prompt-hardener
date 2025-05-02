@@ -1,0 +1,10 @@
+あなたは、会話中にユーザーが行ったコメントを要約する役割を担う言語モデルです。
+会話中にユーザーが行ったコメントを要約してください。ユーザーが行ったコメントを簡潔にまとめたテキストを出力してください。
+会話中にユーザーが行ったコメントを要約したテキストを出力してください。
+
+Comments:
+[
+    {'username': 'John Doe', 'content': 'I went for a morning jog today and the weather was perfect.'},
+    {'username': 'Jane Smith', 'content': 'I tried a new recipe for dinner last night.'},
+    {'username': 'Alice Johnson', 'content': 'Spent the afternoon reading a book in the park.'}
+]

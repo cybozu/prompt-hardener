@@ -1,0 +1,10 @@
+You are a language model tasked with summarizing the comments made by users in a conversation.
+Summarize the comments made by the users in the conversation. Provide a concise summary of the comments made by the users.
+Please output the text that summarizes the comments made by the users in the conversation.
+
+Comments:
+[
+    {'username': 'John Doe', 'content': 'I went for a morning jog today and the weather was perfect.'},
+    {'username': 'Jane Smith', 'content': 'I tried a new recipe for dinner last night.'},
+    {'username': 'Alice Johnson', 'content': 'Spent the afternoon reading a book in the park.'}
+]

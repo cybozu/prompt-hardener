@@ -1,0 +1,36 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "analyze_sentiment",
+      "description": "Analyze the sentiment of a user's comment.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "The text of the comment to analyze."
+          }
+        },
+        "required": ["comment"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "extract_topics",
+      "description": "Extract key discussion topics from a user's comment.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "The user's comment from which to extract key topics."
+          }
+        },
+        "required": ["comment"]
+      }
+    }
+  }
+]
