@@ -67,7 +67,7 @@ def parse_args():
             "rule_reinforcement",
             "structured_output",
         ],
-        help="Techniques to apply during improvement.",
+        help="Techniques to apply during improvement. If not specified, all techniques are applied.",
     )
     parser.add_argument(
         "--test-after",
@@ -79,6 +79,12 @@ def parse_args():
         type=str,
         default="gpt-3.5-turbo",
         help="Model to use for post-improvement injection test.",
+    )
+    parser.add_argument(
+        "--test-separator",
+        type=str,
+        default=None,
+        help="Optional prefix separator to insert before attack payload.",
     )
     return parser.parse_args()
 
@@ -116,6 +122,13 @@ def main():
     args = parse_args()
     current_prompt = load_target_prompt(args.target_prompt_path)
 
+    apply_techniques = args.apply_techniques or [
+        "spotlighting",
+        "signed_prompt",
+        "rule_reinforcement",
+        "structured_output",
+    ]
+
     for i in range(args.max_iterations):
         print(f"\n--- Iteration {i + 1} ---")
         evaluation_result = evaluate_prompt(
@@ -137,7 +150,7 @@ def main():
             current_prompt,
             evaluation_result,
             args.user_input_description,
-            apply_techniques=args.apply_techniques,
+            apply_techniques=apply_techniques,
         )
         print("Improved Prompt:")
         print(current_prompt)
@@ -148,7 +161,10 @@ def main():
         test_model = args.test_model or args.model
         print("\n--- Running injection test on final prompt ---")
         run_injection_test(
-            current_prompt, test_model, apply_techniques=args.apply_techniques
+            current_prompt,
+            test_model,
+            apply_techniques=apply_techniques,
+            separator=args.test_separator,
         )
 
 

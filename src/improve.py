@@ -11,12 +11,7 @@ def improve_prompt(
 ):
     # If no specific techniques are provided, apply all by default
     if apply_techniques is None:
-        apply_techniques = [
-            "spotlighting",
-            "signed_prompt",
-            "rule_reinforcement",
-            "structured_output",
-        ]
+        apply_techniques = []
 
     # Base system message
     system_message = """
