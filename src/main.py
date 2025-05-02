@@ -115,7 +115,8 @@ def average_satisfaction(evaluation):
             try:
                 total += float(sub["satisfaction"])
                 count += 1
-            except:
+            except (ValueError, TypeError):
+                print(f"[Error] Invalid satisfaction value: {sub['satisfaction']}")
                 continue
     return (total / count / 10.0) if count else 0.0
 
