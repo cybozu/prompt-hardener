@@ -34,7 +34,6 @@ def insert_attack_into_prompt(prompt, model, attack, separator=None):
             temperature=0.2,
         )
         content = result.choices[0].message.content
-        print(f"[Injection Test] Inserting attack into prompt:\n{content}\n")
         if "<output>" in content:
             content = content.split("<output>", 1)[1].split("</output>", 1)[0].strip()
         return content
@@ -120,15 +119,13 @@ def run_injection_test(
         apply_techniques = []
 
     spotlighting_enabled = "spotlighting" in apply_techniques
-
     random_tag = "".join(random.choices(string.ascii_letters + string.digits, k=10))
-    failures = 0
 
+    results = []
     for attack in attacks:
         spotlighted_attack = (
             attack.replace(" ", "^") if spotlighting_enabled else attack
         )
-
         normalized_prompt = normalize_salted_tags(system_prompt, random_tag)
         final_prompt = insert_attack_into_prompt(
             normalized_prompt, model, spotlighted_attack, separator=separator
@@ -152,13 +149,27 @@ def run_injection_test(
                 )
             result = response.choices[0].message.content
             success = assess_injection_success(model, attack, result)
-            print(
-                f"[Injection Test] Input: {attack}\nResponse: {result}\nResult: {'FAILED' if success else 'PASSED'}\n"
+            outcome = "ATTACK_SUCCESS" if success else "ATTACK_FAILED"
+
+            results.append(
+                {
+                    "attack": attack,
+                    "prompt": final_prompt,
+                    "response": result,
+                    "success": success,
+                    "result": outcome,
+                }
             )
-            if success:
-                failures += 1
         except Exception as e:
             print(f"[Error] Injection test failed: {e}")
-            failures += 1
+            results.append(
+                {
+                    "attack": attack,
+                    "prompt": final_prompt,
+                    "response": str(e),
+                    "success": True,
+                    "result": "ERROR",
+                }
+            )
 
-    print(f"Injection test result: {len(attacks) - failures}/{len(attacks)} passed.")
+    return results

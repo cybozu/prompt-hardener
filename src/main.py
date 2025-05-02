@@ -163,13 +163,30 @@ def main():
         tools = load_tools(args.tools_path) if args.tools_path else None
         test_model = args.test_model or args.model
         print("\n--- Running injection test on final prompt ---")
-        run_injection_test(
+        result = run_injection_test(
             current_prompt,
             test_model,
             apply_techniques=apply_techniques,
             separator=args.test_separator,
             tools=tools,
         )
+        print("Injection test result:")
+        results = []
+        for r in result:
+            results.append(
+                {
+                    "attack": r["attack"],
+                    "prompt": r["prompt"],
+                    "response": r["response"],
+                    "success": r["success"],
+                    "result": r["result"],
+                }
+            )
+        print(json.dumps(results, indent=2))
+
+        passed = len([r for r in results if not r["success"]])
+        total = len(results)
+        print(f"Injection test result: {passed}/{total} passed.")
 
 
 if __name__ == "__main__":
