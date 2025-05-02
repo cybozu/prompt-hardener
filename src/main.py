@@ -2,6 +2,7 @@ import argparse
 from evaluate import evaluate_prompt
 from improve import improve_prompt
 
+
 # Argument parser setup
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -12,7 +13,7 @@ def parse_args():
         "--target-prompt-path",
         type=str,
         required=True,
-        help="Path to the file containing the target prompt."
+        help="Path to the file containing the target prompt.",
     )
     parser.add_argument(
         "-am",
@@ -20,43 +21,44 @@ def parse_args():
         type=str,
         choices=["openai", "ollama"],
         required=True,
-        help="Select the API mode: 'openai' or 'ollama'."
+        help="Select the API mode: 'openai' or 'ollama'.",
     )
     parser.add_argument(
         "-m",
         "--model",
         type=str,
         required=True,
-        help="Specify the model name (e.g., 'gpt-3.5-turbo', 'gpt-4', or 'llama3.1')."
+        help="Specify the model name (e.g., 'gpt-3.5-turbo', 'gpt-4', or 'llama3.1').",
     )
     parser.add_argument(
         "-ui",
         "--user-input-description",
         type=str,
         required=False,
-        help="Description or clarification for user inputs in the target prompt."
+        help="Description or clarification for user inputs in the target prompt.",
     )
     parser.add_argument(
         "-o",
         "--output-path",
         type=str,
         required=True,
-        help="Path to the file where the improved prompt will be written."
+        help="Path to the file where the improved prompt will be written.",
     )
     parser.add_argument(
         "-n",
         "--max-iterations",
         type=int,
         default=3,
-        help="Maximum number of self-refinement iterations."
+        help="Maximum number of self-refinement iterations.",
     )
     parser.add_argument(
         "--threshold",
         type=float,
         default=0.85,
-        help="Evaluation score threshold to consider the prompt sufficiently secure."
+        help="Evaluation score threshold to consider the prompt sufficiently secure.",
     )
     return parser.parse_args()
+
 
 # Load the target prompt from file
 def load_target_prompt(file_path):
@@ -67,8 +69,11 @@ def load_target_prompt(file_path):
         print(f"Error: The file at path '{file_path}' was not found.")
         exit(1)
     except IOError as e:
-        print(f"Error: An I/O error occurred while reading the file '{file_path}'.\nDetails: {e}")
+        print(
+            f"Error: An I/O error occurred while reading the file '{file_path}'.\nDetails: {e}"
+        )
         exit(1)
+
 
 # Write the final improved prompt to file
 def write_to_file(output_path, content):
@@ -77,8 +82,11 @@ def write_to_file(output_path, content):
             file.write(content)
         print(f"Improved prompt written to: {output_path}")
     except IOError as e:
-        print(f"Error: An I/O error occurred while writing to the file '{output_path}'.\nDetails: {e}")
+        print(
+            f"Error: An I/O error occurred while writing to the file '{output_path}'.\nDetails: {e}"
+        )
         exit(1)
+
 
 # Calculate average satisfaction score
 def average_satisfaction(evaluation):
@@ -95,6 +103,7 @@ def average_satisfaction(evaluation):
                 continue
     return (total / count / 10.0) if count > 0 else 0.0
 
+
 # Main execution
 def main():
     args = parse_args()
@@ -103,10 +112,7 @@ def main():
     for i in range(args.max_iterations):
         print(f"\n--- Iteration {i + 1} ---")
         evaluation_result = evaluate_prompt(
-            args.api_mode, 
-            args.model,
-            current_prompt, 
-            args.user_input_description
+            args.api_mode, args.model, current_prompt, args.user_input_description
         )
         print("Evaluation Result:")
         print(evaluation_result)
@@ -129,6 +135,7 @@ def main():
         print(current_prompt)
 
     write_to_file(args.output_path, current_prompt)
+
 
 if __name__ == "__main__":
     main()

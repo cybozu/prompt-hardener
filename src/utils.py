@@ -4,7 +4,9 @@ from openai import OpenAI
 client = OpenAI()
 
 
-def build_openai_messages(system_message, criteria_message, criteria, target_prompt, json_response=True):
+def build_openai_messages(
+    system_message, criteria_message, criteria, target_prompt, json_response=True
+):
     user_instruction = (
         f"The target prompt is:\n{target_prompt}\n\n"
         f"Please evaluate or improve the above according to the criteria and respond in JSON."
@@ -13,7 +15,10 @@ def build_openai_messages(system_message, criteria_message, criteria, target_pro
     )
     return [
         {"role": "system", "content": system_message},
-        {"role": "system", "content": f"The evaluation criteria are:\n{criteria_message}\n{criteria}"},
+        {
+            "role": "system",
+            "content": f"The evaluation criteria are:\n{criteria_message}\n{criteria}",
+        },
         {"role": "user", "content": user_instruction},
     ]
 

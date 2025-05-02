@@ -1,5 +1,6 @@
 from utils import call_openai_api
 
+
 def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None):
     # System message and evaluation criteria
     system_message = """
@@ -46,5 +47,5 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
         criteria=criteria,
         target_prompt=target_prompt,
         model_name=model,
-        json_response=True
+        json_response=True,
     )

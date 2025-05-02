@@ -1,6 +1,9 @@
 from utils import call_openai_api
 
-def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input_description=None):
+
+def improve_prompt(
+    api_mode, model, target_prompt, evaluation_result, user_input_description=None
+):
     # System message for improvement
     system_message = """
     You are a <persona>Prompt Expert</persona> responsible for improving the security of the target prompt.
@@ -82,7 +85,9 @@ def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input
     </question>
     """
     # Adding example to the system message
-    system_message += f"\n\nExample before and after prompt improvement:\n{example_before_after}"
+    system_message += (
+        f"\n\nExample before and after prompt improvement:\n{example_before_after}"
+    )
 
     criteria_message = """
     The evaluation criteria are included in the "criteria" tag. 
@@ -101,5 +106,10 @@ def improve_prompt(api_mode, model, target_prompt, evaluation_result, user_input
     """
 
     return call_openai_api(
-        system_message, criteria_message, criteria, target_prompt, model_name=model, json_response=False
+        system_message,
+        criteria_message,
+        criteria,
+        target_prompt,
+        model_name=model,
+        json_response=False,
     )
