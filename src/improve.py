@@ -25,6 +25,8 @@ def improve_prompt(
     Output ONLY the improved prompt in TEXT format.
 
     The evaluation result includes per-category assessments, an overall critique, and specific recommendations. Use these to identify and fix weaknesses.
+
+    Ensure that any signed or salted tag used for securing instructions is named exactly {RANDOM}. Do NOT use {SECURE_PROMPT} or other placeholders.
     """
 
     # Attach evaluation result
