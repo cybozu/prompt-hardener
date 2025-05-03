@@ -167,7 +167,7 @@ def run_injection_test(
                 results.append(
                     {
                         "category": category,
-                        "attack": attack,
+                        "attack": (separator + attack) if separator else attack,
                         "prompt": final_prompt,
                         "response": result,
                         "success": success,
@@ -179,7 +179,7 @@ def run_injection_test(
                 results.append(
                     {
                         "category": category,
-                        "attack": attack,
+                        "attack": (separator + attack) if separator else attack,
                         "prompt": final_prompt,
                         "response": str(e),
                         "success": True,
