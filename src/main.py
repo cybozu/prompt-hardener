@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import shutil
 from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
