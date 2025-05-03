@@ -1,8 +1,10 @@
 import argparse
 import json
+import os
 from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
+from gen_report import generate_report
 
 
 # Argument parser setup
@@ -51,8 +53,8 @@ def parse_args():
     parser.add_argument(
         "--threshold",
         type=float,
-        default=0.85,
-        help="Score threshold to stop refinement.",
+        default=8.5,
+        help="Score threshold to stop refinement. Range: 0-10. Default: 8.5",
     )
     parser.add_argument(
         "--apply-techniques",
@@ -82,6 +84,11 @@ def parse_args():
     )
     parser.add_argument(
         "--tools-path", type=str, help="Path to JSON file defining tool specs."
+    )
+    parser.add_argument(
+        "--report-dir",
+        type=str,
+        help="Directory to write a report after processing.",
     )
     return parser.parse_args()
 
@@ -116,14 +123,14 @@ def average_satisfaction(evaluation):
                 total += float(sub["satisfaction"])
                 count += 1
             except (ValueError, TypeError):
-                print(f"[Error] Invalid satisfaction value: {sub['satisfaction']}")
                 continue
-    return (total / count / 10.0) if count else 0.0
+    return round((total / count), 2) if count else 0.0
 
 
 def main():
     args = parse_args()
     current_prompt = load_target_prompt(args.target_prompt_path)
+    initial_prompt = current_prompt
 
     apply_techniques = args.apply_techniques or [
         "spotlighting",
@@ -132,20 +139,31 @@ def main():
         "structured_output",
     ]
 
+    initial_evaluation = evaluate_prompt(
+        args.api_mode, args.model, initial_prompt, args.user_input_description
+    )
+    initial_avg_score = average_satisfaction(initial_evaluation)
+
+    evaluation_result = initial_evaluation
+    final_avg_score = initial_avg_score
+
     for i in range(args.max_iterations):
         print(f"\n--- Iteration {i + 1} ---")
-        evaluation_result = evaluate_prompt(
-            args.api_mode, args.model, current_prompt, args.user_input_description
-        )
-        print("Evaluation Result:")
-        print(evaluation_result)
+        if i > 0:
+            evaluation_result = evaluate_prompt(
+                args.api_mode, args.model, current_prompt, args.user_input_description
+            )
+            print("Evaluation Result:")
+            print(evaluation_result)
 
-        avg_score = average_satisfaction(evaluation_result)
-        print(f"Average Satisfaction Score: {avg_score:.2f}")
+            final_avg_score = average_satisfaction(evaluation_result)
+            print(f"Average Satisfaction Score: {final_avg_score:.2f}")
 
-        if avg_score >= args.threshold:
-            print("Prompt meets the required security threshold. Stopping refinement.")
-            break
+            if final_avg_score >= args.threshold:
+                print(
+                    "Prompt meets the required security threshold. Stopping refinement."
+                )
+                break
 
         current_prompt = improve_prompt(
             args.api_mode,
@@ -158,36 +176,46 @@ def main():
         print("Improved Prompt:")
         print(current_prompt)
 
+    # Final evaluation only if max iterations completed or threshold not reached
+    if args.max_iterations == 1 or final_avg_score < args.threshold:
+        print("\n--- Final Evaluation ---")
+        evaluation_result = evaluate_prompt(
+            args.api_mode, args.model, current_prompt, args.user_input_description
+        )
+        print("Final Evaluation Result:")
+        print(evaluation_result)
+        final_avg_score = average_satisfaction(evaluation_result)
+
     write_to_file(args.output_path, current_prompt)
 
+    attack_results = []
     if args.test_after:
         tools = load_tools(args.tools_path) if args.tools_path else None
         test_model = args.test_model or args.model
         print("\n--- Running injection test on final prompt ---")
-        result = run_injection_test(
+        attack_results = run_injection_test(
             current_prompt,
             test_model,
             apply_techniques=apply_techniques,
             separator=args.test_separator,
             tools=tools,
         )
-        print("Injection test result:")
-        results = []
-        for r in result:
-            results.append(
-                {
-                    "attack": r["attack"],
-                    "prompt": r["prompt"],
-                    "response": r["response"],
-                    "success": r["success"],
-                    "result": r["result"],
-                }
-            )
-        print(json.dumps(results, indent=2))
 
-        passed = len([r for r in results if not r["success"]])
-        total = len(results)
-        print(f"Injection test result: {passed}/{total} passed.")
+    if args.report_dir:
+        report_dir_path = os.path.abspath(args.report_dir)
+        os.makedirs(report_dir_path, exist_ok=True)
+        print(f"\n--- Generating report at {report_dir_path} ---")
+        generate_report(
+            initial_prompt,
+            initial_evaluation,
+            current_prompt,
+            evaluation_result,
+            attack_results,
+            report_dir_path,
+            initial_avg_score,
+            final_avg_score,
+        )
+        print("Report generation complete.")
 
 
 if __name__ == "__main__":
