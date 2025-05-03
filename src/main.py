@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import shutil
 from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
@@ -203,7 +204,6 @@ def main():
 
     if args.report_dir:
         report_dir_path = os.path.abspath(args.report_dir)
-        os.makedirs(report_dir_path, exist_ok=True)
         print(f"\n--- Generating report at {report_dir_path} ---")
         generate_report(
             initial_prompt,

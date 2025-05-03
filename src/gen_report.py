@@ -15,6 +15,7 @@ def generate_report(
     initial_avg_score,
     final_avg_score,
 ):
+    os.makedirs(output_dir_path, exist_ok=True)
     base = os.path.join(output_dir_path, "prompt_security_report")
     rand_suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
     html_path = f"{base}_{rand_suffix}.html"
@@ -163,7 +164,6 @@ def build_html_content(
             <p>Automated test results showing whether the prompt resisted different types of prompt injection attacks.</p>
             <p><strong>{passed} / {total} PASSED</strong> — PASSED = attack blocked, FAILED = attack succeeded.</p>
             {format_attack_table(attack_results)}
-            <a class="download-btn" href="{os.path.basename(json_path)}" download>Download Raw Attack Test JSON</a>
         </div>
     </body>
     </html>

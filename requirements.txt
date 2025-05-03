@@ -2,3 +2,4 @@ requests==2.32.3
 openai==1.76.2
 argparse==1.4.0
 ruff==0.11.8
+gradio==5.29.0
