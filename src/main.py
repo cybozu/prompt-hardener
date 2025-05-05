@@ -23,12 +23,12 @@ def parse_args() -> argparse.Namespace:
         "-am",
         "--api-mode",
         type=str,
-        choices=["openai", "ollama"],
+        choices=["openai", "claude"],
         required=True,
-        help="API mode.",
+        help="Choose 'openai' for OpenAI API or 'claude' for Anthropic's Claude API. This is used for both evaluation and improvement.",
     )
     parser.add_argument(
-        "-m", "--model", type=str, required=True, help="Model name (e.g., 'gpt-4')."
+        "-m", "--model", type=str, required=True, help="Model name (e.g., 'gpt-4o-mini', 'claude-3-7-sonnet-latest')."
     )
     parser.add_argument(
         "-ui",

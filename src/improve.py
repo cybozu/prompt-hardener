@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional
-from utils import call_openai_api
+from utils import call_llm_api_for_evaluation_or_improvement
 import json
 
 
@@ -136,13 +136,15 @@ def improve_prompt(
     - Ensure that system messages (role:system) should not include user input (e.g., user's comments, questions)
     """
 
-    result = call_openai_api(
+    # Call the LLM API
+    result = call_llm_api_for_evaluation_or_improvement(
+        api_mode=api_mode,
         system_message=system_message,
         criteria_message=criteria_message,
         criteria=criteria,
         target_prompt=target_prompt,
         model_name=model,
-        json_response=False,
+        json_response=True,
     )
 
     # Post-process result
