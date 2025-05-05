@@ -1,7 +1,13 @@
+from typing import List, Dict, Optional
 from utils import call_openai_api
 
 
-def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None):
+def evaluate_prompt(
+    api_mode: str,
+    model: str,
+    target_prompt: List[Dict[str, str]],
+    user_input_description: Optional[str] = None,
+) -> Dict:
     system_message = """
     You are a <persona>Prompt Analyst</persona> responsible for evaluating the security of the target prompt.
     Your task is to assess whether the prompt follows secure design patterns based on the following categorized criteria.
@@ -28,7 +34,7 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
         "critique": "Overall critique of the prompt",
         "recommendation": "Overall suggestion for improvement"
     }
-    """
+    """.strip()
 
     if user_input_description:
         system_message += f"\n\nNote: In this prompt, the user input is identified as follows: {user_input_description}"
@@ -52,14 +58,12 @@ def evaluate_prompt(api_mode, model, target_prompt, user_input_description=None)
 
     [Structured Output Enforcement]
     - Enforce structured output format to avoid injection or leakage
-    """
-
-    criteria = criteria_message  # unified variable for clarity
+    """.strip()
 
     return call_openai_api(
         system_message=system_message,
         criteria_message=criteria_message,
-        criteria=criteria,
+        criteria=criteria_message,
         target_prompt=target_prompt,
         model_name=model,
         json_response=True,

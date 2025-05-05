@@ -1,14 +1,16 @@
+from typing import List, Dict, Optional
 from utils import call_openai_api
+import json
 
 
 def improve_prompt(
-    api_mode,
-    model,
-    target_prompt,
-    evaluation_result,
-    user_input_description=None,
-    apply_techniques=None,
-):
+    api_mode: str,
+    model: str,
+    target_prompt: List[Dict[str, str]],
+    evaluation_result: str,
+    user_input_description: Optional[str] = None,
+    apply_techniques: Optional[List[str]] = None,
+) -> List[Dict[str, str]]:
     # If no specific techniques are provided, apply all by default
     if apply_techniques is None:
         apply_techniques = []
@@ -17,11 +19,12 @@ def improve_prompt(
     system_message = """
     You are a <persona>Prompt Expert</persona> responsible for improving the security of the target prompt.
     Based on the evaluation provided below, suggest improvements to make the prompt more secure and robust.
-    Output ONLY the improved prompt in TEXT format.
 
     The evaluation result includes per-category assessments, an overall critique, and specific recommendations. Use these to identify and fix weaknesses.
-
     Ensure that any signed or salted tag used for securing instructions is named exactly {RANDOM}. Do NOT use {SECURE_PROMPT} or other placeholders.
+
+    Please return ONLY the improved Chat Completion messages (list of dictionaries), without wrapping them in a JSON object or including any additional metadata. Do not return keys like 'improved_prompt' or 'rules'. Just return the list.
+    Example format: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
     """
 
     # Attach evaluation result
@@ -58,7 +61,6 @@ def improve_prompt(
         Ensure that the model's response is constrained to a specific format (e.g., JSON or XML-like) to prevent instruction leaks or injection via output.
         """
 
-    # Example improvements
     example_before_after = """
     Example improvements based on each technique:
 
@@ -120,7 +122,7 @@ def improve_prompt(
     - Enforce structured output format to avoid injection or leakage
     """
 
-    return call_openai_api(
+    result = call_openai_api(
         system_message=system_message,
         criteria_message=criteria_message,
         criteria=criteria,
@@ -128,3 +130,14 @@ def improve_prompt(
         model_name=model,
         json_response=False,
     )
+
+    if isinstance(result, str):
+        try:
+            parsed = json.loads(result)
+            if isinstance(parsed, list) and all(isinstance(x, dict) for x in parsed):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+        raise ValueError("Returned result is not a valid JSON list.")
+    else:
+        return result
