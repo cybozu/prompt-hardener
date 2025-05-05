@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 import os
 import html
 import json
@@ -6,15 +7,15 @@ import string
 
 
 def generate_report(
-    initial_prompt,
-    initial_evaluation,
-    final_prompt,
-    final_evaluation,
-    attack_results,
-    output_dir_path,
-    initial_avg_score,
-    final_avg_score,
-):
+    initial_prompt: List[Dict[str, str]],
+    initial_evaluation: Dict[str, Any],
+    final_prompt: List[Dict[str, str]],
+    final_evaluation: Dict[str, Any],
+    attack_results: List[Dict[str, Any]],
+    output_dir_path: str,
+    initial_avg_score: float,
+    final_avg_score: float,
+) -> None:
     os.makedirs(output_dir_path, exist_ok=True)
     base = os.path.join(output_dir_path, "prompt_security_report")
     rand_suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
@@ -38,16 +39,16 @@ def generate_report(
 
 
 def generate_html_report(
-    initial_prompt,
-    initial_evaluation,
-    final_prompt,
-    final_evaluation,
-    attack_results,
-    html_path,
-    json_path,
-    initial_score,
-    final_score,
-):
+    initial_prompt: List[Dict[str, str]],
+    initial_evaluation: Dict[str, Any],
+    final_prompt: List[Dict[str, str]],
+    final_evaluation: Dict[str, Any],
+    attack_results: List[Dict[str, Any]],
+    html_path: str,
+    json_path: str,
+    initial_score: float,
+    final_score: float,
+) -> None:
     html_content = build_html_content(
         initial_prompt,
         initial_evaluation,
@@ -63,15 +64,15 @@ def generate_html_report(
 
 
 def build_html_content(
-    initial_prompt,
-    initial_evaluation,
-    final_prompt,
-    final_evaluation,
-    attack_results,
-    json_path,
-    initial_score,
-    final_score,
-):
+    initial_prompt: List[Dict[str, str]],
+    initial_evaluation: Dict[str, Any],
+    final_prompt: List[Dict[str, str]],
+    final_evaluation: Dict[str, Any],
+    attack_results: List[Dict[str, Any]],
+    json_path: str,
+    initial_score: float,
+    final_score: float,
+) -> str:
     total = len(attack_results)
     passed = len([r for r in attack_results if not r["success"]])
 
@@ -120,19 +121,6 @@ def build_html_content(
                 background-color: #007acc;
                 color: white;
             }}
-            summary {{
-                cursor: pointer;
-                font-weight: bold;
-            }}
-            .download-btn {{
-                display: inline-block;
-                margin-top: 10px;
-                padding: 8px 12px;
-                background-color: #28a745;
-                color: white;
-                border-radius: 4px;
-                text-decoration: none;
-            }}
         </style>
     </head>
     <body>
@@ -140,28 +128,25 @@ def build_html_content(
         <div class="section">
             <h2>Initial Prompt</h2>
             <p>This is the original prompt before any improvements were applied.</p>
-            <pre>{escape_html(initial_prompt)}</pre>
+            <pre>{escape_html(json.dumps(initial_prompt, indent=2, ensure_ascii=False))}</pre>
         </div>
         <div class="section">
             <h2>Initial Evaluation</h2>
-            <p>Evaluation of the initial prompt on various security categories and subcategories.</p>
-            <p><strong>Average Satisfaction Score (0-10): {initial_score} </strong></p>
+            <p><strong>Average Satisfaction Score (0-10): {initial_score}</strong></p>
             {format_evaluation_table(initial_evaluation)}
         </div>
         <div class="section">
             <h2>Final Prompt</h2>
             <p>This is the improved version of the prompt after refinement.</p>
-            <pre>{escape_html(final_prompt)}</pre>
+            <pre>{escape_html(json.dumps(final_prompt, indent=2, ensure_ascii=False))}</pre>
         </div>
         <div class="section">
             <h2>Final Evaluation</h2>
-            <p>Evaluation of the final prompt after refinement.</p>
-            <p><strong>Average Satisfaction Score (0-10): {final_score} </strong></p>
+            <p><strong>Average Satisfaction Score (0-10): {final_score}</strong></p>
             {format_evaluation_table(final_evaluation)}
         </div>
         <div class="section">
             <h2>Injection Test Results</h2>
-            <p>Automated test results showing whether the prompt resisted different types of prompt injection attacks.</p>
             <p><strong>{passed} / {total} PASSED</strong> — PASSED = attack blocked, FAILED = attack succeeded.</p>
             {format_attack_table(attack_results)}
         </div>
@@ -170,17 +155,11 @@ def build_html_content(
     """
 
 
-def escape_html(text):
+def escape_html(text: str) -> str:
     return html.escape(text)
 
 
-def format_dict(d):
-    from pprint import pformat
-
-    return pformat(d)
-
-
-def format_evaluation_table(evaluation):
+def format_evaluation_table(evaluation: Dict[str, Any]) -> str:
     rows = ""
     for category, detail in evaluation.items():
         if category in ("critique", "recommendation"):
@@ -190,7 +169,7 @@ def format_evaluation_table(evaluation):
     return f"<table><tr><th>Category</th><th>Subcategory</th><th>Score</th><th>Mark</th><th>Comment</th></tr>{rows}</table>"
 
 
-def format_attack_table(results):
+def format_attack_table(results: List[Dict[str, Any]]) -> str:
     rows = ""
     for r in results:
         rows += f"<tr><td>{escape_html(r.get('category', '-'))}</td><td>{escape_html(r['attack'])}</td><td>{escape_html(r['result'])}</td><td>{'✅' if not r['success'] else '❌'}</td></tr>"
