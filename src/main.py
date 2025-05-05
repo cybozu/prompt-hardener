@@ -1,3 +1,4 @@
+from typing import List, Dict, Any, Optional
 import argparse
 import json
 import os
@@ -7,17 +8,16 @@ from attack import run_injection_test
 from gen_report import generate_report
 
 
-# Argument parser setup
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate and improve the security of a prompt using OpenAI or Ollama API with self-refinement."
+        description="Evaluate and improve the security of a chat-style prompt using OpenAI or Ollama API with self-refinement."
     )
     parser.add_argument(
         "-t",
         "--target-prompt-path",
         type=str,
         required=True,
-        help="Path to the file containing the target prompt.",
+        help="Path to the file containing the target prompt in Chat Completion message format (JSON).",
     )
     parser.add_argument(
         "-am",
@@ -93,18 +93,32 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_target_prompt(file_path):
+def load_target_prompt(file_path: str) -> List[Dict[str, str]]:
     with open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+        return json.load(f)
 
 
-def write_to_file(output_path, content):
+def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
+    if not isinstance(prompt, list):
+        raise ValueError("Prompt must be a JSON array.")
+    for entry in prompt:
+        if not isinstance(entry, dict):
+            raise ValueError("Each entry must be a JSON object.")
+        if "role" not in entry or "content" not in entry:
+            raise ValueError("Each message must contain 'role' and 'content' keys.")
+        if entry["role"] not in ("system", "user", "assistant"):
+            raise ValueError(f"Invalid role: {entry['role']}")
+        if not isinstance(entry["content"], str):
+            raise ValueError("Message 'content' must be a string.")
+
+
+def write_to_file(output_path: str, content: List[Dict[str, str]]) -> None:
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(content)
+        json.dump(content, f, indent=2, ensure_ascii=False)
     print(f"Improved prompt written to: {output_path}")
 
 
-def load_tools(path):
+def load_tools(path: str) -> Optional[Dict[str, Any]]:
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -113,7 +127,7 @@ def load_tools(path):
         return None
 
 
-def average_satisfaction(evaluation):
+def average_satisfaction(evaluation: Dict[str, Any]) -> float:
     total, count = 0, 0
     for category, items in evaluation.items():
         if category in ("critique", "recommendation"):
@@ -127,9 +141,14 @@ def average_satisfaction(evaluation):
     return round((total / count), 2) if count else 0.0
 
 
-def main():
+def main() -> None:
     args = parse_args()
     current_prompt = load_target_prompt(args.target_prompt_path)
+    try:
+        validate_chat_completion_format(current_prompt)
+    except ValueError as e:
+        print(f"[Error] Invalid Chat Completion format: {e}")
+        return
     initial_prompt = current_prompt
 
     apply_techniques = args.apply_techniques or [
@@ -143,6 +162,9 @@ def main():
         args.api_mode, args.model, initial_prompt, args.user_input_description
     )
     initial_avg_score = average_satisfaction(initial_evaluation)
+    print("Initial Evaluation Result:")
+    print(initial_evaluation)
+    print(f"Initial Average Satisfaction Score: {initial_avg_score:.2f}")
 
     evaluation_result = initial_evaluation
     final_avg_score = initial_avg_score
@@ -174,7 +196,7 @@ def main():
             apply_techniques=apply_techniques,
         )
         print("Improved Prompt:")
-        print(current_prompt)
+        print(json.dumps(current_prompt, indent=2, ensure_ascii=False))
 
     # Final evaluation only if max iterations completed or threshold not reached
     if args.max_iterations == 1 or final_avg_score < args.threshold:
@@ -185,6 +207,7 @@ def main():
         print("Final Evaluation Result:")
         print(evaluation_result)
         final_avg_score = average_satisfaction(evaluation_result)
+        print(f"Average Satisfaction Score: {final_avg_score:.2f}")
 
     write_to_file(args.output_path, current_prompt)
 
