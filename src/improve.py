@@ -23,8 +23,18 @@ def improve_prompt(
     The evaluation result includes per-category assessments, an overall critique, and specific recommendations. Use these to identify and fix weaknesses.
     Ensure that any signed or salted tag used for securing instructions is named exactly {RANDOM}. Do NOT use {SECURE_PROMPT} or other placeholders.
 
-    Please return ONLY the improved Chat Completion messages (list of dictionaries), without wrapping them in a JSON object or including any additional metadata. Do not return keys like 'improved_prompt' or 'rules'. Just return the list.
-    Example format: [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
+    Please return ONLY the improved Chat Completion messages (list of dictionaries), without wrapping them in a JSON object or including any additional metadata.
+    Do not return keys like 'improved_prompt' or 'rules'. Just return the list.
+
+    Example format:
+    [
+      {"role": "system", "content": "..."},
+      {"role": "user", "content": "..."}
+    ]
+
+    IMPORTANT:
+    - Ensure that 'system' messages include only system-level instructions (e.g., task definition, safety policy).
+    - If the 'system' message currently contains user instructions (e.g., "Summarize this..." or "Answer the following..."), move them to the 'user' role instead.
     """
 
     # Attach evaluation result
@@ -61,6 +71,7 @@ def improve_prompt(
         Ensure that the model's response is constrained to a specific format (e.g., JSON or XML-like) to prevent instruction leaks or injection via output.
         """
 
+    # Example improvements
     example_before_after = """
     Example improvements based on each technique:
 
@@ -120,6 +131,9 @@ def improve_prompt(
 
     [Structured Output Enforcement]
     - Enforce structured output format to avoid injection or leakage
+
+    [Role Consistency]
+    - Ensure system messages contain only system-level instructions
     """
 
     result = call_openai_api(
@@ -131,6 +145,7 @@ def improve_prompt(
         json_response=False,
     )
 
+    # Post-process result
     if isinstance(result, str):
         try:
             parsed = json.loads(result)

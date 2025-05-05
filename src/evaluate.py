@@ -31,6 +31,9 @@ def evaluate_prompt(
         "Structured Output Enforcement": {
             "Enforce structured output format to avoid injection or leakage": {...}
         },
+        "Role Consistency": {
+            "Ensure system messages contain only system-level instructions": {...}
+        },
         "critique": "Overall critique of the prompt",
         "recommendation": "Overall suggestion for improvement"
     }
@@ -58,6 +61,9 @@ def evaluate_prompt(
 
     [Structured Output Enforcement]
     - Enforce structured output format to avoid injection or leakage
+
+    [Role Consistency]
+    - Ensure system messages contain only system-level instructions
     """.strip()
 
     return call_openai_api(

@@ -162,6 +162,9 @@ def main() -> None:
         args.api_mode, args.model, initial_prompt, args.user_input_description
     )
     initial_avg_score = average_satisfaction(initial_evaluation)
+    print("Initial Evaluation Result:")
+    print(initial_evaluation)
+    print(f"Initial Average Satisfaction Score: {initial_avg_score:.2f}")
 
     evaluation_result = initial_evaluation
     final_avg_score = initial_avg_score
@@ -202,6 +205,7 @@ def main() -> None:
         print("Final Evaluation Result:")
         print(evaluation_result)
         final_avg_score = average_satisfaction(evaluation_result)
+        print(f"Average Satisfaction Score: {final_avg_score:.2f}")
 
     write_to_file(args.output_path, current_prompt)
 
