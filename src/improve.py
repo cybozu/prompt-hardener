@@ -33,8 +33,8 @@ def improve_prompt(
     ]
 
     IMPORTANT:
-    - Ensure that 'system' messages include only system-level instructions (e.g., task definition, safety policy).
-    - If the 'system' message currently contains user instructions (e.g., "Summarize this..." or "Answer the following..."), move them to the 'user' role instead.
+    - Ensure that 'system' messages include ONLY system-level instructions (e.g., task definition, safety policy).
+    - If the 'system' message currently contains user instructions (e.g., user's comments, questions), move them to the 'user' role instead.
     """
 
     # Attach evaluation result
@@ -133,7 +133,7 @@ def improve_prompt(
     - Enforce structured output format to avoid injection or leakage
 
     [Role Consistency]
-    - Ensure system messages contain only system-level instructions
+    - Ensure that system messages (role:system) should not include user input (e.g., user's comments, questions)
     """
 
     result = call_openai_api(
