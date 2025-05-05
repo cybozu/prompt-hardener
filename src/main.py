@@ -182,7 +182,9 @@ def main() -> None:
             print(f"Average Satisfaction Score: {final_avg_score:.2f}")
 
             if final_avg_score >= args.threshold:
-                print("Prompt meets the required security threshold. Stopping refinement.")
+                print(
+                    "Prompt meets the required security threshold. Stopping refinement."
+                )
                 break
 
         current_prompt = improve_prompt(

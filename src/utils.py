@@ -10,7 +10,7 @@ def build_openai_messages(
     criteria_message: str,
     criteria: str,
     target_prompt: List[Dict[str, str]],
-    json_response: bool = True
+    json_response: bool = True,
 ) -> List[Dict[str, str]]:
     """
     Construct chat messages for OpenAI's Chat Completion API.
@@ -21,13 +21,16 @@ def build_openai_messages(
     user_instruction = (
         f"The target prompt is:\n{prompt_block}\n\n"
         f"Please evaluate or improve the above according to the criteria and respond in JSON."
-        if json_response else
-        f"The target prompt is:\n{prompt_block}"
+        if json_response
+        else f"The target prompt is:\n{prompt_block}"
     )
 
     return [
         {"role": "system", "content": system_message.strip()},
-        {"role": "system", "content": f"The evaluation criteria are:\n{criteria_message.strip()}\n{criteria.strip()}"},
+        {
+            "role": "system",
+            "content": f"The evaluation criteria are:\n{criteria_message.strip()}\n{criteria.strip()}",
+        },
         {"role": "user", "content": user_instruction.strip()},
     ]
 
@@ -38,7 +41,7 @@ def call_openai_api(
     criteria: str,
     target_prompt: List[Dict[str, str]],
     model_name: str,
-    json_response: bool = True
+    json_response: bool = True,
 ) -> List[Dict[str, str]] | str:
     """
     Call the OpenAI Chat Completion API with the given structured prompt.
