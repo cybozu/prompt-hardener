@@ -154,7 +154,7 @@ def run_injection_test(
                 system_prompt, random_tag
             )
             final_prompt = insert_attack_into_prompt(
-                normalized_prompt, attack_model, mod_attack, attack_api_mode
+                normalized_prompt, judge_model, mod_attack, judge_api_mode
             )
 
             try:
