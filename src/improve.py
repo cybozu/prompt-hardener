@@ -193,7 +193,9 @@ def improve_prompt(
 
         # If the attack API mode is Claude, it doesn't support 'system' role. Convert 'system' to 'user'.
         if attack_api_mode == "claude":
-            print("Warning: Claude API does not support 'system' role. Converting 'system' to 'user'.")
+            print(
+                "Warning: Claude API does not support 'system' role. Converting 'system' to 'user'."
+            )
             for message in result:
                 if message["role"] == "system":
                     message["role"] = "user"

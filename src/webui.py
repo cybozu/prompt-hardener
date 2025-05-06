@@ -74,7 +74,9 @@ def run_evaluation(
         cli_main()
 
         report_file = next(report_dir.glob("prompt_security_report_*.html"), None)
-        json_file = next(report_dir.glob("prompt_security_report_*_attack_results.json"), None)
+        json_file = next(
+            report_dir.glob("prompt_security_report_*_attack_results.json"), None
+        )
 
         html_tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
         json_tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
@@ -92,24 +94,40 @@ def run_evaluation(
         else:
             return "⚠️ Report generation failed", "", ""
 
+
 # Gradio UI
 with gr.Blocks() as demo:
     gr.Markdown("# 🔐 Prompt Hardener Web UI")
 
     with gr.Row():
         with gr.Column():
-            prompt = gr.Textbox(label="System Prompt (Chat Completion Format JSON)", lines=12)
-            eval_api_mode = gr.Radio(["openai", "claude"], value="openai", label="Evaluation API Mode")
+            prompt = gr.Textbox(
+                label="System Prompt (Chat Completion Format JSON)", lines=12
+            )
+            eval_api_mode = gr.Radio(
+                ["openai", "claude"], value="openai", label="Evaluation API Mode"
+            )
             eval_model = gr.Textbox(label="Evaluation Model", value="gpt-4o")
-            attack_api_mode = gr.Radio(["openai", "claude"], value="openai", label="Attack API Mode")
+            attack_api_mode = gr.Radio(
+                ["openai", "claude"], value="openai", label="Attack API Mode"
+            )
             attack_model = gr.Textbox(label="Attack Model (optional)")
-            judge_api_mode = gr.Radio(["openai", "claude"], value="openai", label="Judge API Mode")
+            judge_api_mode = gr.Radio(
+                ["openai", "claude"], value="openai", label="Judge API Mode"
+            )
             judge_model = gr.Textbox(label="Judge Model (optional)")
             description = gr.Textbox(label="User Input Description")
             iterations = gr.Slider(1, 10, value=3, step=1, label="Max Iterations")
-            threshold = gr.Slider(0, 10, value=8.5, step=0.1, label="Satisfaction Threshold")
+            threshold = gr.Slider(
+                0, 10, value=8.5, step=0.1, label="Satisfaction Threshold"
+            )
             techniques = gr.CheckboxGroup(
-                ["spotlighting", "signed_prompt", "rule_reinforcement", "structured_output"],
+                [
+                    "spotlighting",
+                    "signed_prompt",
+                    "rule_reinforcement",
+                    "structured_output",
+                ],
                 label="Defense Techniques",
             )
             test = gr.Checkbox(label="Run Injection Test", value=True)

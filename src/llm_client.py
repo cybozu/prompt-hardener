@@ -8,6 +8,7 @@ claude_client = Anthropic()
 
 # --- Message builders ---
 
+
 def build_openai_messages_for_eval_or_improve(
     system_message: str,
     criteria_message: str,
@@ -19,13 +20,18 @@ def build_openai_messages_for_eval_or_improve(
     user_instruction = (
         f"The target prompt is:\n{prompt_block}\n\n"
         f"Please evaluate or improve the above according to the criteria and respond in JSON."
-        if json_response else f"The target prompt is:\n{prompt_block}"
+        if json_response
+        else f"The target prompt is:\n{prompt_block}"
     )
     return [
         {"role": "system", "content": system_message.strip()},
-        {"role": "system", "content": f"The evaluation criteria are:\n{criteria_message.strip()}\n{criteria.strip()}"},
+        {
+            "role": "system",
+            "content": f"The evaluation criteria are:\n{criteria_message.strip()}\n{criteria.strip()}",
+        },
         {"role": "user", "content": user_instruction.strip()},
     ]
+
 
 def build_claude_messages_for_eval_or_improve(
     system_message: str,
@@ -40,11 +46,14 @@ def build_claude_messages_for_eval_or_improve(
         f"The evaluation criteria are:\n{criteria_message.strip()}\n{criteria.strip()}\n\n"
         f"The target prompt is:\n{prompt_block}\n\n"
         f"Please evaluate or improve the above according to the criteria and respond in JSON."
-        if json_response else f"{system_message.strip()}\n\n{prompt_block}"
+        if json_response
+        else f"{system_message.strip()}\n\n{prompt_block}"
     )
     return [{"role": "user", "content": content.strip()}]
 
+
 # --- API Callers ---
+
 
 def call_llm_api_for_eval_or_improve(
     api_mode: str,
@@ -57,7 +66,9 @@ def call_llm_api_for_eval_or_improve(
 ) -> Union[List[Dict[str, str]], str]:
     try:
         if api_mode == "openai":
-            messages = build_openai_messages_for_eval_or_improve(system_message, criteria_message, criteria, target_prompt, json_response)
+            messages = build_openai_messages_for_eval_or_improve(
+                system_message, criteria_message, criteria, target_prompt, json_response
+            )
             kwargs = {
                 "model": model_name,
                 "messages": messages,
@@ -71,7 +82,9 @@ def call_llm_api_for_eval_or_improve(
             return json.loads(content) if json_response else content
 
         elif api_mode == "claude":
-            messages = build_claude_messages_for_eval_or_improve(system_message, criteria_message, criteria, target_prompt, json_response)
+            messages = build_claude_messages_for_eval_or_improve(
+                system_message, criteria_message, criteria, target_prompt, json_response
+            )
             completion = claude_client.messages.create(
                 model=model_name,
                 messages=messages,
@@ -85,7 +98,10 @@ def call_llm_api_for_eval_or_improve(
             raise ValueError(f"Unsupported API mode: {api_mode}")
 
     except Exception as e:
-        raise ValueError(f"Error: Failed to call {api_mode} API with model '{model_name}': {e}")
+        raise ValueError(
+            f"Error: Failed to call {api_mode} API with model '{model_name}': {e}"
+        )
+
 
 def call_llm_api_for_attack(
     api_mode: str,
@@ -93,7 +109,7 @@ def call_llm_api_for_attack(
     messages: List[Dict[str, str]],
     tools: Optional[List[dict]] = None,
     tool_choice: Optional[str] = None,
-    temperature: float = 0.2
+    temperature: float = 0.2,
 ) -> str:
     if api_mode == "openai":
         kwargs = {
@@ -122,10 +138,7 @@ def call_llm_api_for_attack(
 
 
 def call_llm_api_for_judge(
-    api_mode: str,
-    model: str,
-    messages: List[Dict[str, str]],
-    temperature: float = 0.0
+    api_mode: str, model: str, messages: List[Dict[str, str]], temperature: float = 0.0
 ) -> str:
     if api_mode == "openai":
         response = openai_client.chat.completions.create(

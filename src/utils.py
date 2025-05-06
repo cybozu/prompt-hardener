@@ -1,5 +1,6 @@
 from typing import List, Dict
 
+
 def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
     if not isinstance(prompt, list):
         raise ValueError("Prompt must be a JSON array.")

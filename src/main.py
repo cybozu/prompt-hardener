@@ -144,6 +144,7 @@ def parse_args() -> argparse.Namespace:
 
     return parser.parse_args()
 
+
 def load_target_prompt(file_path: str) -> List[Dict[str, str]]:
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -181,7 +182,9 @@ def average_satisfaction(evaluation: Dict[str, Any]) -> float:
 def main() -> None:
     args = parse_args()
     current_prompt = load_target_prompt(args.target_prompt_path)
-    print(f"Loaded target prompt from {args.target_prompt_path}:\n{json.dumps(current_prompt, indent=2, ensure_ascii=False)}")
+    print(
+        f"Loaded target prompt from {args.target_prompt_path}:\n{json.dumps(current_prompt, indent=2, ensure_ascii=False)}"
+    )
     try:
         validate_chat_completion_format(current_prompt)
     except ValueError as e:
@@ -199,7 +202,10 @@ def main() -> None:
 
     initial_prompt = current_prompt
     apply_techniques = args.apply_techniques or [
-        "spotlighting", "signed_prompt", "rule_reinforcement", "structured_output"
+        "spotlighting",
+        "signed_prompt",
+        "rule_reinforcement",
+        "structured_output",
     ]
 
     initial_evaluation = evaluate_prompt(
@@ -217,7 +223,10 @@ def main() -> None:
         print(f"\n--- Iteration {i + 1} ---")
         if i > 0:
             evaluation_result = evaluate_prompt(
-                args.eval_api_mode, args.eval_model, current_prompt, args.user_input_description
+                args.eval_api_mode,
+                args.eval_model,
+                current_prompt,
+                args.user_input_description,
             )
             print("Evaluation Result:")
             print(evaluation_result)
@@ -226,7 +235,9 @@ def main() -> None:
             print(f"Average Satisfaction Score: {final_avg_score:.2f}")
 
             if final_avg_score >= args.threshold:
-                print("Prompt meets the required security threshold. Stopping refinement.")
+                print(
+                    "Prompt meets the required security threshold. Stopping refinement."
+                )
                 break
 
         current_prompt = improve_prompt(
@@ -244,7 +255,10 @@ def main() -> None:
     if args.max_iterations == 1 or final_avg_score < args.threshold:
         print("\n--- Final Evaluation ---")
         evaluation_result = evaluate_prompt(
-            args.eval_api_mode, args.eval_model, current_prompt, args.user_input_description
+            args.eval_api_mode,
+            args.eval_model,
+            current_prompt,
+            args.user_input_description,
         )
         print("Final Evaluation Result:")
         print(evaluation_result)
@@ -285,7 +299,7 @@ def main() -> None:
             args.judge_model,
             args.eval_api_mode,
             args.attack_api_mode,
-            args.judge_api_mode
+            args.judge_api_mode,
         )
         print("Report generation complete.")
 
