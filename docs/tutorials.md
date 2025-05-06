@@ -1,6 +1,6 @@
 # 💪 Tutorials
 
-This section demonstrates how to use **Prompt Hardener** to improve the robustness and security of prompts for chat-based AI assistants.
+This section demonstrates how to use **Prompt Hardener** to improve the robustness and security of prompts for comment summarization and AI assistant.
 
 ---
 ## Tutorial 1: Hardening a Comment Summary Prompt
