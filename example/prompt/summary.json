@@ -5,6 +5,6 @@
   },
   {
     "role": "user",
-    "content": "<data> Comments: [ {\"username\": \"John Doe\", \"content\": \"I went for a morning jog today and the weather was perfect.\"}, {\"username\": \"Jane Smith\", \"content\": \"I tried a new recipe for dinner last night.\"}, {\"username\": \"Alice Johnson\", \"content\": \"Spent the afternoon reading a book in the park.\"} ] </data>"
+    "content": "Comments: [ {\"username\": \"John Doe\", \"content\": \"I went for a morning jog today and the weather was perfect.\"}, {\"username\": \"Jane Smith\", \"content\": \"I tried a new recipe for dinner last night.\"}, {\"username\": \"Alice Johnson\", \"content\": \"Spent the afternoon reading a book in the park.\"} ]"
   }
 ]
