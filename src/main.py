@@ -6,6 +6,7 @@ from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
 from gen_report import generate_report
+from utils import validate_chat_completion_format
 
 
 def parse_args() -> argparse.Namespace:
@@ -148,20 +149,6 @@ def load_target_prompt(file_path: str) -> List[Dict[str, str]]:
         return json.load(f)
 
 
-def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
-    if not isinstance(prompt, list):
-        raise ValueError("Prompt must be a JSON array.")
-    for entry in prompt:
-        if not isinstance(entry, dict):
-            raise ValueError("Each entry must be a JSON object.")
-        if "role" not in entry or "content" not in entry:
-            raise ValueError("Each message must contain 'role' and 'content' keys.")
-        if entry["role"] not in ("system", "user", "assistant"):
-            raise ValueError(f"Invalid role: {entry['role']}")
-        if not isinstance(entry["content"], str):
-            raise ValueError("Message 'content' must be a string.")
-
-
 def write_to_file(output_path: str, content: List[Dict[str, str]]) -> None:
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(content, f, indent=2, ensure_ascii=False)
@@ -194,6 +181,7 @@ def average_satisfaction(evaluation: Dict[str, Any]) -> float:
 def main() -> None:
     args = parse_args()
     current_prompt = load_target_prompt(args.target_prompt_path)
+    print(f"Loaded target prompt from {args.target_prompt_path}:\n{json.dumps(current_prompt, indent=2, ensure_ascii=False)}")
     try:
         validate_chat_completion_format(current_prompt)
     except ValueError as e:
