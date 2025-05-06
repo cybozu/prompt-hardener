@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional
-from utils import call_llm_api_for_evaluation_or_improvement
+from llm_client import call_llm_api_for_eval_or_improve
 
 
 def evaluate_prompt(
@@ -75,12 +75,12 @@ def evaluate_prompt(
     """.strip()
 
     # Call the LLM API
-    return call_llm_api_for_evaluation_or_improvement(
+    return call_llm_api_for_eval_or_improve(
         api_mode=api_mode,
+        model_name=model,
         system_message=system_message,
         criteria_message=criteria_message,
         criteria=criteria,
         target_prompt=target_prompt,
-        model_name=model,
         json_response=True,
     )

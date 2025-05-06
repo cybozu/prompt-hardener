@@ -1,11 +1,12 @@
 from typing import List, Dict, Optional
-from utils import call_llm_api_for_evaluation_or_improvement
+from llm_client import call_llm_api_for_eval_or_improve
 import json
 
 
 def improve_prompt(
-    api_mode: str,
-    model: str,
+    eval_api_mode: str,
+    eval_model: str,
+    attack_api_mode: str,
     target_prompt: List[Dict[str, str]],
     evaluation_result: str,
     user_input_description: Optional[str] = None,
@@ -21,7 +22,7 @@ def improve_prompt(
     Based on the evaluation provided below, suggest improvements to make the prompt more secure and robust.
 
     The evaluation result includes per-category assessments, an overall critique, and specific recommendations. Use these to identify and fix weaknesses.
-    Ensure that any signed or salted tag used for securing instructions is named exactly {RANDOM}. Do NOT use {SECURE_PROMPT} or other placeholders.
+    Ensure that any signed or salted tag used for securing instructions is named exactly {{RANDOM}}. Do NOT use {{SECURE_PROMPT}} or other placeholders.
 
     Please return ONLY the improved Chat Completion messages (list of dictionaries), without wrapping them in a JSON object or including any additional metadata.
     Do not return keys like 'improved_prompt' or 'rules'. Just return the list.
@@ -34,7 +35,7 @@ def improve_prompt(
 
     IMPORTANT:
     - Ensure that 'system' messages include ONLY system-level instructions (e.g., task definition, safety policy).
-    - If the 'system' message currently contains user instructions (e.g., user's comments, questions), move them to the 'user' role instead.
+      - If the 'system' message currently contains user instructions (e.g., user's comments, questions), move them to the 'user' role instead.
     """
 
     # Attach evaluation result
@@ -137,13 +138,13 @@ def improve_prompt(
     """
 
     # Call the LLM API
-    result = call_llm_api_for_evaluation_or_improvement(
-        api_mode=api_mode,
+    result = call_llm_api_for_eval_or_improve(
+        api_mode=eval_api_mode,
+        model_name=eval_model,
         system_message=system_message,
         criteria_message=criteria_message,
         criteria=criteria,
         target_prompt=target_prompt,
-        model_name=model,
         json_response=True,
     )
 
@@ -152,9 +153,25 @@ def improve_prompt(
         try:
             parsed = json.loads(result)
             if isinstance(parsed, list) and all(isinstance(x, dict) for x in parsed):
+                # If the attack API mode is Claude, it doesn't support 'system' role. Convert 'system' to 'user'.
+                if attack_api_mode == "claude":
+                    print("Warning: Claude API does not support 'system' role. Converting 'system' to 'user'.")
+                    for message in parsed:
+                        if message["role"] == "system":
+                            message["role"] = "user"
                 return parsed
         except json.JSONDecodeError:
             pass
         raise ValueError("Returned result is not a valid JSON list.")
     else:
+        # Ensure the result is a list of dictionaries
+        if not isinstance(result, list) or not all(isinstance(x, dict) for x in result):
+            raise ValueError("Returned result is not a valid JSON list.")
+            
+        # If the attack API mode is Claude, it doesn't support 'system' role. Convert 'system' to 'user'.
+        if attack_api_mode == "claude":
+            print("Warning: Claude API does not support 'system' role. Converting 'system' to 'user'.")
+            for message in result:
+                if message["role"] == "system":
+                    message["role"] = "user"
         return result
