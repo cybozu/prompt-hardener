@@ -22,6 +22,23 @@ Originally created to help secure LLM agents like chatbots, RAG systems, and too
 | 🌐 Web UI | Use with Gradio for demos, experimentation, and quick prototyping |
 
 ## 🚀 Getting Started
+### 🔑 Set Up API Keys
+Prompt Hardener uses LLMs to **evaluate** prompts, **apply security improvements**, **test prompt injection attacks**, and **judge whether attacks were successful** — all in an automated pipeline.
+
+Prompt Hardener supports **OpenAI** and **Anthropic Claude** APIs.
+
+You must set at least one of the following environment variables before use:
+
+```bash
+# For OpenAI API (e.g. GPT-4, GPT-4o)
+export OPENAI_API_KEY=...
+
+# For Claude API (e.g. Claude 3.7 Sonnet)
+export ANTHROPIC_API_KEY=...
+```
+
+You can add these lines to your shell profile (e.g. `.bashrc`, `.zshrc`) to make them persistent.
+
 ### 🔧 Installation
 
 ```bash
