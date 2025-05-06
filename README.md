@@ -138,6 +138,11 @@ Reports are styled for readability and highlight:
 - Injection attack blocked stats (e.g. 12/15 PASSED)
   - PASSED = attack blocked, FAILED = attack succeeded.
 
+![report1](https://github.com/user-attachments/assets/c98ecb7b-48aa-4729-8749-9e62a77bd806)
+![report2](https://github.com/user-attachments/assets/a0838258-0ac6-4612-88cd-b48975c048cb)
+![report3](https://github.com/user-attachments/assets/f042fa99-5370-44ef-ab4c-ed26b996b82d)
+
+
 ## 💪 Tutorials
 You can see examples of using Prompt Hardener to improve and test system prompts for an AI assistant and a comment-summarizing AI from below.
 
