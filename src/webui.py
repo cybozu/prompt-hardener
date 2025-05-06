@@ -8,14 +8,17 @@ from main import main as cli_main
 
 def run_evaluation(
     prompt,
-    api_mode,
-    model,
+    eval_api_mode,
+    eval_model,
+    attack_api_mode,
+    attack_model,
+    judge_api_mode,
+    judge_model,
     description,
     iterations,
     threshold,
     techniques,
     test,
-    test_model,
     separator,
     tools_json,
 ):
@@ -23,8 +26,8 @@ def run_evaluation(
     report_dir.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        prompt_path = Path(tmpdir) / "prompt.txt"
-        output_path = Path(tmpdir) / "out.txt"
+        prompt_path = Path(tmpdir) / "prompt.json"
+        output_path = Path(tmpdir) / "out.json"
         tools_path = None
 
         prompt_path.write_text(prompt, encoding="utf-8")
@@ -34,15 +37,15 @@ def run_evaluation(
 
         sys.argv = [
             "main.py",
-            "-t",
+            "--target-prompt-path",
             str(prompt_path),
-            "-am",
-            api_mode,
-            "-m",
-            model,
-            "-o",
+            "--eval-api-mode",
+            eval_api_mode,
+            "--eval-model",
+            eval_model,
+            "--output-path",
             str(output_path),
-            "-n",
+            "--max-iterations",
             str(iterations),
             "--threshold",
             str(threshold),
@@ -50,11 +53,19 @@ def run_evaluation(
             str(report_dir),
         ]
         if description:
-            sys.argv += ["-ui", description]
+            sys.argv += ["--user-input-description", description]
         if techniques:
             sys.argv += ["--apply-techniques"] + techniques
         if test:
-            sys.argv += ["--test-after", "--test-model", test_model]
+            if attack_api_mode:
+                sys.argv += ["--attack-api-mode", attack_api_mode]
+            if attack_model:
+                sys.argv += ["--attack-model", attack_model]
+            if judge_api_mode:
+                sys.argv += ["--judge-api-mode", judge_api_mode]
+            if judge_model:
+                sys.argv += ["--judge-model", judge_model]
+            sys.argv += ["--test-after"]
         if separator:
             sys.argv += ["--test-separator", separator]
         if tools_path:
@@ -86,12 +97,25 @@ def run_evaluation(
 
 # Gradio UI
 with gr.Blocks() as demo:
-    gr.Markdown("# 🔐 Prompt Hardener")
+    gr.Markdown("# 🔐 Prompt Hardener Web UI")
+
     with gr.Row():
         with gr.Column():
-            prompt = gr.Textbox(label="System Prompt", lines=12)
-            api_mode = gr.Radio(["openai", "ollama"], value="openai", label="API Mode")
-            model = gr.Textbox(label="Model", value="gpt-4")
+            prompt = gr.Textbox(
+                label="System Prompt (Chat Completion Format JSON)", lines=12
+            )
+            eval_api_mode = gr.Radio(
+                ["openai", "claude"], value="openai", label="Evaluation API Mode"
+            )
+            eval_model = gr.Textbox(label="Evaluation Model", value="gpt-4o")
+            attack_api_mode = gr.Radio(
+                ["openai", "claude"], value="openai", label="Attack API Mode"
+            )
+            attack_model = gr.Textbox(label="Attack Model (optional)")
+            judge_api_mode = gr.Radio(
+                ["openai", "claude"], value="openai", label="Judge API Mode"
+            )
+            judge_model = gr.Textbox(label="Judge Model (optional)")
             description = gr.Textbox(label="User Input Description")
             iterations = gr.Slider(1, 10, value=3, step=1, label="Max Iterations")
             threshold = gr.Slider(
@@ -107,7 +131,6 @@ with gr.Blocks() as demo:
                 label="Defense Techniques",
             )
             test = gr.Checkbox(label="Run Injection Test", value=True)
-            test_model = gr.Textbox(label="Test Model", value="gpt-3.5-turbo")
             separator = gr.Textbox(label="Attack Separator", value="")
             tools_json = gr.Textbox(label="Tools (JSON)", lines=4)
 
@@ -121,14 +144,17 @@ with gr.Blocks() as demo:
         run_evaluation,
         inputs=[
             prompt,
-            api_mode,
-            model,
+            eval_api_mode,
+            eval_model,
+            attack_api_mode,
+            attack_model,
+            judge_api_mode,
+            judge_model,
             description,
             iterations,
             threshold,
             techniques,
             test,
-            test_model,
             separator,
             tools_json,
         ],

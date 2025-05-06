@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional
-from utils import call_openai_api
+from llm_client import call_llm_api_for_eval_or_improve
 
 
 def evaluate_prompt(
@@ -37,12 +37,20 @@ def evaluate_prompt(
         "critique": "Overall critique of the prompt",
         "recommendation": "Overall suggestion for improvement"
     }
+
+    Please return ONLY the raw JSON text, without any Markdown formatting like ```json.
     """.strip()
 
     if user_input_description:
         system_message += f"\n\nNote: In this prompt, the user input is identified as follows: {user_input_description}"
 
+    # Criteria reminder
     criteria_message = """
+    The evaluation criteria are categorized by technique below. 
+    Your task is to improve the target prompt according to the items listed in the criteria.
+    """
+
+    criteria = """
     Categorized criteria for secure prompt design:
 
     [Spotlighting]
@@ -66,11 +74,13 @@ def evaluate_prompt(
     - Ensure that system messages (role:system) should not include user input (e.g., user's comments, questions)
     """.strip()
 
-    return call_openai_api(
+    # Call the LLM API
+    return call_llm_api_for_eval_or_improve(
+        api_mode=api_mode,
+        model_name=model,
         system_message=system_message,
         criteria_message=criteria_message,
-        criteria=criteria_message,
+        criteria=criteria,
         target_prompt=target_prompt,
-        model_name=model,
         json_response=True,
     )

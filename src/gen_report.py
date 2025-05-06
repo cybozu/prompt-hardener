@@ -15,6 +15,12 @@ def generate_report(
     output_dir_path: str,
     initial_avg_score: float,
     final_avg_score: float,
+    eval_model: str,
+    attack_model: str,
+    judge_model: str,
+    eval_api_mode: str,
+    attack_api_mode: str,
+    judge_api_mode: str,
 ) -> None:
     os.makedirs(output_dir_path, exist_ok=True)
     base = os.path.join(output_dir_path, "prompt_security_report")
@@ -32,6 +38,12 @@ def generate_report(
         json_path,
         initial_avg_score,
         final_avg_score,
+        eval_model,
+        attack_model,
+        judge_model,
+        eval_api_mode,
+        attack_api_mode,
+        judge_api_mode,
     )
 
     with open(json_path, "w", encoding="utf-8") as f:
@@ -48,6 +60,12 @@ def generate_html_report(
     json_path: str,
     initial_score: float,
     final_score: float,
+    eval_model: str,
+    attack_model: str,
+    judge_model: str,
+    eval_api_mode: str,
+    attack_api_mode: str,
+    judge_api_mode: str,
 ) -> None:
     html_content = build_html_content(
         initial_prompt,
@@ -58,6 +76,12 @@ def generate_html_report(
         json_path,
         initial_score,
         final_score,
+        eval_model,
+        attack_model,
+        judge_model,
+        eval_api_mode,
+        attack_api_mode,
+        judge_api_mode,
     )
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html_content)
@@ -72,6 +96,12 @@ def build_html_content(
     json_path: str,
     initial_score: float,
     final_score: float,
+    eval_model: str,
+    attack_model: str,
+    judge_model: str,
+    eval_api_mode: str,
+    attack_api_mode: str,
+    judge_api_mode: str,
 ) -> str:
     total = len(attack_results)
     passed = len([r for r in attack_results if not r["success"]])
@@ -125,6 +155,16 @@ def build_html_content(
     </head>
     <body>
         <h1>Prompt Security Evaluation Report</h1>
+        <div class="section">
+            <h2>LLM Configuration</h2>
+            <table>
+              <tr><th>Purpose</th><th>API</th><th>Model</th></tr>
+              <tr><td>Evaluation & Improvement</td><td>{escape_html(eval_api_mode)}</td><td>{escape_html(eval_model)}</td></tr>
+              <tr><td>Attack Execution</td><td>{escape_html(attack_api_mode)}</td><td>{escape_html(attack_model)}</td></tr>
+              <tr><td>Injection Judgment</td><td>{escape_html(judge_api_mode)}</td><td>{escape_html(judge_model)}</td></tr>
+            </table>
+        </div>
+
         <div class="section">
             <h2>Initial Prompt</h2>
             <p>This is the original prompt before any improvements were applied.</p>

@@ -6,12 +6,14 @@ from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
 from gen_report import generate_report
+from utils import validate_chat_completion_format
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate and improve the security of a chat-style prompt using OpenAI or Ollama API with self-refinement."
+        description="Evaluate, improve, and test the security of a Chat Completion-style prompt using LLM APIs (OpenAI or Claude)."
     )
+
     parser.add_argument(
         "-t",
         "--target-prompt-path",
@@ -19,44 +21,87 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Path to the file containing the target prompt in Chat Completion message format (JSON).",
     )
+
+    parser.add_argument(
+        "-ea",
+        "--eval-api-mode",
+        type=str,
+        choices=["openai", "claude"],
+        required=True,
+        help="LLM API to use for evaluating and improving the prompt (e.g., OpenAI or Claude).",
+    )
+    parser.add_argument(
+        "-em",
+        "--eval-model",
+        type=str,
+        required=True,
+        help="Model name for evaluation and improvement (e.g., 'gpt-4o-mini', 'claude-3-7sonnet-latest').",
+    )
+
+    parser.add_argument(
+        "-aa",
+        "--attack-api-mode",
+        type=str,
+        choices=["openai", "claude"],
+        default=None,
+        help="LLM API to use for executing attacks. If not provided, defaults to --eval-api-mode.",
+    )
     parser.add_argument(
         "-am",
-        "--api-mode",
+        "--attack-model",
         type=str,
-        choices=["openai", "ollama"],
-        required=True,
-        help="API mode.",
+        default=None,
+        help="Model to use for executing attacks. If not provided, defaults to --eval-model.",
+    )
+
+    parser.add_argument(
+        "-ja",
+        "--judge-api-mode",
+        type=str,
+        choices=["openai", "claude"],
+        default=None,
+        help="LLM API to use for inserting attack payloads and judging success. If not provided, defaults to --eval-api-mode.",
     )
     parser.add_argument(
-        "-m", "--model", type=str, required=True, help="Model name (e.g., 'gpt-4')."
+        "-jm",
+        "--judge-model",
+        type=str,
+        default=None,
+        help="Model to use for inserting attack payloads and judging success. If not provided, defaults to --eval-model.",
     )
+
     parser.add_argument(
         "-ui",
         "--user-input-description",
         type=str,
-        help="Description of user input fields.",
+        help="Description of user input fields. Helps prevent incorrect placement inside secure instruction tags.",
     )
+
     parser.add_argument(
         "-o",
         "--output-path",
         type=str,
         required=True,
-        help="File path to write improved prompt.",
+        help="File path to write the improved prompt as JSON.",
     )
+
     parser.add_argument(
         "-n",
         "--max-iterations",
         type=int,
         default=3,
-        help="Maximum refinement iterations.",
+        help="Maximum number of self-refinement iterations. Default is 3.",
     )
+
     parser.add_argument(
         "--threshold",
         type=float,
         default=8.5,
-        help="Score threshold to stop refinement. Range: 0-10. Default: 8.5",
+        help="Score threshold (0-10) to stop refinement. If reached, iteration halts early. Default is 8.5.",
     )
+
     parser.add_argument(
+        "-a",
         "--apply-techniques",
         nargs="+",
         choices=[
@@ -65,51 +110,44 @@ def parse_args() -> argparse.Namespace:
             "rule_reinforcement",
             "structured_output",
         ],
-        help="Techniques to apply.",
+        help="List of techniques to apply during prompt improvement. Defaults to all if not specified.",
     )
+
     parser.add_argument(
-        "--test-after", action="store_true", help="Run injection test after refinement."
+        "-ta",
+        "--test-after",
+        action="store_true",
+        help="Run prompt injection test automatically after refinement.",
     )
+
     parser.add_argument(
-        "--test-model",
-        type=str,
-        default="gpt-3.5-turbo",
-        help="Model used for post-test.",
-    )
-    parser.add_argument(
+        "-ts",
         "--test-separator",
         type=str,
         default=None,
-        help="Prefix separator before payload.",
+        help="Optional string to prepend to each attack payload (e.g., '\\n').",
     )
+
     parser.add_argument(
-        "--tools-path", type=str, help="Path to JSON file defining tool specs."
+        "-tp",
+        "--tools-path",
+        type=str,
+        help="Path to a JSON file that defines available tools/functions for the LLM (used during attack).",
     )
+
     parser.add_argument(
+        "-rd",
         "--report-dir",
         type=str,
-        help="Directory to write a report after processing.",
+        help="Directory to write a full HTML and JSON report after execution.",
     )
+
     return parser.parse_args()
 
 
 def load_target_prompt(file_path: str) -> List[Dict[str, str]]:
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
-    if not isinstance(prompt, list):
-        raise ValueError("Prompt must be a JSON array.")
-    for entry in prompt:
-        if not isinstance(entry, dict):
-            raise ValueError("Each entry must be a JSON object.")
-        if "role" not in entry or "content" not in entry:
-            raise ValueError("Each message must contain 'role' and 'content' keys.")
-        if entry["role"] not in ("system", "user", "assistant"):
-            raise ValueError(f"Invalid role: {entry['role']}")
-        if not isinstance(entry["content"], str):
-            raise ValueError("Message 'content' must be a string.")
 
 
 def write_to_file(output_path: str, content: List[Dict[str, str]]) -> None:
@@ -144,13 +182,25 @@ def average_satisfaction(evaluation: Dict[str, Any]) -> float:
 def main() -> None:
     args = parse_args()
     current_prompt = load_target_prompt(args.target_prompt_path)
+    print(
+        f"Loaded target prompt from {args.target_prompt_path}:\n{json.dumps(current_prompt, indent=2, ensure_ascii=False)}"
+    )
     try:
         validate_chat_completion_format(current_prompt)
     except ValueError as e:
         print(f"[Error] Invalid Chat Completion format: {e}")
         return
-    initial_prompt = current_prompt
 
+    if args.attack_api_mode is None:
+        args.attack_api_mode = args.eval_api_mode
+    if args.attack_model is None:
+        args.attack_model = args.eval_model
+    if args.judge_api_mode is None:
+        args.judge_api_mode = args.eval_api_mode
+    if args.judge_model is None:
+        args.judge_model = args.eval_model
+
+    initial_prompt = current_prompt
     apply_techniques = args.apply_techniques or [
         "spotlighting",
         "signed_prompt",
@@ -159,7 +209,7 @@ def main() -> None:
     ]
 
     initial_evaluation = evaluate_prompt(
-        args.api_mode, args.model, initial_prompt, args.user_input_description
+        args.eval_api_mode, args.eval_model, initial_prompt, args.user_input_description
     )
     initial_avg_score = average_satisfaction(initial_evaluation)
     print("Initial Evaluation Result:")
@@ -173,7 +223,10 @@ def main() -> None:
         print(f"\n--- Iteration {i + 1} ---")
         if i > 0:
             evaluation_result = evaluate_prompt(
-                args.api_mode, args.model, current_prompt, args.user_input_description
+                args.eval_api_mode,
+                args.eval_model,
+                current_prompt,
+                args.user_input_description,
             )
             print("Evaluation Result:")
             print(evaluation_result)
@@ -188,8 +241,9 @@ def main() -> None:
                 break
 
         current_prompt = improve_prompt(
-            args.api_mode,
-            args.model,
+            args.eval_api_mode,
+            args.eval_model,
+            args.attack_api_mode,
             current_prompt,
             evaluation_result,
             args.user_input_description,
@@ -198,11 +252,13 @@ def main() -> None:
         print("Improved Prompt:")
         print(json.dumps(current_prompt, indent=2, ensure_ascii=False))
 
-    # Final evaluation only if max iterations completed or threshold not reached
     if args.max_iterations == 1 or final_avg_score < args.threshold:
         print("\n--- Final Evaluation ---")
         evaluation_result = evaluate_prompt(
-            args.api_mode, args.model, current_prompt, args.user_input_description
+            args.eval_api_mode,
+            args.eval_model,
+            current_prompt,
+            args.user_input_description,
         )
         print("Final Evaluation Result:")
         print(evaluation_result)
@@ -214,14 +270,16 @@ def main() -> None:
     attack_results = []
     if args.test_after:
         tools = load_tools(args.tools_path) if args.tools_path else None
-        test_model = args.test_model or args.model
         print("\n--- Running injection test on final prompt ---")
         attack_results = run_injection_test(
             current_prompt,
-            test_model,
-            apply_techniques=apply_techniques,
-            separator=args.test_separator,
-            tools=tools,
+            args.attack_api_mode,
+            args.attack_model,
+            args.judge_api_mode,
+            args.judge_model,
+            apply_techniques,
+            args.test_separator,
+            tools,
         )
 
     if args.report_dir:
@@ -236,6 +294,12 @@ def main() -> None:
             report_dir_path,
             initial_avg_score,
             final_avg_score,
+            args.eval_model,
+            args.attack_model,
+            args.judge_model,
+            args.eval_api_mode,
+            args.attack_api_mode,
+            args.judge_api_mode,
         )
         print("Report generation complete.")
 
