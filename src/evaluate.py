@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional
-from llm_client import call_llm_api_for_eval_or_improve
+from llm_client import call_llm_api_for_eval
 
 
 def evaluate_prompt(
@@ -16,23 +16,23 @@ def evaluate_prompt(
     {
         "Spotlighting": {
             "Tag user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
-            "Use spotlighting markers for external/untrusted input": {"satisfaction": ..., "mark": ..., "comment": "..."}
+            "Use spotlighting markers for external/untrusted input": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
         "Signed Prompt": {
-            "Use signed tags to isolate trusted instructions": {"satisfaction": ..., "mark": ..., "comment": "..."}
+            "Use signed tags to isolate trusted instructions": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
         "Rule Reinforcement": {
-            "Handle inappropriate user inputs": {...},
-            "Handle persona switching user inputs": {...},
-            "Handle new instructions": {...},
-            "Handle prompt attacks": {...},
-            "Reinforce rules through repetition and redundancy": {...}
+            "Handle inappropriate user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
+            "Handle persona switching user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
+            "Handle new instructions": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
+            "Handle prompt attacks": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
+            "Reinforce rules through repetition and redundancy": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
         "Structured Output Enforcement": {
-            "Enforce structured output format to avoid injection or leakage": {...}
+            "Enforce structured output format to avoid injection or leakage": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
         "Role Consistency": {
-            "Ensure that system messages should not include user input": {...}
+            "Ensure that system messages should not include user input": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
         "critique": "Overall critique of the prompt",
         "recommendation": "Overall suggestion for improvement"
@@ -75,7 +75,7 @@ def evaluate_prompt(
     """.strip()
 
     # Call the LLM API
-    return call_llm_api_for_eval_or_improve(
+    return call_llm_api_for_eval(
         api_mode=api_mode,
         model_name=model,
         system_message=system_message,

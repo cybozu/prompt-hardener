@@ -1,0 +1,35 @@
+[
+  {
+    "name": "get_current_time",
+    "description": "Returns the current date and time in a specified timezone.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string",
+          "description": "Timezone to get the time for (e.g., 'Asia/Tokyo')"
+        }
+      },
+      "required": ["timezone"]
+    }
+  },
+  {
+    "name": "get_weather_forecast",
+    "description": "Provides the weather forecast for a given city.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string",
+          "description": "Name of the city (e.g., 'Paris')"
+        },
+        "unit": {
+          "type": "string",
+          "enum": ["celsius", "fahrenheit"],
+          "description": "Temperature unit"
+        }
+      },
+      "required": ["city"]
+    }
+  }
+]
