@@ -289,8 +289,7 @@ def call_llm_api_for_attack(
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 1024,
-                "response_format": {"type": "json_object"},
+                "max_tokens": 1024
             }
             if tools:
                 kwargs["tools"] = tools
