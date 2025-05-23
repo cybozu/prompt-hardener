@@ -25,19 +25,24 @@ Originally created to help secure LLM agents like chatbots, RAG systems, and too
 ### 🔑 Set Up API Keys
 Prompt Hardener uses LLMs to **evaluate** prompts, **apply security improvements**, **test prompt injection attacks**, and **judge whether attacks were successful** — all in an automated pipeline.
 
-Prompt Hardener supports **OpenAI** and **Anthropic Claude** APIs.
+Prompt Hardener supports **OpenAI**, **Anthropic Claude** and **AWS Bedrock(only claude v3 or newer model)** APIs.
 
 You must set at least one of the following environment variables before use:
 
 ```bash
-# For OpenAI API (e.g. GPT-4, GPT-4o)
+# For OpenAI API (e.g., GPT-4, GPT-4o)
 export OPENAI_API_KEY=...
 
-# For Claude API (e.g. Claude 3.7 Sonnet)
+# For Claude API (e.g., Claude 3.7 Sonnet)
 export ANTHROPIC_API_KEY=...
+
+# For Bedrock API (e.g., anthropic.claude-3-5-sonnet-20240620-v1:0)
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...
 ```
 
-You can add these lines to your shell profile (e.g. `.bashrc`, `.zshrc`) to make them persistent.
+You can add these lines to your shell profile (e.g., `.bashrc`, `.zshrc`) to make them persistent.
 
 ### 🔧 Installation
 
@@ -68,12 +73,13 @@ python3 src/main.py \
 | Argument                   | Short | Type        | Required | Default             | Description                                                                                                              |
 | -------------------------- | ----- | ----------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `--target-prompt-path`     | `-t`  | `str`       | ✅ Yes    | -                   | Path to the file containing the target system prompt (Chat Completion message format, JSON).                             |
-| `--eval-api-mode`          | `-ea` | `str`       | ✅ Yes    | -                   | LLM API used for evaluation and improvement (`openai` or `claude`).                                                      |
-| `--eval-model`             | `-em` | `str`       | ✅ Yes    | -                   | Model name used for evaluation and improvement (e.g., `gpt-4o-mini`, `claude-3-7-sonnet-latest`).                        |
+| `--eval-api-mode`          | `-ea` | `str`       | ✅ Yes    | -                   | LLM API used for evaluation and improvement (`openai`, `claude` or `bedrock`).                                                      |
+| `--eval-model`             | `-em` | `str`       | ✅ Yes    | -                   | Model name used for evaluation and improvement (e.g., `gpt-4o-mini`, `claude-3-7-sonnet-latest`, `anthropic.claude-3-5-sonnet-20240620-v1:0`).                        |
 | `--attack-api-mode`        | `-aa` | `str`       | ❌ No     | `--eval-api-mode`   | LLM API used for executing attacks (defaults to the evaluation API).                                                     |
 | `--attack-model`           | `-am` | `str`       | ❌ No     | `--eval-model`      | Model used to generate and run attacks (defaults to the evaluation model).                                               |
 | `--judge-api-mode`         | `-ja` | `str`       | ❌ No     | `--eval-api-mode` | LLM API used for attack insertion and success judgment (defaults to the attack API).                                     |
 | `--judge-model`            | `-jm` | `str`       | ❌ No     | `--eval-model`    | Model used to insert attack payloads and judge injection success (defaults to the attack model).                         |
+| `--aws-region`             | `-ar` | `str`       | ❌ No     | `us-east-1`         | AWS region for Bedrock API mode. Default is `us-east-1`.                                                                 |
 | `--user-input-description` | `-ui` | `str`       | ❌ No     | `None`              | Description of user input fields (e.g., `Comments`), used to guide placement and tagging of user data.                   |
 | `--output-path`            | `-o`  | `str`       | ✅ Yes    | -                   | File path to write the final improved prompt as JSON.                                                                    |
 | `--max-iterations`         | `-n`  | `int`       | ❌ No     | `3`                 | Maximum number of improvement iterations.                                                                                |
@@ -83,6 +89,11 @@ python3 src/main.py \
 | `--test-separator`         | `-ts` | `str`       | ❌ No     | `None`              | Optional string to prepend to each attack payload during injection testing (e.g., `\\n`, `###`).                         |
 | `--tools-path`             | `-tp` | `str`       | ❌ No     | `None`              | Path to JSON file defining available tool functions (used for testing function/tool abuse attacks).                      |
 | `--report-dir`             | `-rd` | `str`       | ❌ No     | `None`              | Directory to write the evaluation report files (HTML and JSON summary of injection test results and prompt evaluation).  |
+
+**Note:**  
+> - `--eval-api-mode`, `--attack-api-mode`, and `--judge-api-mode` accept `openai`, `claude`, or `bedrock` as options.  
+> - When using Bedrock, you must specify the [Bedrock Model ID](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html) for `--eval-model`, `--attack-model`, and `--judge-model` (e.g., `.claude-3-5-sonnet-20240620-v1:0`).
+
 
 </details>
 
@@ -152,7 +163,7 @@ After each run, Prompt Hardener generates:
 Reports are styled for readability and highlight:
 - Initial prompt and hardened final prompt
 - Evaluation category-wise scores and comments
-- Injection attack blocked stats (e.g. 12/15 PASSED)
+- Injection attack blocked stats (e.g., 12/15 PASSED)
   - PASSED = attack blocked, FAILED = attack succeeded.
 
 ![report1](https://github.com/user-attachments/assets/c98ecb7b-48aa-4729-8749-9e62a77bd806)
