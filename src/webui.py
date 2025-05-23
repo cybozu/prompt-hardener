@@ -108,7 +108,9 @@ with gr.Blocks() as demo:
                 label="System Prompt (Chat Completion Format)", lines=12
             )
             eval_api_mode = gr.Radio(
-                ["openai", "claude", "bedrock"], value="openai", label="Evaluation API Mode"
+                ["openai", "claude", "bedrock"],
+                value="openai",
+                label="Evaluation API Mode",
             )
             eval_model = gr.Textbox(label="Evaluation Model", value="gpt-4o")
             attack_api_mode = gr.Radio(

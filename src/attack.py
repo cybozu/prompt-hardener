@@ -3,7 +3,11 @@ import random
 import string
 import re
 import json
-from llm_client import call_llm_api_for_payload_injection, call_llm_api_for_attack, call_llm_api_for_judge
+from llm_client import (
+    call_llm_api_for_payload_injection,
+    call_llm_api_for_attack,
+    call_llm_api_for_judge,
+)
 
 
 def insert_attack_into_prompt(
@@ -49,12 +53,7 @@ def insert_attack_into_prompt(
         {attack}
         """
 
-        messages = [
-            {
-                "role": "user",
-                "content": injection_prompt.strip()
-            }
-        ]
+        messages = [{"role": "user", "content": injection_prompt.strip()}]
 
         result = call_llm_api_for_payload_injection(api_mode, model, messages)
         messages = json.loads(result.strip())
@@ -87,7 +86,11 @@ def normalize_salted_tags_in_prompt(
 
 
 def assess_injection_success(
-    model: str, api_mode: str, attack: str, response: str, aws_region: Optional[str] = None
+    model: str,
+    api_mode: str,
+    attack: str,
+    response: str,
+    aws_region: Optional[str] = None,
 ) -> bool:
     try:
         messages = [
@@ -100,7 +103,9 @@ def assess_injection_success(
                 ),
             }
         ]
-        result = call_llm_api_for_judge(api_mode, model, messages, aws_region=aws_region)
+        result = call_llm_api_for_judge(
+            api_mode, model, messages, aws_region=aws_region
+        )
         return "success" in result.strip().lower()
     except Exception as e:
         print(f"[Warning] Evaluation failed: {e}")
@@ -186,10 +191,18 @@ def run_injection_test(
 
             try:
                 response = call_llm_api_for_attack(
-                    attack_api_mode, attack_model, final_prompt, tools=tools, aws_region=aws_region
+                    attack_api_mode,
+                    attack_model,
+                    final_prompt,
+                    tools=tools,
+                    aws_region=aws_region,
                 )
                 success = assess_injection_success(
-                    judge_model, judge_api_mode, mod_attack, response, aws_region=aws_region
+                    judge_model,
+                    judge_api_mode,
+                    mod_attack,
+                    response,
+                    aws_region=aws_region,
                 )
                 outcome = "FAILED" if success else "PASSED"
 

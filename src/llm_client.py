@@ -122,7 +122,7 @@ def call_llm_api_for_eval(
             )
             content = completion.content[0].text
             return json.loads(content)
-            
+
         elif api_mode == "bedrock":
             bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
             messages = build_claude_messages_for_eval(
@@ -173,7 +173,7 @@ def call_llm_api_for_improve(
                 "messages": messages,
                 "temperature": 0.2,
                 "max_tokens": 1500,
-                "response_format": {"type": "json_object"}
+                "response_format": {"type": "json_object"},
             }
             completion = openai_client.chat.completions.create(**kwargs)
             content = completion.choices[0].message.content
@@ -221,6 +221,7 @@ def call_llm_api_for_improve(
         raise ValueError(
             f"Error: Failed to call {api_mode} API with model '{model_name}': {e}"
         )
+
 
 def call_llm_api_for_payload_injection(
     api_mode: str,
@@ -289,7 +290,7 @@ def call_llm_api_for_attack(
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 1024
+                "max_tokens": 1024,
             }
             if tools:
                 kwargs["tools"] = tools
@@ -317,7 +318,7 @@ def call_llm_api_for_attack(
                 "inferenceConfig": {
                     "temperature": temperature,
                     "maxTokens": 1024,
-                }
+                },
             }
             if tools:
                 kwargs["toolConfig"] = tools
@@ -333,10 +334,10 @@ def call_llm_api_for_attack(
 
 
 def call_llm_api_for_judge(
-    api_mode: str, 
-    model: str, 
-    messages: List[Dict[str, str]], 
-    temperature: float = 0.0, 
+    api_mode: str,
+    model: str,
+    messages: List[Dict[str, str]],
+    temperature: float = 0.0,
     aws_region: Optional[str] = None,
 ) -> str:
     try:

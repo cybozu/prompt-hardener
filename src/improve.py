@@ -190,7 +190,7 @@ def improve_prompt(
         try:
             # Attempt to parse the result as JSON
             # Remove other content and extract only the JSON array
-            match = re.search(r'\[\s*{.*?}\s*\]', result, re.DOTALL)
+            match = re.search(r"\[\s*{.*?}\s*\]", result, re.DOTALL)
             if match:
                 result = match.group(0)
             else:

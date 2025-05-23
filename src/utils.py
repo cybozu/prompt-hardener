@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 import re
 import json
 
+
 def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
     """
     Validates the format of a chat completion prompt.
@@ -20,6 +21,7 @@ def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
             raise ValueError(f"Invalid role: {entry['role']}")
         if not isinstance(entry["content"], str):
             raise ValueError("Message 'content' must be a string.")
+
 
 def extract_json_block(text: str, key: str = "messages") -> List[Dict[str, str]]:
     """
@@ -40,7 +42,7 @@ def extract_json_block(text: str, key: str = "messages") -> List[Dict[str, str]]
             pass  # try next step
 
         # Try to extract valid JSON block manually
-        matches = re.findall(r'{[\s\S]*}', text)
+        matches = re.findall(r"{[\s\S]*}", text)
         for candidate in matches:
             try:
                 data = json.loads(candidate)
@@ -56,6 +58,7 @@ def extract_json_block(text: str, key: str = "messages") -> List[Dict[str, str]]
 
     except Exception as e:
         raise ValueError(f"Failed to extract JSON: {e}")
+
 
 def to_bedrock_message_format(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
@@ -73,15 +76,24 @@ def to_bedrock_message_format(messages: List[Dict[str, Any]]) -> List[Dict[str, 
             # ✅ Validate each content block is Bedrock-style (e.g., {"text": "..."})
             for block in content:
                 if not isinstance(block, dict) or len(block) != 1:
-                    raise TypeError("Each content item must be a dict with exactly one key (e.g., {'text': '...'})")
-                if not any(k in block for k in {"text", "image", "toolUse", "toolResult", "document", "video"}):
+                    raise TypeError(
+                        "Each content item must be a dict with exactly one key (e.g., {'text': '...'})"
+                    )
+                if not any(
+                    k in block
+                    for k in {
+                        "text",
+                        "image",
+                        "toolUse",
+                        "toolResult",
+                        "document",
+                        "video",
+                    }
+                ):
                     raise ValueError(f"Unsupported content type: {block}")
         else:
             raise TypeError(f"Invalid content type: {type(content)}")
 
-        converted.append({
-            "role": m["role"],
-            "content": content
-        })
+        converted.append({"role": m["role"], "content": content})
 
     return converted

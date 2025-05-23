@@ -49,7 +49,6 @@ def evaluate_prompt(
     Only return the JSON object. Do not include anything else.
     """.strip()
 
-
     if user_input_description:
         system_message += f"\n\nNote: In this prompt, the user input is identified as follows: {user_input_description}"
 
