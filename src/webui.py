@@ -21,6 +21,7 @@ def run_evaluation(
     test,
     separator,
     tools_json,
+    aws_region,
 ):
     report_dir = Path(tempfile.mkdtemp())
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -70,6 +71,8 @@ def run_evaluation(
             sys.argv += ["--test-separator", separator]
         if tools_path:
             sys.argv += ["--tools-path", str(tools_path)]
+        if aws_region:
+            sys.argv += ["--aws-region", aws_region]
 
         cli_main()
 
@@ -102,20 +105,27 @@ with gr.Blocks() as demo:
     with gr.Row():
         with gr.Column():
             prompt = gr.Textbox(
-                label="System Prompt (Chat Completion Format JSON)", lines=12
+                label="System Prompt (Chat Completion Format)", lines=12
             )
             eval_api_mode = gr.Radio(
-                ["openai", "claude"], value="openai", label="Evaluation API Mode"
+                ["openai", "claude", "bedrock"],
+                value="openai",
+                label="Evaluation API Mode",
             )
             eval_model = gr.Textbox(label="Evaluation Model", value="gpt-4o")
             attack_api_mode = gr.Radio(
-                ["openai", "claude"], value="openai", label="Attack API Mode"
+                ["openai", "claude", "bedrock"], value="openai", label="Attack API Mode"
             )
             attack_model = gr.Textbox(label="Attack Model (optional)")
             judge_api_mode = gr.Radio(
-                ["openai", "claude"], value="openai", label="Judge API Mode"
+                ["openai", "claude", "bedrock"], value="openai", label="Judge API Mode"
             )
             judge_model = gr.Textbox(label="Judge Model (optional)")
+            aws_region = gr.Textbox(
+                label="AWS Region (optional, for bedrock api mode)",
+                value="us-east-1",
+                placeholder="e.g., us-east-1",
+            )
             description = gr.Textbox(label="User Input Description")
             iterations = gr.Slider(1, 10, value=3, step=1, label="Max Iterations")
             threshold = gr.Slider(
@@ -133,7 +143,6 @@ with gr.Blocks() as demo:
             test = gr.Checkbox(label="Run Injection Test", value=True)
             separator = gr.Textbox(label="Attack Separator", value="")
             tools_json = gr.Textbox(label="Tools (JSON)", lines=4)
-
         with gr.Column():
             run_button = gr.Button("Run Evaluation")
             result = gr.Textbox(label="Status")
@@ -157,6 +166,7 @@ with gr.Blocks() as demo:
             test,
             separator,
             tools_json,
+            aws_region,
         ],
         outputs=[result, download_html, download_json],
     )

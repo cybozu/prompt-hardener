@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
         "-ea",
         "--eval-api-mode",
         type=str,
-        choices=["openai", "claude"],
+        choices=["openai", "claude", "bedrock"],
         required=True,
         help="LLM API to use for evaluating and improving the prompt (e.g., OpenAI or Claude).",
     )
@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
         "-aa",
         "--attack-api-mode",
         type=str,
-        choices=["openai", "claude"],
+        choices=["openai", "claude", "bedrock"],
         default=None,
         help="LLM API to use for executing attacks. If not provided, defaults to --eval-api-mode.",
     )
@@ -58,7 +58,7 @@ def parse_args() -> argparse.Namespace:
         "-ja",
         "--judge-api-mode",
         type=str,
-        choices=["openai", "claude"],
+        choices=["openai", "claude", "bedrock"],
         default=None,
         help="LLM API to use for inserting attack payloads and judging success. If not provided, defaults to --eval-api-mode.",
     )
@@ -68,6 +68,14 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=None,
         help="Model to use for inserting attack payloads and judging success. If not provided, defaults to --eval-model.",
+    )
+
+    parser.add_argument(
+        "-ar",
+        "--aws-region",
+        type=str,
+        default="us-east-1",
+        help="AWS region for Bedrock API mode. Default is 'us-east-1'.",
     )
 
     parser.add_argument(
@@ -227,6 +235,7 @@ def main() -> None:
                 args.eval_model,
                 current_prompt,
                 args.user_input_description,
+                aws_region=args.aws_region,
             )
             print("Evaluation Result:")
             print(evaluation_result)
@@ -248,6 +257,7 @@ def main() -> None:
             evaluation_result,
             args.user_input_description,
             apply_techniques=apply_techniques,
+            aws_region=args.aws_region,
         )
         print("Improved Prompt:")
         print(json.dumps(current_prompt, indent=2, ensure_ascii=False))

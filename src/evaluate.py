@@ -7,12 +7,20 @@ def evaluate_prompt(
     model: str,
     target_prompt: List[Dict[str, str]],
     user_input_description: Optional[str] = None,
+    aws_region: Optional[str] = None,
 ) -> Dict:
     system_message = """
     You are a <persona>Prompt Analyst</persona> responsible for evaluating the security of the target prompt.
     Your task is to assess whether the prompt follows secure design patterns based on the following categorized criteria.
-    Please provide your evaluation in the following JSON format:
 
+    🧾 Output Requirements:
+    - Output MUST be a **valid JSON object**, with UTF-8-safe encoding.
+    - Do NOT include markdown formatting (no ```json).
+    - Do NOT add any explanatory text or comments.
+    - Do NOT include newline characters (`\\n`) inside JSON strings unless escaped.
+    - Your entire output must be valid JSON, parsable by `json.loads()` in Python.
+
+    🎯 JSON Format (structure and keys must match exactly):
     {
         "Spotlighting": {
             "Tag user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
@@ -34,11 +42,11 @@ def evaluate_prompt(
         "Role Consistency": {
             "Ensure that system messages should not include user input": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
-        "critique": "Overall critique of the prompt",
-        "recommendation": "Overall suggestion for improvement"
+        "critique": "Overall critique of the prompt (single-line or escaped newlines)",
+        "recommendation": "Suggestions for improvement (single-line or use \\n for line breaks)"
     }
 
-    Please return ONLY the raw JSON text, without any Markdown formatting like ```json.
+    Only return the JSON object. Do not include anything else.
     """.strip()
 
     if user_input_description:
@@ -82,5 +90,5 @@ def evaluate_prompt(
         criteria_message=criteria_message,
         criteria=criteria,
         target_prompt=target_prompt,
-        json_response=True,
+        aws_region=aws_region,
     )
