@@ -1,7 +1,8 @@
 import json
-from typing import List, Dict, Optional, Literal
+from typing import Literal
 from pathlib import Path
 from schema import PromptInput
+
 
 def parse_prompt_input(path: str, input_mode: str, input_format: str) -> PromptInput:
     """
@@ -18,45 +19,60 @@ def parse_prompt_input(path: str, input_mode: str, input_format: str) -> PromptI
 
             if input_format == "openai":
                 if not isinstance(raw, dict) or "messages" not in raw:
-                    raise ValueError("Invalid OpenAI chat format: missing 'messages' field")
+                    raise ValueError(
+                        "Invalid OpenAI chat format: missing 'messages' field"
+                    )
                 return PromptInput(mode="chat", messages=raw["messages"])
 
             elif input_format == "claude":
                 if not isinstance(raw, dict) or "messages" not in raw:
-                    raise ValueError("Invalid Claude chat format: missing 'messages' field")
+                    raise ValueError(
+                        "Invalid Claude chat format: missing 'messages' field"
+                    )
                 return PromptInput(
                     mode="chat",
-                    messages=[{"role": "system", "content": raw.get("system")}] + raw["messages"],
-                    system_prompt=raw.get("system")
+                    messages=[{"role": "system", "content": raw.get("system")}]
+                    + raw["messages"],
+                    system_prompt=raw.get("system"),
                 )
 
             elif input_format == "bedrock":
                 if not isinstance(raw, dict) or "messages" not in raw:
-                    raise ValueError("Invalid Bedrock chat format: missing 'messages' field")
+                    raise ValueError(
+                        "Invalid Bedrock chat format: missing 'messages' field"
+                    )
                 return PromptInput(
                     mode="chat",
                     system_prompt=raw.get("system"),
-                    messages=[
-                        {"role": "system", "content": raw.get("system")}
-                    ] + [
+                    messages=[{"role": "system", "content": raw.get("system")}]
+                    + [
                         {
                             "role": m["role"],
-                            "content": m["content"][0]["text"] if isinstance(m.get("content"), list) and m["content"] and "text" in m["content"][0] else ""
+                            "content": m["content"][0]["text"]
+                            if isinstance(m.get("content"), list)
+                            and m["content"]
+                            and "text" in m["content"][0]
+                            else "",
                         }
                         for m in raw["messages"]
-                    ]
+                    ],
                 )
         elif input_mode == "completion":
             with open(path, "r", encoding="utf-8") as f:
                 raw = f.read().strip()
             if not isinstance(raw, str) or not raw:
-                raise ValueError("Invalid completion prompt format: must be a non-empty string")
+                raise ValueError(
+                    "Invalid completion prompt format: must be a non-empty string"
+                )
             return PromptInput(mode="completion", completion_prompt=raw)
 
-        raise ValueError(f"Unsupported input_mode={input_mode}, input_format={input_format}")
+        raise ValueError(
+            f"Unsupported input_mode={input_mode}, input_format={input_format}"
+        )
 
     except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
         raise ValueError(f"Failed to parse prompt input from {path}: {e}")
+
 
 def format_prompt_output(prompt: PromptInput, input_format: str) -> dict:
     """
@@ -83,7 +99,7 @@ def format_prompt_output(prompt: PromptInput, input_format: str) -> dict:
             if input_format == "claude":
                 return {
                     "system": extracted_system or prompt.system_prompt or "",
-                    "messages": non_system_messages
+                    "messages": non_system_messages,
                 }
 
             elif input_format == "bedrock":
@@ -92,21 +108,29 @@ def format_prompt_output(prompt: PromptInput, input_format: str) -> dict:
                     "messages": [
                         {
                             "role": m["role"],
-                            "content": [{"text": m["content"]}] if isinstance(m.get("content"), str) else []
+                            "content": [{"text": m["content"]}]
+                            if isinstance(m.get("content"), str)
+                            else [],
                         }
                         for m in non_system_messages
-                    ]
+                    ],
                 }
         else:
             raise ValueError(f"Unsupported input format for chat mode: {input_format}")
 
     elif prompt.mode == "completion":
-        if not isinstance(prompt.completion_prompt, str) or not prompt.completion_prompt.strip():
-            raise ValueError("Expected 'completion_prompt' to be a non-empty string for completion mode.")
+        if (
+            not isinstance(prompt.completion_prompt, str)
+            or not prompt.completion_prompt.strip()
+        ):
+            raise ValueError(
+                "Expected 'completion_prompt' to be a non-empty string for completion mode."
+            )
         return {"prompt": prompt.completion_prompt}
 
     else:
         raise ValueError(f"Unsupported prompt mode: {prompt.mode}")
+
 
 def write_prompt_output(
     output_path: str,
@@ -125,7 +149,7 @@ def write_prompt_output(
     data = format_prompt_output(prompt, input_format=output_format)
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    
+
     if input_mode == "chat":
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)

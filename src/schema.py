@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Literal
 
+
 @dataclass
 class PromptInput:
     mode: Literal["chat", "completion"]

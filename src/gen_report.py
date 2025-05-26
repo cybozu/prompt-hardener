@@ -203,7 +203,9 @@ def format_prompt(prompt: PromptInput) -> str:
     if prompt.mode == "chat":
         return json.dumps({"messages": prompt.messages}, indent=2, ensure_ascii=False)
     elif prompt.mode == "completion":
-        return json.dumps({"prompt": prompt.completion_prompt}, indent=2, ensure_ascii=False)
+        return json.dumps(
+            {"prompt": prompt.completion_prompt}, indent=2, ensure_ascii=False
+        )
     else:
         raise ValueError(f"Unsupported prompt mode: {prompt.mode}")
 

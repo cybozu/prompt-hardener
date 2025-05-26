@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 import argparse
 import json
 import os
@@ -6,7 +6,6 @@ from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
 from gen_report import generate_report
-from utils import validate_chat_completion_format
 from prompt import parse_prompt_input, write_prompt_output
 
 
@@ -27,14 +26,14 @@ def parse_args() -> argparse.Namespace:
         "--input-mode",
         choices=["chat", "completion"],
         default="chat",
-        help="Prompt format type: 'chat' for role-based messages, 'completion' for single prompt string. Default is 'chat'."
+        help="Prompt format type: 'chat' for role-based messages, 'completion' for single prompt string. Default is 'chat'.",
     )
 
     parser.add_argument(
         "--input-format",
         choices=["openai", "claude", "bedrock"],
         default="openai",
-        help="Input message format to parse: openai, claude, or bedrock. Default is 'openai'."
+        help="Input message format to parse: openai, claude, or bedrock. Default is 'openai'.",
     )
 
     parser.add_argument(
@@ -83,7 +82,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Model to use for inserting attack payloads and judging success. If not provided, defaults to --eval-model.",
     )
-    
+
     parser.add_argument(
         "-ar",
         "--aws-region",
@@ -201,7 +200,9 @@ def average_satisfaction(evaluation: Dict[str, Any]) -> float:
 def main() -> None:
     args = parse_args()
     # Load and parse prompt
-    current_prompt = parse_prompt_input(args.target_prompt_path, args.input_mode, args.input_format)
+    current_prompt = parse_prompt_input(
+        args.target_prompt_path, args.input_mode, args.input_format
+    )
     print(f"Loaded prompt from {args.target_prompt_path}:\n{current_prompt}")
 
     if args.attack_api_mode is None:

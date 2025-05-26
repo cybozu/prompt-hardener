@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import Dict, Optional
 from llm_client import call_llm_api_for_eval
 from schema import PromptInput
 

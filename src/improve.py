@@ -1,10 +1,7 @@
-from typing import List, Dict, Optional
+from typing import List, Optional
 from llm_client import call_llm_api_for_improve
 from utils import validate_chat_completion_format
 from schema import PromptInput
-import json
-import sys
-import re
 
 
 def improve_prompt(
@@ -183,7 +180,9 @@ def improve_prompt(
                 system_prompt = result[0]["content"]
             else:
                 system_prompt = ""
-            return PromptInput(mode="chat", messages=result, system_prompt=system_prompt)
+            return PromptInput(
+                mode="chat", messages=result, system_prompt=system_prompt
+            )
 
         return PromptInput(mode="chat", messages=result)
 

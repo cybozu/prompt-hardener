@@ -23,7 +23,9 @@ def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
             raise ValueError("Message 'content' must be a string.")
 
 
-def extract_json_block(text: str, key: str = "messages") -> Union[List[Dict[str, str]], str]:
+def extract_json_block(
+    text: str, key: str = "messages"
+) -> Union[List[Dict[str, str]], str]:
     """
     Extracts a JSON object from the text and returns the value of the specified key.
     The text may contain markdown formatting or extraneous explanation text.
@@ -56,9 +58,10 @@ def extract_json_block(text: str, key: str = "messages") -> Union[List[Dict[str,
                 continue
 
         raise ValueError(f"Key '{key}' not found in any valid JSON block.")
-    
+
     except (json.JSONDecodeError, ValueError) as e:
         raise ValueError(f"Failed to extract JSON: {e}")
+
 
 def to_bedrock_message_format(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """

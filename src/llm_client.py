@@ -19,9 +19,11 @@ def build_openai_messages_for_eval(
     criteria_message: str,
     criteria: str,
     target_prompt: PromptInput,
-) -> List[Dict[str, str]]:  
+) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps({"messages": target_prompt.messages}, ensure_ascii=False, indent=2)
+        prompt_block = json.dumps(
+            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+        )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -48,7 +50,9 @@ def build_openai_messages_for_improve(
     target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps({"messages": target_prompt.messages}, ensure_ascii=False, indent=2)
+        prompt_block = json.dumps(
+            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+        )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -75,7 +79,9 @@ def build_claude_messages_for_eval(
     target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps({"messages": target_prompt.messages}, ensure_ascii=False, indent=2)
+        prompt_block = json.dumps(
+            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+        )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -97,7 +103,9 @@ def build_claude_messages_for_improve(
     target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps({"messages": target_prompt.messages}, ensure_ascii=False, indent=2)
+        prompt_block = json.dumps(
+            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+        )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -123,7 +131,7 @@ def call_llm_api_for_eval(
     criteria_message: str,
     criteria: str,
     target_prompt: PromptInput,
-    aws_region: Optional[str] = None
+    aws_region: Optional[str] = None,
 ) -> Union[List[Dict[str, str]], str]:
     try:
         if api_mode == "openai":
@@ -188,7 +196,7 @@ def call_llm_api_for_improve(
     criteria_message: str,
     criteria: str,
     target_prompt: PromptInput,
-    aws_region: Optional[str] = None
+    aws_region: Optional[str] = None,
 ) -> Union[List[Dict[str, str]], str]:
     try:
         if api_mode == "openai":
@@ -275,7 +283,6 @@ def call_llm_api_for_payload_injection(
                 "messages": messages,
                 "temperature": 0.2,
                 "max_tokens": 1024,
-
             }
             response = claude_client.messages.create(**kwargs)
             return response.content[0].text.strip()
@@ -303,6 +310,7 @@ def call_llm_api_for_payload_injection(
         raise ValueError(
             f"Error: Failed to call {api_mode} API with model '{model}': {e}"
         )
+
 
 def call_llm_api_for_attack_completion(
     api_mode: str,
