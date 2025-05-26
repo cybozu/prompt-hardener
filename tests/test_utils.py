@@ -1,10 +1,10 @@
 import pytest
-from src.utils import extract_json_block, to_bedrock_message_format
+from utils import extract_json_block, to_bedrock_message_format
 
 # Test cases for extract_json_block function
 
 
-def test_valid_json_block_with_key():
+def test_valid_chat_json_block():
     text = """
     {
         "messages": [
@@ -13,13 +13,20 @@ def test_valid_json_block_with_key():
         ]
     }
     """
-    result = extract_json_block(text)
+    result = extract_json_block(text, key="messages")
     assert isinstance(result, list)
     assert result[0]["role"] == "system"
     assert result[1]["content"] == "Hi"
 
 
-def test_valid_json_block_with_extra_text():
+def test_valid_completion_prompt_block():
+    text = '{"prompt": "You are a helpful assistant."}'
+    result = extract_json_block(text, key="prompt")
+    assert isinstance(result, str)
+    assert result.startswith("You are a helpful")
+
+
+def test_chat_block_with_extra_wrapping():
     text = """
     Sure, here is the result:
     ```json
@@ -29,25 +36,27 @@ def test_valid_json_block_with_extra_text():
         ]
     }
     ```
-    Let me know if you need more.
+    Let me know if you need more help.
     """
-    result = extract_json_block(text)
+    result = extract_json_block(text, key="messages")
     assert isinstance(result, list)
     assert result[0]["role"] == "assistant"
+    assert "All good" in result[0]["content"]
 
 
-def test_missing_key():
+def test_missing_key_raises_error():
     text = """
     ```json
     {
         "not_messages": []
     }
-    ```"""
+    ```
+    """
     with pytest.raises(ValueError, match="Key 'messages' not found"):
-        extract_json_block(text)
+        extract_json_block(text, key="messages")
 
 
-def test_malformed_json():
+def test_malformed_json_raises_error():
     text = """
     ```json
     {
@@ -57,7 +66,7 @@ def test_malformed_json():
     }
     ```"""
     with pytest.raises(ValueError, match="Failed to extract JSON"):
-        extract_json_block(text)
+        extract_json_block(text, key="messages")
 
 
 # Test cases for to_bedrock_message_format function

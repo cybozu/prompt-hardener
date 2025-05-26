@@ -1,11 +1,12 @@
 from typing import List, Dict, Optional
 from llm_client import call_llm_api_for_eval
+from schema import PromptInput
 
 
 def evaluate_prompt(
     api_mode: str,
     model: str,
-    target_prompt: List[Dict[str, str]],
+    target_prompt: PromptInput,
     user_input_description: Optional[str] = None,
     aws_region: Optional[str] = None,
 ) -> Dict:

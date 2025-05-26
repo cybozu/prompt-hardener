@@ -18,8 +18,10 @@ This example secures a system prompt for summarizing user comments.
 ### 🖥️ Command
 
 ```bash
-python3 src/main.py \
+PYTHONPATH=src python src/main.py \
   --target-prompt-path example/prompt/summary.json \
+  --input-mode chat \
+  --input-format openai \
   --eval-api-mode openai \
   --eval-model gpt-4o-mini \
   --output-path example/prompt/summary_improved.json \

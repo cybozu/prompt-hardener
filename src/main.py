@@ -7,6 +7,7 @@ from improve import improve_prompt
 from attack import run_injection_test
 from gen_report import generate_report
 from utils import validate_chat_completion_format
+from prompt import parse_prompt_input, write_prompt_output
 
 
 def parse_args() -> argparse.Namespace:
@@ -20,6 +21,20 @@ def parse_args() -> argparse.Namespace:
         type=str,
         required=True,
         help="Path to the file containing the target prompt in Chat Completion message format (JSON).",
+    )
+
+    parser.add_argument(
+        "--input-mode",
+        choices=["chat", "completion"],
+        default="chat",
+        help="Prompt format type: 'chat' for role-based messages, 'completion' for single prompt string. Default is 'chat'."
+    )
+
+    parser.add_argument(
+        "--input-format",
+        choices=["openai", "claude", "bedrock"],
+        default="openai",
+        help="Input message format to parse: openai, claude, or bedrock. Default is 'openai'."
     )
 
     parser.add_argument(
@@ -153,17 +168,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_target_prompt(file_path: str) -> List[Dict[str, str]]:
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def write_to_file(output_path: str, content: List[Dict[str, str]]) -> None:
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(content, f, indent=2, ensure_ascii=False)
-    print(f"Improved prompt written to: {output_path}")
-
-
 def load_tools(path: str) -> Optional[Dict[str, Any]]:
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -189,15 +193,9 @@ def average_satisfaction(evaluation: Dict[str, Any]) -> float:
 
 def main() -> None:
     args = parse_args()
-    current_prompt = load_target_prompt(args.target_prompt_path)
-    print(
-        f"Loaded target prompt from {args.target_prompt_path}:\n{json.dumps(current_prompt, indent=2, ensure_ascii=False)}"
-    )
-    try:
-        validate_chat_completion_format(current_prompt)
-    except ValueError as e:
-        print(f"[Error] Invalid Chat Completion format: {e}")
-        return
+    # Load and parse prompt
+    current_prompt = parse_prompt_input(args.target_prompt_path, args.input_mode, args.input_format)
+    print(f"Loaded prompt from {args.target_prompt_path}:\n{current_prompt}")
 
     if args.attack_api_mode is None:
         args.attack_api_mode = args.eval_api_mode
@@ -260,7 +258,7 @@ def main() -> None:
             aws_region=args.aws_region,
         )
         print("Improved Prompt:")
-        print(json.dumps(current_prompt, indent=2, ensure_ascii=False))
+        print(current_prompt)
 
     if args.max_iterations == 1 or final_avg_score < args.threshold:
         print("\n--- Final Evaluation ---")
@@ -275,8 +273,16 @@ def main() -> None:
         final_avg_score = average_satisfaction(evaluation_result)
         print(f"Average Satisfaction Score: {final_avg_score:.2f}")
 
-    write_to_file(args.output_path, current_prompt)
+    # Write the improved prompt to output file
+    print("\n--- Writing Improved Prompt to Output File ---")
+    write_prompt_output(
+        args.output_path,
+        current_prompt,
+        args.input_mode,
+        args.input_format,
+    )
 
+    # Run injection test if requested
     attack_results = []
     if args.test_after:
         tools = load_tools(args.tools_path) if args.tools_path else None

@@ -1,2 +1,3 @@
 __pycache__
-example/prompt/*improved.json
+example/prompt/*/*improved.*
+src/*.egg-info
