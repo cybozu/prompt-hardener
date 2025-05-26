@@ -52,7 +52,6 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Model name for evaluation and improvement (e.g., 'gpt-4o-mini', 'claude-3-7sonnet-latest').",
     )
-
     parser.add_argument(
         "-aa",
         "--attack-api-mode",
@@ -84,7 +83,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Model to use for inserting attack payloads and judging success. If not provided, defaults to --eval-model.",
     )
-
+    
     parser.add_argument(
         "-ar",
         "--aws-region",
@@ -165,7 +164,15 @@ def parse_args() -> argparse.Namespace:
         help="Directory to write a full HTML and JSON report after execution.",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Validation: Ensure --input-format and --attack-api-mode are the same
+    if args.attack_api_mode and args.input_format != args.attack_api_mode:
+        parser.error(
+            f"--input-format ({args.input_format}) and --attack-api-mode ({args.attack_api_mode}) must be the same."
+        )
+
+    return args
 
 
 def load_tools(path: str) -> Optional[Dict[str, Any]]:

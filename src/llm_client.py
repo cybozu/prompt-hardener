@@ -1,4 +1,6 @@
+import os
 import json
+import requests
 from typing import List, Dict, Union, Optional
 from openai import OpenAI
 from anthropic import Anthropic
@@ -273,6 +275,7 @@ def call_llm_api_for_payload_injection(
                 "messages": messages,
                 "temperature": 0.2,
                 "max_tokens": 1024,
+
             }
             response = claude_client.messages.create(**kwargs)
             return response.content[0].text.strip()
@@ -301,14 +304,75 @@ def call_llm_api_for_payload_injection(
             f"Error: Failed to call {api_mode} API with model '{model}': {e}"
         )
 
+def call_llm_api_for_attack_completion(
+    api_mode: str,
+    model: str,
+    prompt: str,
+    temperature: float = 0.2,
+    max_tokens: int = 1024,
+    aws_region: Optional[str] = None,
+) -> str:
+    try:
+        if api_mode == "openai":
+            response = requests.post(
+                "https://api.openai.com/v1/completions",
+                headers={
+                    "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+            )
+            return response.json().get("choices", [{}])[0].get("text", "").strip()
 
-def call_llm_api_for_attack(
+        elif api_mode == "claude":
+            response = claude_client.completions.create(
+                model=model,
+                prompt=prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            return response.completion.strip()
+
+        elif api_mode == "bedrock":
+            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            json_data = {
+                "prompt": prompt,
+                "temperature": temperature,
+                "max_tokens_to_sample": max_tokens,
+                "anthropic_version": "bedrock-2023-05-31",
+            }
+            response = bedrock_client.invoke_model(
+                modelId=model,
+                body=json.dumps(json_data),
+                contentType="application/json",
+                accept="application/json",
+            )
+            body = response.get("body").read()
+            content = json.loads(body)
+            return content["completion"].strip()
+
+        else:
+            raise ValueError(f"Unsupported API mode: {api_mode}")
+
+    except Exception as e:
+        raise ValueError(
+            f"Error: Failed to call {api_mode} completion API with model '{model}': {e}"
+        )
+
+
+def call_llm_api_for_attack_chat(
     api_mode: str,
     model: str,
     messages: List[Dict[str, str]],
     tools: Optional[List[dict]] = None,
     tool_choice: Optional[str] = None,
     temperature: float = 0.2,
+    max_tokens: int = 1024,
     aws_region: Optional[str] = None,
 ) -> str:
     try:
@@ -317,7 +381,7 @@ def call_llm_api_for_attack(
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 1024,
+                "max_tokens": max_tokens,
             }
             if tools:
                 kwargs["tools"] = tools
@@ -329,7 +393,7 @@ def call_llm_api_for_attack(
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 1024,
+                "max_tokens": max_tokens,
             }
             if tools:
                 kwargs["tools"] = tools
@@ -344,7 +408,7 @@ def call_llm_api_for_attack(
                 "messages": messages,
                 "inferenceConfig": {
                     "temperature": temperature,
-                    "maxTokens": 1024,
+                    "maxTokens": max_tokens,
                 },
             }
             if tools:
