@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Any
 from openai import OpenAI
 from anthropic import Anthropic
 import boto3
@@ -21,9 +21,15 @@ def build_openai_messages_for_eval(
     target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps(
-            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
-        )
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -50,9 +56,15 @@ def build_openai_messages_for_improve(
     target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps(
-            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
-        )
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -79,9 +91,15 @@ def build_claude_messages_for_eval(
     target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps(
-            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
-        )
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -103,9 +121,15 @@ def build_claude_messages_for_improve(
     target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
     if target_prompt.mode == "chat":
-        prompt_block = json.dumps(
-            {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
-        )
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
     else:
@@ -197,7 +221,7 @@ def call_llm_api_for_improve(
     criteria: str,
     target_prompt: PromptInput,
     aws_region: Optional[str] = None,
-) -> Union[List[Dict[str, str]], str]:
+) -> Dict[str, Any]:
     try:
         if api_mode == "openai":
             messages = build_openai_messages_for_improve(
@@ -245,13 +269,7 @@ def call_llm_api_for_improve(
             )
             response_body = json.loads(response.get("body").read())
             content = response_body["content"][0]["text"]
-
-        if target_prompt.mode == "chat":
-            messages = extract_json_block(content, key="messages")
-        elif target_prompt.mode == "completion":
-            messages = extract_json_block(content, key="prompt")
-        else:
-            raise ValueError(f"Unsupported api_mode: {api_mode}")
+        messages = extract_json_block(content)
         return messages
 
     except Exception as e:

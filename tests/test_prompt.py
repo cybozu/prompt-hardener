@@ -35,8 +35,15 @@ def test_parse_claude_chat():
     )
     prompt = parse_prompt_input(path, input_mode="chat", input_format="claude")
     assert prompt.system_prompt == "System"
-    assert prompt.messages[0]["content"] == "System"
-    assert prompt.messages[1]["content"] == "Hi"
+    assert prompt.messages[0]["content"] == "Hi"
+
+
+def test_parse_claude_chat_with_role_system():
+    path = write_temp_json(
+        {"system": "System", "messages": [{"role": "system", "content": "Hi"}]}
+    )
+    with pytest.raises(ValueError, match="does not support 'role: system' in messages"):
+        parse_prompt_input(path, input_mode="chat", input_format="claude")
 
 
 def test_parse_bedrock_chat():
@@ -45,8 +52,15 @@ def test_parse_bedrock_chat():
     )
     prompt = parse_prompt_input(path, input_mode="chat", input_format="bedrock")
     assert prompt.system_prompt == "Hello"
-    assert prompt.messages[0]["content"] == "Hello"
-    assert prompt.messages[1]["content"] == "Hi"
+    assert prompt.messages[0]["content"] == "Hi"
+
+
+def test_parse_bedrock_chat_with_role_system():
+    path = write_temp_json(
+        {"system": "Hello", "messages": [{"role": "system", "content": [{"text": "Hi"}]}]}
+    )
+    with pytest.raises(ValueError, match="does not support 'role: system' in messages"):
+        parse_prompt_input(path, input_mode="chat", input_format="bedrock")
 
 
 def test_parse_completion():
@@ -75,7 +89,7 @@ def test_parse_missing_messages_key():
 def test_parse_bedrock_wrong_content_structure():
     path = write_temp_json({"messages": [{"role": "user", "content": "not a list"}]})
     prompt = parse_prompt_input(path, input_mode="chat", input_format="bedrock")
-    assert prompt.messages[0]["content"] is None
+    assert prompt.messages[0]["content"] is ''
 
 
 def test_parse_invalid_completion_prompt():
@@ -99,6 +113,7 @@ def test_format_claude_chat():
     )
     result = format_prompt_output(prompt, input_format="claude")
     assert result["system"] == "Hello"
+    assert result["messages"][0]["content"] == "Hi"
 
 
 def test_format_bedrock_chat():
@@ -108,6 +123,7 @@ def test_format_bedrock_chat():
         system_prompt="System",
     )
     result = format_prompt_output(prompt, input_format="bedrock")
+    assert result["system"] == "System"
     assert result["messages"][0]["content"][0]["text"] == "Hi"
 
 

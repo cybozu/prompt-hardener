@@ -22,42 +22,25 @@ def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
         if not isinstance(entry["content"], str):
             raise ValueError("Message 'content' must be a string.")
 
-
-def extract_json_block(
-    text: str, key: str = "messages"
-) -> Union[List[Dict[str, str]], str]:
+def extract_json_block(text: str) -> Dict[str, Any]:
     """
-    Extracts a JSON object from the text and returns the value of the specified key.
+    Extracts a JSON object from the text and returns the entire JSON structure.
     The text may contain markdown formatting or extraneous explanation text.
 
-    Supports:
-    - key="messages" -> expects value to be List[Dict[str, str]]
-    - key="prompt"   -> expects value to be str
+    :param text: The input text containing JSON data.
+    :return: The parsed JSON object (either a dictionary or a list).
     """
     try:
-        # Remove markdown code fences
-        text = re.sub(r"```(?:json)?", "", text).strip()
-
-        # Attempt direct JSON parse
-        try:
-            full_data = json.loads(text)
-            if key not in full_data:
-                raise ValueError(f"Key '{key}' not found in JSON.")
-            return full_data[key]
-        except json.JSONDecodeError:
-            pass
-
         # Search for embedded JSON object
         matches = re.findall(r"{[\s\S]*}", text)
         for candidate in matches:
             try:
-                data = json.loads(candidate)
-                if key in data:
-                    return data[key]
+                data = json.loads(candidate.replace("\n", ""))
+                return data
             except json.JSONDecodeError:
                 continue
 
-        raise ValueError(f"Key '{key}' not found in any valid JSON block.")
+        raise ValueError("No valid JSON block found in the input text.")
 
     except (json.JSONDecodeError, ValueError) as e:
         raise ValueError(f"Failed to extract JSON: {e}")

@@ -13,7 +13,6 @@ def improve_prompt(
     user_input_description: Optional[str] = None,
     apply_techniques: Optional[List[str]] = None,
     aws_region: Optional[str] = None,
-    target_api_mode: Optional[str] = None,
 ) -> PromptInput:
     print("Improving prompt...")
     print(f"Target prompt: {target_prompt}")
@@ -83,17 +82,32 @@ def improve_prompt(
         """
 
     if target_prompt.mode == "chat":
-        system_message += """
+        if target_prompt.messages_format == "openai":
+            system_message += """
 
-    2. 🧾 Formatting Requirements:
-        - Your output MUST be a valid JSON object with this shape:
-          { "messages": [ {"role": "...", "content": "..."}, ... ] }
-        - The format MUST follow OpenAI's Chat Completion format regardless of the target API.
-        - ⚠️ **You MUST include only a single message with `"role": "system"` in the output.**
-            - If multiple system messages are needed, you MUST combine their content into one string.
-            - Any additional `"role": "system"` messages beyond the first will be discarded or cause an error.
-        - Do NOT include any markdown, ```json blocks, explanations, or extraneous fields.
-    """
+        2. 🧾 Formatting Requirements:
+            - Your output MUST be a valid JSON object with this shape:
+            { "messages": [ {"role": "...", "content": "..."}, ... ] }
+            - The format MUST follow OpenAI's Chat Completion format regardless of the target API.
+              - Role names MUST be "system", "user", and "assistant".
+              - Content MUST be a string.
+            - Do NOT include any markdown, ```json blocks, explanations, or extraneous fields.
+        """
+
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            system_message += """
+
+        2. 🧾 Formatting Requirements:
+            - Your output MUST be a valid JSON object with this shape:
+            { "system": "...", "messages": [ {"role": "...", "content": "..."}, ... ] }
+            - The system field is the system prompt, and messages is a list of message objects.
+            - If the system prompt is empty, you can omit the "system" field.
+            - The messages format MUST follow OpenAI's Chat Completion format regardless of the target API.
+                - Role names MUST be "user", and "assistant".
+                - Content MUST be a string.
+            - Do NOT include any markdown, ```json blocks, explanations, or extraneous fields.
+        """
+
     elif target_prompt.mode == "completion":
         system_message += """
 
@@ -166,27 +180,21 @@ def improve_prompt(
     # Chat mode: ensure messages are in correct format
     if target_prompt.mode == "completion":
         # result is a string prompt
-        if not isinstance(result, str) or not result.strip():
-            raise ValueError("Expected a non-empty improved completion prompt.")
-        return PromptInput(mode="completion", completion_prompt=result)
+        if not isinstance(result.get("prompt"), str):
+            raise ValueError("Expected 'prompt' to be a string in completion mode.")
+        return PromptInput(mode="completion", completion_prompt=result.get("prompt"))
 
     elif target_prompt.mode == "chat":
         # result is a list of messages (in OpenAI format)
-        validate_chat_completion_format(result)
-
-        # Claude or Bedrock Claude: extract system prompt into separate field
-        if target_api_mode in ("claude", "bedrock"):
-            if result and result[0]["role"] == "system":
-                system_prompt = result[0]["content"]
-            else:
-                system_prompt = ""
-            return PromptInput(
-                mode="chat", messages=result, system_prompt=system_prompt
-            )
-
-        return PromptInput(mode="chat", messages=result)
+        if not isinstance(result.get("messages"), list):
+                raise ValueError("Expected 'messages' to be a list.")
+        validate_chat_completion_format(result.get("messages"))
+        if target_prompt.messages_format == "openai":
+            return PromptInput(mode="chat", messages=result.get("messages"), messages_format=target_prompt.messages_format)
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            if not isinstance(result.get("system"), str):
+                raise ValueError("Expected 'system' to be a string.")
+            return PromptInput(mode="chat", messages=result.get("messages"), messages_format=target_prompt.messages_format, system_prompt=result.get("system", ""))
 
     else:
         raise ValueError(f"Unsupported prompt mode: {target_prompt.mode}")
-
-    return result
