@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  lint-and-format:
+  pytest:
     runs-on: ubuntu-latest
 
     steps:
