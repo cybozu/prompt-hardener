@@ -11,10 +11,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - uses: chartboost/ruff-action@v1
-        with:
-          args: 'check' # Lint 
-      - uses: chartboost/ruff-action@v1
-        with:
-          args: 'format --check' # Format
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: astral-sh/ruff-action@eaf0ecdd668ceea36159ff9d91882c9795d89b49 # v3.4.0
+      - run: ruff check --fix
+      - run: ruff format --check
