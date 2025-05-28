@@ -166,7 +166,7 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
 
     # Validation: Ensure --input-format and --attack-api-mode are the same
-    if args.attack_api_mode and args.input_format != args.attack_api_mode:
+    if args.input_mode == 'chat' and args.attack_api_mode and args.input_format != args.attack_api_mode:
         parser.error(
             f"--input-format ({args.input_format}) and --attack-api-mode ({args.attack_api_mode}) must be the same."
         )

@@ -1,5 +1,5 @@
 import json
-from typing import Literal
+from typing import Literal, Optional
 from pathlib import Path
 from schema import PromptInput
 
@@ -53,7 +53,6 @@ def parse_prompt_input(path: str, input_mode: str, input_format: str) -> PromptI
                     )
                 return PromptInput(
                     mode="chat",
-                    system_prompt=raw.get("system"),
                     messages=[
                         {
                             "role": m["role"],
@@ -66,6 +65,7 @@ def parse_prompt_input(path: str, input_mode: str, input_format: str) -> PromptI
                         for m in raw["messages"]
                     ],
                     messages_format="bedrock",
+                    system_prompt=raw.get("system"),
                 )
 
         elif input_mode == "completion":
@@ -85,27 +85,26 @@ def parse_prompt_input(path: str, input_mode: str, input_format: str) -> PromptI
         raise ValueError(f"Failed to parse prompt input from {path}: {e}")
 
 
-def format_prompt_output(prompt: PromptInput, input_format: str) -> dict:
+def format_prompt_output(prompt: PromptInput) -> dict:
     """
     Formats a PromptInput object back into its original provider-specific format.
     :param prompt: PromptInput object containing the normalized internal structure.
-    :param input_format: One of 'openai', 'claude', or 'bedrock'.
     :return: Dictionary in the format expected by the specified input provider.
     """
     if prompt.mode == "chat":
         if not isinstance(prompt.messages, list):
             raise ValueError("Expected 'messages' to be a list for chat mode.")
 
-        if input_format == "openai":
+        if prompt.messages_format == "openai":
             return {"messages": prompt.messages}
 
-        elif input_format == "claude":
+        elif prompt.messages_format == "claude":
             return {
                 "system": prompt.system_prompt or "",
                 "messages": prompt.messages,
             }
 
-        elif input_format == "bedrock":
+        elif prompt.messages_format == "bedrock":
             return {
                 "system": prompt.system_prompt or "",
                 "messages": [
@@ -118,9 +117,6 @@ def format_prompt_output(prompt: PromptInput, input_format: str) -> dict:
                     for m in prompt.messages
                 ],
             }
-
-        else:
-            raise ValueError(f"Unsupported input format for chat mode: {input_format}")
 
     elif prompt.mode == "completion":
         if (
@@ -150,7 +146,7 @@ def write_prompt_output(
     :param input_mode: Mode of the prompt, either "chat" or "completion".
     :param output_format: One of 'openai', 'claude', 'bedrock'.
     """
-    data = format_prompt_output(prompt, input_format=output_format)
+    data = format_prompt_output(prompt)
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 

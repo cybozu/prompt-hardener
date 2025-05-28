@@ -356,31 +356,31 @@ def call_llm_api_for_attack_completion(
             return response.json().get("choices", [{}])[0].get("text", "").strip()
 
         elif api_mode == "claude":
-            response = claude_client.completions.create(
-                model=model,
-                prompt=prompt,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            return response.completion.strip()
+            # Claude API does not support direct completion calls, so we use messages
+            kwargs = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+                "max_tokens": 1024,
+            }
+            response = claude_client.messages.create(**kwargs)
+            return response.content[0].text.strip()
 
         elif api_mode == "bedrock":
+            # Claude API does not support direct completion calls, so we use messages
             bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
-            json_data = {
-                "prompt": prompt,
-                "temperature": temperature,
-                "max_tokens_to_sample": max_tokens,
-                "anthropic_version": "bedrock-2023-05-31",
+            kwargs = {
+                "modelId": model,
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "inferenceConfig": {
+                    "temperature": temperature,
+                    "maxTokens": max_tokens,
+                },
             }
-            response = bedrock_client.invoke_model(
-                modelId=model,
-                body=json.dumps(json_data),
-                contentType="application/json",
-                accept="application/json",
-            )
-            body = response.get("body").read()
-            content = json.loads(body)
-            return content["completion"].strip()
+            response = bedrock_client.converse(**kwargs)
+            if len(response["output"]["message"]["content"]) == 0:
+                return ""
+            return response["output"]["message"]["content"][0]["text"]
 
         else:
             raise ValueError(f"Unsupported API mode: {api_mode}")
@@ -394,7 +394,8 @@ def call_llm_api_for_attack_completion(
 def call_llm_api_for_attack_chat(
     api_mode: str,
     model: str,
-    messages: List[Dict[str, str]],
+    system_message: Optional[str] = None,
+    messages: List[Dict[str, str]] = [],
     tools: Optional[List[dict]] = None,
     tool_choice: Optional[str] = None,
     temperature: float = 0.2,
@@ -417,6 +418,7 @@ def call_llm_api_for_attack_chat(
         elif api_mode == "claude":
             kwargs = {
                 "model": model,
+                "system": system_message,
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
@@ -431,6 +433,7 @@ def call_llm_api_for_attack_chat(
             messages = to_bedrock_message_format(messages)
             kwargs = {
                 "modelId": model,
+                "system": [{ "text": system_message }],
                 "messages": messages,
                 "inferenceConfig": {
                     "temperature": temperature,
@@ -440,6 +443,8 @@ def call_llm_api_for_attack_chat(
             if tools:
                 kwargs["toolConfig"] = tools
             response = bedrock_client.converse(**kwargs)
+            if len(response["output"]["message"]["content"]) == 0:
+                return ""
             return response["output"]["message"]["content"][0]["text"]
 
         else:
@@ -490,6 +495,8 @@ def call_llm_api_for_judge(
                 accept="application/json",
             )
             response_content = json.loads(response.get("body").read())
+            if len(response_content["content"]) == 0:
+                return ""
             return response_content["content"][0]["text"].strip()
 
         else:

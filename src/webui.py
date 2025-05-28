@@ -126,10 +126,14 @@ with gr.Blocks() as demo:
                 label="Prompt",
                 lines=12,
                 placeholder=(
-                    "For 'chat' mode, provide JSON like:\n"
+                    "For 'chat' mode and 'openai' format, provide JSON like:\n"
                     '{"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "Hello!"}]}\n\n'
+                    "For 'chat' mode and 'claude' format, provide JSON like:\n"
+                    '{"system": "You are a helpful assistant.", "messages": [{"role": "user", "content": "Hello!"}]}\n\n'
+                    "For 'chat' mode and 'bedrock' format, provide JSON like:\n"
+                    '{"system": "You are a helpful assistant.", "messages": [{"role": "user", "content": [{"text": "Hello!"}]}]}\n\n'
                     "For 'completion' mode, provide plain text like:\n"
-                    "Write a story about a brave knight."
+                    "You are a helpful assistant. Please answer the user's questions."
                 ),
             )
             eval_api_mode = gr.Radio(

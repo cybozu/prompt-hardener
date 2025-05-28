@@ -102,16 +102,16 @@ def test_parse_invalid_completion_prompt():
 
 
 def test_format_openai_chat():
-    prompt = PromptInput(mode="chat", messages=[{"role": "user", "content": "Hi"}])
-    result = format_prompt_output(prompt, input_format="openai")
+    prompt = PromptInput(mode="chat", messages=[{"role": "user", "content": "Hi"}], messages_format="openai")
+    result = format_prompt_output(prompt)
     assert result["messages"][0]["role"] == "user"
 
 
 def test_format_claude_chat():
     prompt = PromptInput(
-        mode="chat", messages=[{"role": "user", "content": "Hi"}], system_prompt="Hello"
+        mode="chat", messages=[{"role": "user", "content": "Hi"}], messages_format="claude", system_prompt="Hello"
     )
-    result = format_prompt_output(prompt, input_format="claude")
+    result = format_prompt_output(prompt)
     assert result["system"] == "Hello"
     assert result["messages"][0]["content"] == "Hi"
 
@@ -120,29 +120,30 @@ def test_format_bedrock_chat():
     prompt = PromptInput(
         mode="chat",
         messages=[{"role": "user", "content": "Hi"}],
+        messages_format="bedrock",
         system_prompt="System",
     )
-    result = format_prompt_output(prompt, input_format="bedrock")
+    result = format_prompt_output(prompt)
     assert result["system"] == "System"
     assert result["messages"][0]["content"][0]["text"] == "Hi"
 
 
 def test_format_completion():
     prompt = PromptInput(mode="completion", completion_prompt="Generate a poem.")
-    result = format_prompt_output(prompt, input_format="openai")
+    result = format_prompt_output(prompt)
     assert result["prompt"].startswith("Generate")
 
 
 def test_format_invalid_mode():
     prompt = PromptInput(mode="invalid", messages=[])
     with pytest.raises(ValueError, match="Unsupported prompt mode"):
-        format_prompt_output(prompt, input_format="openai")
+        format_prompt_output(prompt)
 
 
 def test_format_missing_messages():
     prompt = PromptInput(mode="chat", messages=None)
     with pytest.raises(ValueError, match="Expected 'messages' to be a list"):
-        format_prompt_output(prompt, input_format="openai")
+        format_prompt_output(prompt)
 
 
 def test_format_invalid_completion_prompt():
@@ -151,4 +152,4 @@ def test_format_invalid_completion_prompt():
         ValueError,
         match="Expected 'completion_prompt' to be a non-empty string for completion mode.",
     ):
-        format_prompt_output(prompt, input_format="openai")
+        format_prompt_output(prompt)

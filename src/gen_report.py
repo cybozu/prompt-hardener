@@ -194,14 +194,29 @@ def build_html_content(
     </body>
     </html>
     """
-
-
 def format_prompt(prompt: PromptInput) -> str:
     """
     Format a PromptInput object into a JSON string for display in the report.
     """
     if prompt.mode == "chat":
-        return json.dumps({"messages": prompt.messages}, indent=2, ensure_ascii=False)
+        if prompt.messages_format == "openai":
+            return json.dumps(
+                {"messages": prompt.messages, "system": prompt.system_prompt},
+                indent=2,
+                ensure_ascii=False,
+            )
+        elif prompt.messages_format in ("claude", "bedrock"):
+            # Claude and Bedrock formats do not include system prompt in messages
+            return json.dumps(
+                {
+                    "messages": prompt.messages,
+                    "system": prompt.system_prompt,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        else:
+            raise ValueError(f"Unsupported messages format: {prompt.messages_format}")
     elif prompt.mode == "completion":
         return json.dumps(
             {"prompt": prompt.completion_prompt}, indent=2, ensure_ascii=False
