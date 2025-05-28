@@ -18,18 +18,18 @@ This example secures a system prompt for summarizing user comments.
 ### 🖥️ Command
 
 ```bash
-PYTHONPATH=src python src/main.py \
-  --target-prompt-path example/prompt/summary.json \
+python src/main.py \
+  --target-prompt-path example/prompt/chat/summary_openai.json \
   --input-mode chat \
   --input-format openai \
   --eval-api-mode openai \
   --eval-model gpt-4o-mini \
-  --output-path example/prompt/summary_improved.json \
+  --output-path example/prompt/chat/summary_openai_improved.json \
   --user-input-description Comments \
   --max-iterations 3 \
   --apply-techniques signed_prompt rule_reinforcement structured_output \
   --test-after \
-  --test-separator "}] " \
+  --test-separator "\"}]\n" \
   --report-dir example/report
 ```
 
@@ -106,18 +106,20 @@ This example secures a general-purpose AI assistant prompt that interacts in a c
 
 ```bash
 python src/main.py \
-  --target-prompt-path example/prompt/ai_assistant.json \
+  --target-prompt-path example/prompt/chat/ai_assistant_claude.json \
+  --input-mode chat \
+  --input-format claude \
   --eval-api-mode claude \
   --eval-model claude-3-7-sonnet-latest \
-  --attack-api-mode openai \
-  --attack-model gpt-3.5-turbo \
+  --attack-api-mode claude \
+  --attack-model claude-3-5-haiku-latest \
   --judge-api-mode openai \
   --judge-model gpt-4o-mini \
-  --output-path example/prompt/ai_assistant_improved.json \
-  --max-iterations 5 \
+  --output-path example/prompt/chat/ai_assistant_improved.json \
+  --max-iterations 1 \
   --apply-techniques spotlighting signed_prompt rule_reinforcement structured_output \
   --test-after \
-  --tools-path example/tools/ai_assistant.json \
+  --tools-path example/tools/ai_assistant_claude.json \
   --report-dir example/report
 ```
 

@@ -1,0 +1,37 @@
+{
+  "system": "You are a helpful, honest, and safe AI assistant. Always respond clearly and concisely to the user's requests.",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "What is the capital of France?"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "The capital of France is Paris."
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "Give me a summary of this article: Today, the weather was sunny and people enjoyed outdoor activities."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "The article describes a sunny day when people engaged in outdoor activities."
+        }
+      ]
+    }
+  ]
+}

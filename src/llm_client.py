@@ -373,10 +373,13 @@ def call_llm_api_for_attack_completion(
                     "max_tokens": max_tokens,
                 },
             )
-            return response.json().get("choices", [{}])[0].get("text", "").strip()
+            choices = response.json().get("choices", [])
+            if len(choices) > 0:
+                return choices[0].get("text", "").strip()
+            else:
+                return ""
 
         elif api_mode == "claude":
-            # Claude API does not support direct completion calls, so we use messages
             kwargs = {
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
@@ -384,10 +387,12 @@ def call_llm_api_for_attack_completion(
                 "max_tokens": 1024,
             }
             response = claude_client.messages.create(**kwargs)
-            return response.content[0].text.strip()
+            if len(response.content) > 0:
+                return response.content[0].text.strip()
+            else:
+                return ""
 
         elif api_mode == "bedrock":
-            # Claude API does not support direct completion calls, so we use messages
             bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
             kwargs = {
                 "modelId": model,
@@ -398,9 +403,10 @@ def call_llm_api_for_attack_completion(
                 },
             }
             response = bedrock_client.converse(**kwargs)
-            if len(response["output"]["message"]["content"]) == 0:
+            if len(response["output"]["message"]["content"]) > 0:
+                return response["output"]["message"]["content"][0]["text"]
+            else:
                 return ""
-            return response["output"]["message"]["content"][0]["text"]
 
         else:
             raise ValueError(f"Unsupported API mode: {api_mode}")
@@ -433,7 +439,10 @@ def call_llm_api_for_attack_chat(
             if tools:
                 kwargs["tools"] = tools
             response = openai_client.chat.completions.create(**kwargs)
-            return response.choices[0].message.content
+            if len(response.choices) > 0 and response.choices[0].message:
+                return response.choices[0].message.content
+            else:
+                return ""
 
         elif api_mode == "claude":
             kwargs = {
@@ -446,7 +455,10 @@ def call_llm_api_for_attack_chat(
             if tools:
                 kwargs["tools"] = tools
             response = claude_client.messages.create(**kwargs)
-            return response.content[0].text.strip()
+            if len(response.content) > 0:
+                return response.content[0].text.strip()
+            else:
+                return ""
 
         elif api_mode == "bedrock":
             bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
@@ -463,9 +475,10 @@ def call_llm_api_for_attack_chat(
             if tools:
                 kwargs["toolConfig"] = tools
             response = bedrock_client.converse(**kwargs)
-            if len(response["output"]["message"]["content"]) == 0:
+            if len(response["output"]["message"]["content"]) > 0:
+                return response["output"]["message"]["content"][0]["text"]
+            else:
                 return ""
-            return response["output"]["message"]["content"][0]["text"]
 
         else:
             raise ValueError(f"Unsupported API mode: {api_mode}")
