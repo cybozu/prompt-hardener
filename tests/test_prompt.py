@@ -57,7 +57,10 @@ def test_parse_bedrock_chat():
 
 def test_parse_bedrock_chat_with_role_system():
     path = write_temp_json(
-        {"system": "Hello", "messages": [{"role": "system", "content": [{"text": "Hi"}]}]}
+        {
+            "system": "Hello",
+            "messages": [{"role": "system", "content": [{"text": "Hi"}]}],
+        }
     )
     with pytest.raises(ValueError, match="does not support 'role: system' in messages"):
         parse_prompt_input(path, input_mode="chat", input_format="bedrock")
@@ -89,7 +92,7 @@ def test_parse_missing_messages_key():
 def test_parse_bedrock_wrong_content_structure():
     path = write_temp_json({"messages": [{"role": "user", "content": "not a list"}]})
     prompt = parse_prompt_input(path, input_mode="chat", input_format="bedrock")
-    assert prompt.messages[0]["content"] is ''
+    assert prompt.messages[0]["content"] == ""
 
 
 def test_parse_invalid_completion_prompt():
@@ -102,14 +105,21 @@ def test_parse_invalid_completion_prompt():
 
 
 def test_format_openai_chat():
-    prompt = PromptInput(mode="chat", messages=[{"role": "user", "content": "Hi"}], messages_format="openai")
+    prompt = PromptInput(
+        mode="chat",
+        messages=[{"role": "user", "content": "Hi"}],
+        messages_format="openai",
+    )
     result = format_prompt_output(prompt)
     assert result["messages"][0]["role"] == "user"
 
 
 def test_format_claude_chat():
     prompt = PromptInput(
-        mode="chat", messages=[{"role": "user", "content": "Hi"}], messages_format="claude", system_prompt="Hello"
+        mode="chat",
+        messages=[{"role": "user", "content": "Hi"}],
+        messages_format="claude",
+        system_prompt="Hello",
     )
     result = format_prompt_output(prompt)
     assert result["system"] == "Hello"

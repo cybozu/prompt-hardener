@@ -5,6 +5,7 @@ import json
 import random
 import string
 from schema import PromptInput
+from prompt import show_prompt
 
 
 def generate_report(
@@ -169,7 +170,7 @@ def build_html_content(
         <div class="section">
             <h2>Initial Prompt</h2>
             <p>This is the original prompt before any improvements were applied.</p>
-            <pre>{escape_html(format_prompt(initial_prompt))}</pre>
+            <pre>{escape_html(show_prompt(initial_prompt))}</pre>
         </div>
         <div class="section">
             <h2>Initial Evaluation</h2>
@@ -179,7 +180,7 @@ def build_html_content(
         <div class="section">
             <h2>Final Prompt</h2>
             <p>This is the improved version of the prompt after refinement.</p>
-            <pre>{escape_html(format_prompt(final_prompt))}</pre>
+            <pre>{escape_html(show_prompt(final_prompt))}</pre>
         </div>
         <div class="section">
             <h2>Final Evaluation</h2>
@@ -194,35 +195,6 @@ def build_html_content(
     </body>
     </html>
     """
-def format_prompt(prompt: PromptInput) -> str:
-    """
-    Format a PromptInput object into a JSON string for display in the report.
-    """
-    if prompt.mode == "chat":
-        if prompt.messages_format == "openai":
-            return json.dumps(
-                {"messages": prompt.messages, "system": prompt.system_prompt},
-                indent=2,
-                ensure_ascii=False,
-            )
-        elif prompt.messages_format in ("claude", "bedrock"):
-            # Claude and Bedrock formats do not include system prompt in messages
-            return json.dumps(
-                {
-                    "messages": prompt.messages,
-                    "system": prompt.system_prompt,
-                },
-                indent=2,
-                ensure_ascii=False,
-            )
-        else:
-            raise ValueError(f"Unsupported messages format: {prompt.messages_format}")
-    elif prompt.mode == "completion":
-        return json.dumps(
-            {"prompt": prompt.completion_prompt}, indent=2, ensure_ascii=False
-        )
-    else:
-        raise ValueError(f"Unsupported prompt mode: {prompt.mode}")
 
 
 def escape_html(text: str) -> str:

@@ -1,4 +1,4 @@
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Any
 import re
 import json
 
@@ -21,6 +21,7 @@ def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
             raise ValueError(f"Invalid role: {entry['role']}")
         if not isinstance(entry["content"], str):
             raise ValueError("Message 'content' must be a string.")
+
 
 def extract_json_block(text: str) -> Dict[str, Any]:
     """

@@ -6,7 +6,7 @@ from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
 from gen_report import generate_report
-from prompt import parse_prompt_input, write_prompt_output
+from prompt import parse_prompt_input, write_prompt_output, show_prompt
 
 
 def parse_args() -> argparse.Namespace:
@@ -166,7 +166,11 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
 
     # Validation: Ensure --input-format and --attack-api-mode are the same
-    if args.input_mode == 'chat' and args.attack_api_mode and args.input_format != args.attack_api_mode:
+    if (
+        args.input_mode == "chat"
+        and args.attack_api_mode
+        and args.input_format != args.attack_api_mode
+    ):
         parser.error(
             f"--input-format ({args.input_format}) and --attack-api-mode ({args.attack_api_mode}) must be the same."
         )
@@ -203,7 +207,9 @@ def main() -> None:
     current_prompt = parse_prompt_input(
         args.target_prompt_path, args.input_mode, args.input_format
     )
-    print(f"Loaded prompt from {args.target_prompt_path}:\n{current_prompt}")
+    print(
+        f"Loaded prompt from {args.target_prompt_path}:\n{show_prompt(current_prompt)}"
+    )
 
     if args.attack_api_mode is None:
         args.attack_api_mode = args.eval_api_mode
@@ -266,7 +272,7 @@ def main() -> None:
             aws_region=args.aws_region,
         )
         print("Improved Prompt:")
-        print(current_prompt)
+        print(show_prompt(current_prompt))
 
     if args.max_iterations == 1 or final_avg_score < args.threshold:
         print("\n--- Final Evaluation ---")

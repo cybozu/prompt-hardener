@@ -1,5 +1,5 @@
 import json
-from typing import Literal, Optional
+from typing import Literal
 from pathlib import Path
 from schema import PromptInput
 
@@ -22,7 +22,9 @@ def parse_prompt_input(path: str, input_mode: str, input_format: str) -> PromptI
                     raise ValueError(
                         "Invalid OpenAI chat format: missing 'messages' field"
                     )
-                return PromptInput(mode="chat", messages=raw["messages"], messages_format="openai")
+                return PromptInput(
+                    mode="chat", messages=raw["messages"], messages_format="openai"
+                )
 
             elif input_format == "claude":
                 if not isinstance(raw, dict) or "messages" not in raw:
@@ -160,3 +162,34 @@ def write_prompt_output(
         raise ValueError(f"Unsupported input_mode={input_mode} for writing output")
 
     print(f"✅ Prompt written in {output_format} format to: {output_path}")
+
+
+def show_prompt(prompt: PromptInput) -> str:
+    """
+    Format a PromptInput object into a JSON string for display in the report.
+    """
+    if prompt.mode == "chat":
+        if prompt.messages_format == "openai":
+            return json.dumps(
+                {"messages": prompt.messages, "system": prompt.system_prompt},
+                indent=2,
+                ensure_ascii=False,
+            )
+        elif prompt.messages_format in ("claude", "bedrock"):
+            # Claude and Bedrock formats do not include system prompt in messages
+            return json.dumps(
+                {
+                    "messages": prompt.messages,
+                    "system": prompt.system_prompt,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        else:
+            raise ValueError(f"Unsupported messages format: {prompt.messages_format}")
+    elif prompt.mode == "completion":
+        return json.dumps(
+            {"prompt": prompt.completion_prompt}, indent=2, ensure_ascii=False
+        )
+    else:
+        raise ValueError(f"Unsupported prompt mode: {prompt.mode}")

@@ -10,8 +10,9 @@ from llm_client import (
     call_llm_api_for_judge,
 )
 from schema import PromptInput
-from prompt import format_prompt_output
+from prompt import show_prompt
 from utils import extract_json_block
+
 
 def insert_attack_into_prompt(
     prompt: PromptInput, model: str, attack: str, api_mode: str
@@ -27,7 +28,9 @@ def insert_attack_into_prompt(
             )
         elif prompt.messages_format in ("claude", "bedrock"):
             prompt_str = json.dumps(
-                {"system": prompt.system_prompt, "messages": prompt.messages}, ensure_ascii=False, indent=2
+                {"system": prompt.system_prompt, "messages": prompt.messages},
+                ensure_ascii=False,
+                indent=2,
             )
     elif prompt.mode == "completion":
         prompt_str = prompt.completion_prompt or ""
@@ -123,7 +126,9 @@ def insert_attack_into_prompt(
                 )
         elif prompt.mode == "completion":
             # For completion, just return the prompt as is (attack injection not supported)
-            return PromptInput(mode="completion", completion_prompt=result.get("prompt", ""))
+            return PromptInput(
+                mode="completion", completion_prompt=result.get("prompt", "")
+            )
     except Exception as e:
         print(f"[Warning] Fallback injection failed: {e}")
         return prompt
@@ -154,7 +159,9 @@ def normalize_salted_tags_in_prompt(
         ]
         if prompt.messages_format == "openai":
             return PromptInput(
-                mode="chat", messages=new_messages, messages_format=prompt.messages_format,
+                mode="chat",
+                messages=new_messages,
+                messages_format=prompt.messages_format,
             )
         elif prompt.messages_format in ("claude", "bedrock"):
             return PromptInput(
@@ -296,15 +303,13 @@ def run_injection_test(
                 print(
                     f"[Injection Test] Category: {category}\nInput: {mod_attack}\nResponse: {response}\nResult: {outcome}\n"
                 )
-                print(
-                    f"[Injection Test] Final Prompt: {format_prompt_output(final_prompt)}\n"
-                )
+                print(f"[Injection Test] Final Prompt: {show_prompt(final_prompt)}\n")
 
                 results.append(
                     {
                         "category": category,
                         "attack": mod_attack,
-                        "prompt": format_prompt_output(final_prompt),
+                        "prompt": show_prompt(final_prompt),
                         "response": response,
                         "success": success,
                         "result": outcome,
@@ -317,7 +322,7 @@ def run_injection_test(
                     {
                         "category": category,
                         "attack": mod_attack,
-                        "prompt": format_prompt_output(final_prompt),
+                        "prompt": show_prompt(final_prompt),
                         "response": str(e),
                         "success": True,
                         "result": "ERROR",

@@ -2,6 +2,7 @@ from typing import List, Optional
 from llm_client import call_llm_api_for_improve
 from utils import validate_chat_completion_format
 from schema import PromptInput
+from prompt import show_prompt
 
 
 def improve_prompt(
@@ -15,7 +16,7 @@ def improve_prompt(
     aws_region: Optional[str] = None,
 ) -> PromptInput:
     print("Improving prompt...")
-    print(f"Target prompt: {target_prompt}")
+    print(f"Target prompt: {show_prompt(target_prompt)}")
     # If no specific techniques are provided, apply all by default
     if apply_techniques is None:
         apply_techniques = []
@@ -187,14 +188,23 @@ def improve_prompt(
     elif target_prompt.mode == "chat":
         # result is a list of messages (in OpenAI format)
         if not isinstance(result.get("messages"), list):
-                raise ValueError("Expected 'messages' to be a list.")
+            raise ValueError("Expected 'messages' to be a list.")
         validate_chat_completion_format(result.get("messages"))
         if target_prompt.messages_format == "openai":
-            return PromptInput(mode="chat", messages=result.get("messages"), messages_format=target_prompt.messages_format)
+            return PromptInput(
+                mode="chat",
+                messages=result.get("messages"),
+                messages_format=target_prompt.messages_format,
+            )
         elif target_prompt.messages_format in ("claude", "bedrock"):
             if not isinstance(result.get("system"), str):
                 raise ValueError("Expected 'system' to be a string.")
-            return PromptInput(mode="chat", messages=result.get("messages"), messages_format=target_prompt.messages_format, system_prompt=result.get("system", ""))
+            return PromptInput(
+                mode="chat",
+                messages=result.get("messages"),
+                messages_format=target_prompt.messages_format,
+                system_prompt=result.get("system", ""),
+            )
 
     else:
         raise ValueError(f"Unsupported prompt mode: {target_prompt.mode}")

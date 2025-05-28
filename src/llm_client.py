@@ -28,7 +28,12 @@ def build_openai_messages_for_eval(
             )
         elif target_prompt.messages_format in ("claude", "bedrock"):
             prompt_block = json.dumps(
-                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
             )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
@@ -63,7 +68,12 @@ def build_openai_messages_for_improve(
             )
         elif target_prompt.messages_format in ("claude", "bedrock"):
             prompt_block = json.dumps(
-                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
             )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
@@ -98,7 +108,12 @@ def build_claude_messages_for_eval(
             )
         elif target_prompt.messages_format in ("claude", "bedrock"):
             prompt_block = json.dumps(
-                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
             )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
@@ -128,7 +143,12 @@ def build_claude_messages_for_improve(
             )
         elif target_prompt.messages_format in ("claude", "bedrock"):
             prompt_block = json.dumps(
-                {"system": target_prompt.system_prompt, "messages": target_prompt.messages}, ensure_ascii=False, indent=2
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
             )
     elif target_prompt.mode == "completion":
         prompt_block = target_prompt.completion_prompt
@@ -433,7 +453,7 @@ def call_llm_api_for_attack_chat(
             messages = to_bedrock_message_format(messages)
             kwargs = {
                 "modelId": model,
-                "system": [{ "text": system_message }],
+                "system": [{"text": system_message}],
                 "messages": messages,
                 "inferenceConfig": {
                     "temperature": temperature,

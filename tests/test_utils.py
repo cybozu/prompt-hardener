@@ -65,7 +65,9 @@ def test_no_json_block_found():
     text = """
     This text does not contain any valid JSON.
     """
-    with pytest.raises(ValueError, match="No valid JSON block found in the input text."):
+    with pytest.raises(
+        ValueError, match="No valid JSON block found in the input text."
+    ):
         extract_json_block(text)
 
 
@@ -85,6 +87,7 @@ def test_embedded_json_block():
     assert result["key"] == "value"
     assert result["list"] == [1, 2, 3]
 
+
 def test_new_line_in_string():
     text = """
     {
@@ -99,6 +102,7 @@ a system message.",
     assert isinstance(result, dict)
     assert "system" in result
     assert result["system"] == "This is a system message."
+
 
 # Test cases for to_bedrock_message_format function
 
