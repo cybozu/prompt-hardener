@@ -8,6 +8,8 @@ from main import main as cli_main
 
 def run_evaluation(
     prompt,
+    input_mode,
+    input_format,
     eval_api_mode,
     eval_model,
     attack_api_mode,
@@ -40,6 +42,10 @@ def run_evaluation(
             "main.py",
             "--target-prompt-path",
             str(prompt_path),
+            "--input-mode",
+            input_mode,
+            "--input-format",
+            input_format,
             "--eval-api-mode",
             eval_api_mode,
             "--eval-model",
@@ -104,8 +110,31 @@ with gr.Blocks() as demo:
 
     with gr.Row():
         with gr.Column():
+            input_mode = gr.Radio(
+                ["chat", "completion"],
+                value="chat",
+                label="Input Mode",
+                info="Select 'chat' for role-based messages or 'completion' for single prompt strings.",
+            )
+            input_format = gr.Radio(
+                ["openai", "claude", "bedrock"],
+                value="openai",
+                label="Input Format",
+                info="Select the format of the input prompt (e.g., OpenAI, Claude, or Bedrock).",
+            )
             prompt = gr.Textbox(
-                label="System Prompt (Chat Completion Format)", lines=12
+                label="Prompt",
+                lines=12,
+                placeholder=(
+                    "For 'chat' mode and 'openai' format, provide JSON like:\n"
+                    '{"messages": [{"role": "system", "content": "You are a helpful assistant."}, {"role": "user", "content": "Hello!"}]}\n\n'
+                    "For 'chat' mode and 'claude' format, provide JSON like:\n"
+                    '{"system": "You are a helpful assistant.", "messages": [{"role": "user", "content": "Hello!"}]}\n\n'
+                    "For 'chat' mode and 'bedrock' format, provide JSON like:\n"
+                    '{"system": "You are a helpful assistant.", "messages": [{"role": "user", "content": [{"text": "Hello!"}]}]}\n\n'
+                    "For 'completion' mode, provide plain text like:\n"
+                    "You are a helpful assistant. Please answer the user's questions."
+                ),
             )
             eval_api_mode = gr.Radio(
                 ["openai", "claude", "bedrock"],
@@ -153,6 +182,8 @@ with gr.Blocks() as demo:
         run_evaluation,
         inputs=[
             prompt,
+            input_mode,
+            input_format,
             eval_api_mode,
             eval_model,
             attack_api_mode,

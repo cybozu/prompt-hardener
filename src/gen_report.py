@@ -4,12 +4,14 @@ import html
 import json
 import random
 import string
+from schema import PromptInput
+from prompt import show_prompt
 
 
 def generate_report(
-    initial_prompt: List[Dict[str, str]],
+    initial_prompt: PromptInput,
     initial_evaluation: Dict[str, Any],
-    final_prompt: List[Dict[str, str]],
+    final_prompt: PromptInput,
     final_evaluation: Dict[str, Any],
     attack_results: List[Dict[str, Any]],
     output_dir_path: str,
@@ -51,9 +53,9 @@ def generate_report(
 
 
 def generate_html_report(
-    initial_prompt: List[Dict[str, str]],
+    initial_prompt: PromptInput,
     initial_evaluation: Dict[str, Any],
-    final_prompt: List[Dict[str, str]],
+    final_prompt: PromptInput,
     final_evaluation: Dict[str, Any],
     attack_results: List[Dict[str, Any]],
     html_path: str,
@@ -88,9 +90,9 @@ def generate_html_report(
 
 
 def build_html_content(
-    initial_prompt: List[Dict[str, str]],
+    initial_prompt: PromptInput,
     initial_evaluation: Dict[str, Any],
-    final_prompt: List[Dict[str, str]],
+    final_prompt: PromptInput,
     final_evaluation: Dict[str, Any],
     attack_results: List[Dict[str, Any]],
     json_path: str,
@@ -168,7 +170,7 @@ def build_html_content(
         <div class="section">
             <h2>Initial Prompt</h2>
             <p>This is the original prompt before any improvements were applied.</p>
-            <pre>{escape_html(json.dumps(initial_prompt, indent=2, ensure_ascii=False))}</pre>
+            <pre>{escape_html(show_prompt(initial_prompt))}</pre>
         </div>
         <div class="section">
             <h2>Initial Evaluation</h2>
@@ -178,7 +180,7 @@ def build_html_content(
         <div class="section">
             <h2>Final Prompt</h2>
             <p>This is the improved version of the prompt after refinement.</p>
-            <pre>{escape_html(json.dumps(final_prompt, indent=2, ensure_ascii=False))}</pre>
+            <pre>{escape_html(show_prompt(final_prompt))}</pre>
         </div>
         <div class="section">
             <h2>Final Evaluation</h2>

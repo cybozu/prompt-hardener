@@ -1,9 +1,12 @@
+import os
 import json
-from typing import List, Dict, Union, Optional
+import requests
+from typing import List, Dict, Union, Optional, Any
 from openai import OpenAI
 from anthropic import Anthropic
 import boto3
 from utils import extract_json_block, to_bedrock_message_format
+from schema import PromptInput
 
 openai_client = OpenAI()
 claude_client = Anthropic()
@@ -15,9 +18,28 @@ def build_openai_messages_for_eval(
     system_message: str,
     criteria_message: str,
     criteria: str,
-    target_prompt: List[Dict[str, str]],
+    target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
-    prompt_block = json.dumps(target_prompt, ensure_ascii=False, indent=2)
+    if target_prompt.mode == "chat":
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+    elif target_prompt.mode == "completion":
+        prompt_block = target_prompt.completion_prompt
+    else:
+        raise ValueError(f"Unsupported mode: {target_prompt.mode}")
+
     user_instruction = (
         f"The target prompt is:\n{prompt_block}\n\n"
         f"Please evaluate the above according to the criteria and respond in JSON."
@@ -36,9 +58,28 @@ def build_openai_messages_for_improve(
     system_message: str,
     criteria_message: str,
     criteria: str,
-    target_prompt: List[Dict[str, str]],
+    target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
-    prompt_block = json.dumps(target_prompt, ensure_ascii=False, indent=2)
+    if target_prompt.mode == "chat":
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+    elif target_prompt.mode == "completion":
+        prompt_block = target_prompt.completion_prompt
+    else:
+        raise ValueError(f"Unsupported mode: {target_prompt.mode}")
+
     user_instruction = (
         f"The target prompt is:\n{prompt_block}\n\n"
         f"Please improve the above according to the criteria and respond in JSON."
@@ -57,9 +98,28 @@ def build_claude_messages_for_eval(
     system_message: str,
     criteria_message: str,
     criteria: str,
-    target_prompt: List[Dict[str, str]],
+    target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
-    prompt_block = json.dumps(target_prompt, ensure_ascii=False, indent=2)
+    if target_prompt.mode == "chat":
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+    elif target_prompt.mode == "completion":
+        prompt_block = target_prompt.completion_prompt
+    else:
+        raise ValueError(f"Unsupported mode: {target_prompt.mode}")
+
     content = (
         f"{system_message.strip()}\n\n"
         f"The evaluation criteria are:\n{criteria_message.strip()}\n{criteria.strip()}\n\n"
@@ -73,15 +133,35 @@ def build_claude_messages_for_improve(
     system_message: str,
     criteria_message: str,
     criteria: str,
-    target_prompt: List[Dict[str, str]],
+    target_prompt: PromptInput,
 ) -> List[Dict[str, str]]:
-    prompt_block = json.dumps(target_prompt, ensure_ascii=False, indent=2)
+    if target_prompt.mode == "chat":
+        prompt_block = ""
+        if target_prompt.messages_format == "openai":
+            prompt_block = json.dumps(
+                {"messages": target_prompt.messages}, ensure_ascii=False, indent=2
+            )
+        elif target_prompt.messages_format in ("claude", "bedrock"):
+            prompt_block = json.dumps(
+                {
+                    "system": target_prompt.system_prompt,
+                    "messages": target_prompt.messages,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+    elif target_prompt.mode == "completion":
+        prompt_block = target_prompt.completion_prompt
+    else:
+        raise ValueError(f"Unsupported mode: {target_prompt.mode}")
+
     content = (
         f"{system_message.strip()}\n\n"
         f"The evaluation criteria are:\n{criteria_message.strip()}\n{criteria.strip()}\n\n"
         f"The target prompt is:\n{prompt_block}\n\n"
         f"Please improve the above according to the criteria and respond in valid JSON."
     )
+
     return [{"role": "user", "content": content.strip()}]
 
 
@@ -94,7 +174,7 @@ def call_llm_api_for_eval(
     system_message: str,
     criteria_message: str,
     criteria: str,
-    target_prompt: List[Dict[str, str]],
+    target_prompt: PromptInput,
     aws_region: Optional[str] = None,
 ) -> Union[List[Dict[str, str]], str]:
     try:
@@ -102,51 +182,50 @@ def call_llm_api_for_eval(
             messages = build_openai_messages_for_eval(
                 system_message, criteria_message, criteria, target_prompt
             )
-            kwargs = {
-                "model": model_name,
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 1500,
-                "response_format": {"type": "json_object"},
-            }
-            completion = openai_client.chat.completions.create(**kwargs)
-            content = completion.choices[0].message.content
-            return json.loads(content)
-
-        elif api_mode == "claude":
+        elif api_mode in ("claude", "bedrock"):
             messages = build_claude_messages_for_eval(
                 system_message, criteria_message, criteria, target_prompt
             )
+        else:
+            raise ValueError(f"Unsupported api_mode: {api_mode}")
+
+        if api_mode == "openai":
+            completion = openai_client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=1500,
+                response_format={"type": "json_object"},
+            )
+            content = completion.choices[0].message.content
+        elif api_mode == "claude":
             completion = claude_client.messages.create(
-                model=model_name, messages=messages, max_tokens=1500, temperature=0.2
+                model=model_name,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=1500,
             )
             content = completion.content[0].text
-            return json.loads(content)
-
         elif api_mode == "bedrock":
             bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
-            messages = build_claude_messages_for_eval(
-                system_message, criteria_message, criteria, target_prompt
-            )
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "messages": messages,
                 "temperature": 0.2,
                 "max_tokens": 1500,
             }
-            completion = bedrock_client.invoke_model(
+            response = bedrock_client.invoke_model(
                 modelId=model_name,
                 body=json.dumps(json_data),
                 contentType="application/json",
                 accept="application/json",
             )
-            response = json.loads(completion.get("body").read())
-            content = response["content"][0]["text"]
-            print("content", content)
-            return json.loads(content)
-
+            response_body = json.loads(response.get("body").read())
+            content = response_body["content"][0]["text"]
         else:
             raise ValueError(f"Unsupported API mode: {api_mode}")
+
+        return json.loads(content)
 
     except Exception as e:
         raise ValueError(
@@ -160,62 +239,58 @@ def call_llm_api_for_improve(
     system_message: str,
     criteria_message: str,
     criteria: str,
-    target_prompt: List[Dict[str, str]],
+    target_prompt: PromptInput,
     aws_region: Optional[str] = None,
-) -> Union[List[Dict[str, str]], str]:
+) -> Dict[str, Any]:
     try:
         if api_mode == "openai":
             messages = build_openai_messages_for_improve(
                 system_message, criteria_message, criteria, target_prompt
             )
-            kwargs = {
-                "model": model_name,
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 1500,
-                "response_format": {"type": "json_object"},
-            }
-            completion = openai_client.chat.completions.create(**kwargs)
-            content = completion.choices[0].message.content
-            messages = extract_json_block(content, key="messages")
-            return messages
-
-        elif api_mode == "claude":
+        elif api_mode in ("claude", "bedrock"):
             messages = build_claude_messages_for_improve(
                 system_message, criteria_message, criteria, target_prompt
             )
+        else:
+            raise ValueError(f"Unsupported api_mode: {api_mode}")
+
+        if api_mode == "openai":
+            completion = openai_client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=1500,
+                response_format={"type": "json_object"},
+            )
+            content = completion.choices[0].message.content
+
+        elif api_mode == "claude":
             completion = claude_client.messages.create(
-                model=model_name, messages=messages, max_tokens=1500, temperature=0.2
+                model=model_name,
+                messages=messages,
+                temperature=0.2,
+                max_tokens=1500,
             )
             content = completion.content[0].text
-            messages = extract_json_block(content, key="messages")
-            return messages
 
         elif api_mode == "bedrock":
             bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
-            messages = build_claude_messages_for_improve(
-                system_message, criteria_message, criteria, target_prompt
-            )
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "messages": messages,
                 "temperature": 0.2,
                 "max_tokens": 1500,
             }
-            completion = bedrock_client.invoke_model(
+            response = bedrock_client.invoke_model(
                 modelId=model_name,
                 body=json.dumps(json_data),
                 contentType="application/json",
                 accept="application/json",
             )
-            response = json.loads(completion.get("body").read())
-            content = response["content"][0]["text"]
-            print("content", content)
-            messages = extract_json_block(content, key="messages")
-            return messages
-
-        else:
-            raise ValueError(f"Unsupported API mode: {api_mode}")
+            response_body = json.loads(response.get("body").read())
+            content = response_body["content"][0]["text"]
+        messages = extract_json_block(content)
+        return messages
 
     except Exception as e:
         raise ValueError(
@@ -275,13 +350,82 @@ def call_llm_api_for_payload_injection(
         )
 
 
-def call_llm_api_for_attack(
+def call_llm_api_for_attack_completion(
     api_mode: str,
     model: str,
-    messages: List[Dict[str, str]],
+    prompt: str,
+    temperature: float = 0.2,
+    max_tokens: int = 1024,
+    aws_region: Optional[str] = None,
+) -> str:
+    try:
+        if api_mode == "openai":
+            response = requests.post(
+                "https://api.openai.com/v1/completions",
+                headers={
+                    "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+            )
+            choices = response.json().get("choices", [])
+            if len(choices) > 0:
+                return choices[0].get("text", "").strip()
+            else:
+                return ""
+
+        elif api_mode == "claude":
+            kwargs = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+                "max_tokens": 1024,
+            }
+            response = claude_client.messages.create(**kwargs)
+            if len(response.content) > 0:
+                return response.content[0].text.strip()
+            else:
+                return ""
+
+        elif api_mode == "bedrock":
+            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            kwargs = {
+                "modelId": model,
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "inferenceConfig": {
+                    "temperature": temperature,
+                    "maxTokens": max_tokens,
+                },
+            }
+            response = bedrock_client.converse(**kwargs)
+            if len(response["output"]["message"]["content"]) > 0:
+                return response["output"]["message"]["content"][0]["text"]
+            else:
+                return ""
+
+        else:
+            raise ValueError(f"Unsupported API mode: {api_mode}")
+
+    except Exception as e:
+        raise ValueError(
+            f"Error: Failed to call {api_mode} completion API with model '{model}': {e}"
+        )
+
+
+def call_llm_api_for_attack_chat(
+    api_mode: str,
+    model: str,
+    system_message: Optional[str] = None,
+    messages: List[Dict[str, str]] = [],
     tools: Optional[List[dict]] = None,
     tool_choice: Optional[str] = None,
     temperature: float = 0.2,
+    max_tokens: int = 1024,
     aws_region: Optional[str] = None,
 ) -> str:
     try:
@@ -290,40 +434,51 @@ def call_llm_api_for_attack(
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 1024,
+                "max_tokens": max_tokens,
             }
             if tools:
                 kwargs["tools"] = tools
             response = openai_client.chat.completions.create(**kwargs)
-            return response.choices[0].message.content
+            if len(response.choices) > 0 and response.choices[0].message:
+                return response.choices[0].message.content
+            else:
+                return ""
 
         elif api_mode == "claude":
             kwargs = {
                 "model": model,
+                "system": system_message,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 1024,
+                "max_tokens": max_tokens,
             }
             if tools:
                 kwargs["tools"] = tools
             response = claude_client.messages.create(**kwargs)
-            return response.content[0].text.strip()
+            if len(response.content) > 0:
+                return response.content[0].text.strip()
+            else:
+                return ""
 
         elif api_mode == "bedrock":
             bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
             messages = to_bedrock_message_format(messages)
             kwargs = {
                 "modelId": model,
+                "system": [{"text": system_message}],
                 "messages": messages,
                 "inferenceConfig": {
                     "temperature": temperature,
-                    "maxTokens": 1024,
+                    "maxTokens": max_tokens,
                 },
             }
             if tools:
                 kwargs["toolConfig"] = tools
             response = bedrock_client.converse(**kwargs)
-            return response["output"]["message"]["content"][0]["text"]
+            if len(response["output"]["message"]["content"]) > 0:
+                return response["output"]["message"]["content"][0]["text"]
+            else:
+                return ""
 
         else:
             raise ValueError(f"Unsupported API mode: {api_mode}")
@@ -373,6 +528,8 @@ def call_llm_api_for_judge(
                 accept="application/json",
             )
             response_content = json.loads(response.get("body").read())
+            if len(response_content["content"]) == 0:
+                return ""
             return response_content["content"][0]["text"].strip()
 
         else:
