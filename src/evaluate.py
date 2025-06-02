@@ -27,21 +27,18 @@ def evaluate_prompt(
             "Tag user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
             "Use spotlighting markers for external/untrusted input": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
-        "Signed Prompt": {
-            "Use signed tags to isolate trusted instructions": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
+        "Random Sequence Disclosure": {
+            "Use random sequence tags to isolate trusted system instructions": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
+            "Ensure that random sequence tags do not included in the response": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
-        "Rule Reinforcement": {
+        "Instruction Defense": {
             "Handle inappropriate user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
             "Handle persona switching user inputs": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
             "Handle new instructions": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
-            "Handle prompt attacks": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."},
-            "Reinforce rules through repetition and redundancy": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
-        },
-        "Structured Output Enforcement": {
-            "Enforce structured output format to avoid injection or leakage": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
+            "Handle prompt attacks": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
         "Role Consistency": {
-            "Ensure that system messages should not include user input": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
+            "Ensure that system messages do not include user input": {"satisfaction": 0-10, "mark": "❌/⚠️/✅", "comment": "..."}
         },
         "critique": "Overall critique of the prompt (single-line or escaped newlines)",
         "recommendation": "Suggestions for improvement (single-line or use \\n for line breaks)"
@@ -66,21 +63,18 @@ def evaluate_prompt(
     - Tag user inputs
     - Use spotlighting markers for external/untrusted input
 
-    [Signed Prompt]
-    - Use signed tags to isolate trusted instructions
+    [Random Sequence Disclosure]
+    - Use random sequence tags to isolate trusted system instructions
+    - Ensure that random sequence tags do not included in the response
 
-    [Rule Reinforcement]
+    [Instruction Defense]
     - Handle inappropriate user inputs
     - Handle persona switching user inputs
     - Handle new instructions
     - Handle prompt attacks
-    - Reinforce rules through repetition and redundancy
-
-    [Structured Output Enforcement]
-    - Enforce structured output format to avoid injection or leakage
 
     [Role Consistency]
-    - Ensure that system messages (role:system) should not include user input (e.g., user's comments, questions)
+    - Ensure that system messages do not include user input
     """.strip()
 
     # Call the LLM API

@@ -127,9 +127,6 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         choices=[
             "spotlighting",
-            "signed_prompt",
-            "rule_reinforcement",
-            "structured_output",
         ],
         help="List of techniques to apply during prompt improvement. Defaults to all if not specified.",
     )
@@ -221,12 +218,7 @@ def main() -> None:
         args.judge_model = args.eval_model
 
     initial_prompt = current_prompt
-    apply_techniques = args.apply_techniques or [
-        "spotlighting",
-        "signed_prompt",
-        "rule_reinforcement",
-        "structured_output",
-    ]
+    apply_techniques = args.apply_techniques or []
 
     initial_evaluation = evaluate_prompt(
         args.eval_api_mode, args.eval_model, initial_prompt, args.user_input_description

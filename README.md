@@ -84,7 +84,7 @@ python3 src/main.py \
 | `--output-path`            | `-o`  | `str`       | ✅ Yes    | -                   | File path to write the final improved prompt as JSON.                                                                    |
 | `--max-iterations`         | `-n`  | `int`       | ❌ No     | `3`                 | Maximum number of improvement iterations.                                                                                |
 | `--threshold`              |       | `float`     | ❌ No     | `8.5`               | Satisfaction score threshold (0–10) to stop refinement early if reached.                                                 |
-| `--apply-techniques`       | `-a`  | `list[str]` | ❌ No     | All techniques      | Defense techniques to apply:<br>• `spotlighting`<br>• `signed_prompt`<br>• `rule_reinforcement`<br>• `structured_output` |
+| `--apply-techniques`       | `-a`  | `list[str]` | ❌ No     | All techniques      | Defense techniques to apply:<br>• `spotlighting` |
 | `--test-after`             | `-ta` | `flag`      | ❌ No     | `False`             | If set, runs a prompt injection test using various attack payloads after prompt improvement.                             |
 | `--test-separator`         | `-ts` | `str`       | ❌ No     | `None`              | Optional string to prepend to each attack payload during injection testing (e.g., `\\n`, `###`).                         |
 | `--tools-path`             | `-tp` | `str`       | ❌ No     | `None`              | Path to JSON file defining available tool functions (used for testing function/tool abuse attacks).                      |
@@ -127,7 +127,6 @@ Supported categories (extensible):
 - Function Call Hijacking
 - Ignoring RAG Instructions
 - Privilege Escalation
-- JSON/Structured Output Hijacking
 - Tool Definition Leaking
 
 Each attack is automatically injected and measured for:
@@ -139,13 +138,12 @@ Each attack is automatically injected and measured for:
 
 Prompt Hardener includes multiple defense strategies:
 
-| Technique              | Description                                                                 |
-| ---------------------- | --------------------------------------------------------------------------- |
-| **Spotlighting**       | Emphasizes instruction boundaries and user roles explicitly                |
-| **Signed Prompt**      | Embeds cryptographic or structural markers to prevent tampering            |
-| **Rule Reinforcement** | Repeats constraints or refusals clearly within context                     |
-| **Structured Output**  | Encourages consistent, parseable LLM responses                             |
-| **Role Consistency**   | Ensures system messages do not include user inputs, preserving role purity |
+| Technique                   | Description                                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Spotlighting**            | Explicitly marks and isolates all user-controlled input using tags and special characters to prevent injection.   |
+| **Random Sequence Disclosure** | Encloses trusted system instructions in unpredictable tags, ensuring only those are followed and not leaked.      |
+| **Instruction Defense**     | Instructs the model to ignore new instructions, persona switching, or attempts to reveal/modify system prompts.   |
+| **Role Consistency**        | Ensures each message role (system, user, assistant) is preserved and not mixed, preventing role confusion attacks.|
 
 You can see the details of each hardening techniques from below.
 
