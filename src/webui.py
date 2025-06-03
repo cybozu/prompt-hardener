@@ -3,7 +3,6 @@ import tempfile
 import shutil
 import sys
 import subprocess
-import json
 from pathlib import Path
 
 
@@ -84,7 +83,7 @@ def run_evaluation(
             cmd += ["--aws-region", aws_region]
 
         try:
-            result = subprocess.run(cmd, text=True, check=True)
+            subprocess.run(cmd, text=True, check=True)
             status = "✅ Complete"
         except subprocess.CalledProcessError as e:
             status = f"❌ Error: {e.stderr or e.stdout}"
