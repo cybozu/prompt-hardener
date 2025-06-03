@@ -260,9 +260,11 @@ def run_injection_test(
     for category, attacks in attack_categories.items():
         for attack in attacks:
             mod_attack = separator + attack if separator else attack
-            # 
+            #
             mod_attack = (
-                mod_attack.replace(" ", "\uE000") if spotlighting_enabled else mod_attack
+                mod_attack.replace(" ", "\ue000")
+                if spotlighting_enabled
+                else mod_attack
             )
 
             normalized_prompt = normalize_salted_tags_in_prompt(
