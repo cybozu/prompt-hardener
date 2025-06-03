@@ -4,6 +4,7 @@ import shutil
 import sys
 from pathlib import Path
 
+
 def run_evaluation(
     prompt,
     input_mode,
@@ -199,6 +200,7 @@ with gr.Blocks() as demo:
         ],
         outputs=[result, download_html, download_json],
     )
+
 
 def launch_webui():
     demo.launch()

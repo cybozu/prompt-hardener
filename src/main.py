@@ -170,8 +170,8 @@ def parse_args() -> argparse.Namespace:
 
     # Validation: Ensure --input-format and --attack-api-mode are the same
     if (
-        args.command == "improve" and
-        args.input_mode == "chat"
+        args.command == "improve"
+        and args.input_mode == "chat"
         and args.attack_api_mode
         and args.input_format != args.attack_api_mode
     ):
@@ -231,7 +231,10 @@ def main() -> None:
         apply_techniques = args.apply_techniques or []
 
         initial_evaluation = evaluate_prompt(
-            args.eval_api_mode, args.eval_model, initial_prompt, args.user_input_description
+            args.eval_api_mode,
+            args.eval_model,
+            initial_prompt,
+            args.user_input_description,
         )
         initial_avg_score = average_satisfaction(initial_evaluation)
         print("Initial Evaluation Result:")
@@ -334,6 +337,7 @@ def main() -> None:
                 args.judge_api_mode,
             )
             print("Report generation complete.")
+
 
 if __name__ == "__main__":
     main()
