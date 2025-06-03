@@ -27,7 +27,6 @@ python src/main.py \
   --output-path example/prompt/chat/summary_openai_improved.json \
   --user-input-description Comments \
   --max-iterations 3 \
-  --apply-techniques signed_prompt rule_reinforcement structured_output \
   --test-after \
   --test-separator "\"}]\n" \
   --report-dir example/report
@@ -117,7 +116,7 @@ python src/main.py \
   --judge-model gpt-4o-mini \
   --output-path example/prompt/chat/ai_assistant_improved.json \
   --max-iterations 1 \
-  --apply-techniques spotlighting signed_prompt rule_reinforcement structured_output \
+  --apply-techniques spotlighting \
   --test-after \
   --tools-path example/tools/ai_assistant_claude.json \
   --report-dir example/report
