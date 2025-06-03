@@ -57,6 +57,8 @@ Here is an example of command using cli mode.
 
 ```bash
 prompt-hardener improve \
+  --input-mode chat \
+  --input-format openai \
   --target-prompt-path path/to/prompt.json \
   --eval-api-mode openai \
   --eval-model gpt-4o-mini \
@@ -73,18 +75,20 @@ prompt-hardener improve \
 | Argument                   | Short | Type        | Required | Default             | Description                                                                                                              |
 | -------------------------- | ----- | ----------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `--target-prompt-path`     | `-t`  | `str`       | ✅ Yes    | -                   | Path to the file containing the target system prompt (Chat Completion message format, JSON).                             |
-| `--eval-api-mode`          | `-ea` | `str`       | ✅ Yes    | -                   | LLM API used for evaluation and improvement (`openai`, `claude` or `bedrock`).                                                      |
+| `--input-mode`             |       | `str`       | ❌ No     | `chat`              | Prompt format type: `chat` for role-based messages, `completion` for single prompt string.                               |
+| `--input-format`           |       | `str`       | ❌ No     | `openai`            | Input message format to parse: `openai`, `claude`, or `bedrock`.                                                         |
+| `--eval-api-mode`          | `-ea` | `str`       | ✅ Yes    | -                   | LLM API used for evaluation and improvement (`openai`, `claude` or `bedrock`).                                           |
 | `--eval-model`             | `-em` | `str`       | ✅ Yes    | -                   | Model name used for evaluation and improvement (e.g., `gpt-4o-mini`, `claude-3-7-sonnet-latest`, `anthropic.claude-3-5-sonnet-20240620-v1:0`).                        |
 | `--attack-api-mode`        | `-aa` | `str`       | ❌ No     | `--eval-api-mode`   | LLM API used for executing attacks (defaults to the evaluation API).                                                     |
 | `--attack-model`           | `-am` | `str`       | ❌ No     | `--eval-model`      | Model used to generate and run attacks (defaults to the evaluation model).                                               |
-| `--judge-api-mode`         | `-ja` | `str`       | ❌ No     | `--eval-api-mode` | LLM API used for attack insertion and success judgment (defaults to the attack API).                                     |
-| `--judge-model`            | `-jm` | `str`       | ❌ No     | `--eval-model`    | Model used to insert attack payloads and judge injection success (defaults to the attack model).                         |
+| `--judge-api-mode`         | `-ja` | `str`       | ❌ No     | `--eval-api-mode`   | LLM API used for attack insertion and success judgment (defaults to the attack API).                                     |
+| `--judge-model`            | `-jm` | `str`       | ❌ No     | `--eval-model`      | Model used to insert attack payloads and judge injection success (defaults to the attack model).                         |
 | `--aws-region`             | `-ar` | `str`       | ❌ No     | `us-east-1`         | AWS region for Bedrock API mode. Default is `us-east-1`.                                                                 |
 | `--user-input-description` | `-ui` | `str`       | ❌ No     | `None`              | Description of user input fields (e.g., `Comments`), used to guide placement and tagging of user data.                   |
 | `--output-path`            | `-o`  | `str`       | ✅ Yes    | -                   | File path to write the final improved prompt as JSON.                                                                    |
 | `--max-iterations`         | `-n`  | `int`       | ❌ No     | `3`                 | Maximum number of improvement iterations.                                                                                |
 | `--threshold`              |       | `float`     | ❌ No     | `8.5`               | Satisfaction score threshold (0–10) to stop refinement early if reached.                                                 |
-| `--apply-techniques`       | `-a`  | `list[str]` | ❌ No     | All techniques      | Defense techniques to apply:<br>• `spotlighting` |
+| `--apply-techniques`       | `-a`  | `list[str]` | ❌ No     | All techniques      | Defense techniques to apply:<br>• `spotlighting`                                                                         |
 | `--test-after`             | `-ta` | `flag`      | ❌ No     | `False`             | If set, runs a prompt injection test using various attack payloads after prompt improvement.                             |
 | `--test-separator`         | `-ts` | `str`       | ❌ No     | `None`              | Optional string to prepend to each attack payload during injection testing (e.g., `\\n`, `###`).                         |
 | `--tools-path`             | `-tp` | `str`       | ❌ No     | `None`              | Path to JSON file defining available tool functions (used for testing function/tool abuse attacks).                      |
@@ -93,7 +97,7 @@ prompt-hardener improve \
 **Note:**  
 > - `--eval-api-mode`, `--attack-api-mode`, and `--judge-api-mode` accept `openai`, `claude`, or `bedrock` as options.  
 > - When using Bedrock, you must specify the [Bedrock Model ID](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html) for `--eval-model`, `--attack-model`, and `--judge-model` (e.g., `.claude-3-5-sonnet-20240620-v1:0`).
-
+> - For more details on each option, see the source code in [`src/main.py`](src/main.py).
 
 </details>
 
