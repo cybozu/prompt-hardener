@@ -79,8 +79,6 @@ def run_evaluation(
         if aws_region:
             sys.argv += ["--aws-region", aws_region]
 
-        cli_main()
-
         report_file = next(report_dir.glob("prompt_security_report_*.html"), None)
         json_file = next(
             report_dir.glob("prompt_security_report_*_attack_results.json"), None

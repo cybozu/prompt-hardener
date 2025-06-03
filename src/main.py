@@ -16,7 +16,7 @@ def parse_args() -> argparse.Namespace:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    webui_parser = subparsers.add_parser("webui", help="Launch the web UI")
+    subparsers.add_parser("webui", help="Launch the web UI")
 
     improve_parser = subparsers.add_parser("improve", help="Improve a prompt")
 
