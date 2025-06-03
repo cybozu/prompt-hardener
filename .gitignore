@@ -1,3 +1,4 @@
 __pycache__
 example/prompt/*/*improved.*
 src/*.egg-info
+.DS_Store

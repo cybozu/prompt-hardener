@@ -3,8 +3,6 @@ import tempfile
 import shutil
 import sys
 from pathlib import Path
-from main import main as cli_main
-
 
 def run_evaluation(
     prompt,
@@ -202,4 +200,5 @@ with gr.Blocks() as demo:
         outputs=[result, download_html, download_json],
     )
 
-demo.launch()
+def launch_webui():
+    demo.launch()

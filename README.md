@@ -49,14 +49,14 @@ You can add these lines to your shell profile (e.g., `.bashrc`, `.zshrc`) to mak
 ```bash
 git clone https://github.com/cybozu/prompt-hardener.git
 cd prompt-hardener
-pip install -r requirements.txt
+pip install -e . -r requirements.txt
 ```
 
 ### 🖥️ CLI Usage
 Here is an example of command using cli mode.
 
 ```bash
-python3 src/main.py \
+prompt-hardener improve \
   --target-prompt-path path/to/prompt.json \
   --eval-api-mode openai \
   --eval-model gpt-4o-mini \
@@ -100,7 +100,7 @@ python3 src/main.py \
 ### 🌐 Web UI (Gradio)
 
 ```bash
-python3 src/webui.py
+prompt-hardener webui
 ```
 
 Then visit http://localhost:7860 to use Prompt Hardener interactively:
