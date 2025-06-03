@@ -40,16 +40,27 @@ def run_evaluation(
             tools_path.write_text(tools_json, encoding="utf-8")
 
         cmd = [
-            sys.executable, str(Path(__file__).parent / "main.py"), "improve",
-            "--target-prompt-path", str(prompt_path),
-            "--input-mode", input_mode,
-            "--input-format", input_format,
-            "--eval-api-mode", eval_api_mode,
-            "--eval-model", eval_model,
-            "--output-path", str(output_path),
-            "--max-iterations", str(iterations),
-            "--threshold", str(threshold),
-            "--report-dir", str(report_dir),
+            sys.executable,
+            str(Path(__file__).parent / "main.py"),
+            "improve",
+            "--target-prompt-path",
+            str(prompt_path),
+            "--input-mode",
+            input_mode,
+            "--input-format",
+            input_format,
+            "--eval-api-mode",
+            eval_api_mode,
+            "--eval-model",
+            eval_model,
+            "--output-path",
+            str(output_path),
+            "--max-iterations",
+            str(iterations),
+            "--threshold",
+            str(threshold),
+            "--report-dir",
+            str(report_dir),
         ]
         if description:
             cmd += ["--user-input-description", description]
@@ -77,9 +88,11 @@ def run_evaluation(
             status = "✅ Complete"
         except subprocess.CalledProcessError as e:
             status = f"❌ Error: {e.stderr or e.stdout}"
-        
+
         report_file = next(report_dir.glob("prompt_security_report_*.html"), None)
-        json_file = next(report_dir.glob("prompt_security_report_*_attack_results.json"), None)
+        json_file = next(
+            report_dir.glob("prompt_security_report_*_attack_results.json"), None
+        )
 
         html_tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
         json_tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
@@ -96,6 +109,7 @@ def run_evaluation(
             return status, html_tmp.name, json_tmp.name
         else:
             return status, None, None
+
 
 # Gradio UI
 with gr.Blocks() as demo:
