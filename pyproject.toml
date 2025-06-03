@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prompt-hardener"
-version = "0.1.0"
+version = "0.2.0"
 description = "A toolkit for evaluating and hardening LLM prompts"
 readme = "README.md"
 requires-python = ">=3.8"
