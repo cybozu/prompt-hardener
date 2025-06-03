@@ -2,6 +2,8 @@ import gradio as gr
 import tempfile
 import shutil
 import sys
+import subprocess
+import json
 from pathlib import Path
 
 
@@ -37,52 +39,47 @@ def run_evaluation(
             tools_path = Path(tmpdir) / "tools.json"
             tools_path.write_text(tools_json, encoding="utf-8")
 
-        sys.argv = [
-            "main.py",
-            "--target-prompt-path",
-            str(prompt_path),
-            "--input-mode",
-            input_mode,
-            "--input-format",
-            input_format,
-            "--eval-api-mode",
-            eval_api_mode,
-            "--eval-model",
-            eval_model,
-            "--output-path",
-            str(output_path),
-            "--max-iterations",
-            str(iterations),
-            "--threshold",
-            str(threshold),
-            "--report-dir",
-            str(report_dir),
+        cmd = [
+            sys.executable, str(Path(__file__).parent / "main.py"), "improve",
+            "--target-prompt-path", str(prompt_path),
+            "--input-mode", input_mode,
+            "--input-format", input_format,
+            "--eval-api-mode", eval_api_mode,
+            "--eval-model", eval_model,
+            "--output-path", str(output_path),
+            "--max-iterations", str(iterations),
+            "--threshold", str(threshold),
+            "--report-dir", str(report_dir),
         ]
         if description:
-            sys.argv += ["--user-input-description", description]
+            cmd += ["--user-input-description", description]
         if techniques:
-            sys.argv += ["--apply-techniques"] + techniques
+            cmd += ["--apply-techniques"] + techniques
         if test:
             if attack_api_mode:
-                sys.argv += ["--attack-api-mode", attack_api_mode]
+                cmd += ["--attack-api-mode", attack_api_mode]
             if attack_model:
-                sys.argv += ["--attack-model", attack_model]
+                cmd += ["--attack-model", attack_model]
             if judge_api_mode:
-                sys.argv += ["--judge-api-mode", judge_api_mode]
+                cmd += ["--judge-api-mode", judge_api_mode]
             if judge_model:
-                sys.argv += ["--judge-model", judge_model]
-            sys.argv += ["--test-after"]
+                cmd += ["--judge-model", judge_model]
+            cmd += ["--test-after"]
         if separator:
-            sys.argv += ["--test-separator", separator]
+            cmd += ["--test-separator", separator]
         if tools_path:
-            sys.argv += ["--tools-path", str(tools_path)]
+            cmd += ["--tools-path", str(tools_path)]
         if aws_region:
-            sys.argv += ["--aws-region", aws_region]
+            cmd += ["--aws-region", aws_region]
 
+        try:
+            result = subprocess.run(cmd, text=True, check=True)
+            status = "✅ Complete"
+        except subprocess.CalledProcessError as e:
+            status = f"❌ Error: {e.stderr or e.stdout}"
+        
         report_file = next(report_dir.glob("prompt_security_report_*.html"), None)
-        json_file = next(
-            report_dir.glob("prompt_security_report_*_attack_results.json"), None
-        )
+        json_file = next(report_dir.glob("prompt_security_report_*_attack_results.json"), None)
 
         html_tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
         json_tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
@@ -96,10 +93,9 @@ def run_evaluation(
         json_tmp.close()
 
         if report_file and json_file:
-            return "✅ Complete", html_tmp.name, json_tmp.name
+            return status, html_tmp.name, json_tmp.name
         else:
-            return "⚠️ Report generation failed", "", ""
-
+            return status, None, None
 
 # Gradio UI
 with gr.Blocks() as demo:
@@ -160,9 +156,6 @@ with gr.Blocks() as demo:
             techniques = gr.CheckboxGroup(
                 [
                     "spotlighting",
-                    "signed_prompt",
-                    "rule_reinforcement",
-                    "structured_output",
                 ],
                 label="Defense Techniques",
             )
