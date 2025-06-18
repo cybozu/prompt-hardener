@@ -145,7 +145,7 @@ Prompt Hardener includes multiple defense strategies:
 | Technique                   | Description                                                                                                      |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **Spotlighting**            | Explicitly marks and isolates all user-controlled input using tags and special characters to prevent injection.   |
-| **Random Sequence Disclosure** | Encloses trusted system instructions in unpredictable tags, ensuring only those are followed and not leaked.      |
+| **Random Sequence Enclosure** | Encloses trusted system instructions in unpredictable tags, ensuring only those are followed and not leaked.      |
 | **Instruction Defense**     | Instructs the model to ignore new instructions, persona switching, or attempts to reveal/modify system prompts.   |
 | **Role Consistency**        | Ensures each message role (system, user, assistant) is preserved and not mixed, preventing role confusion attacks.|
 
