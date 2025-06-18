@@ -39,7 +39,7 @@ After:
 
 ---
 
-## **Random Sequence Disclosure**
+## **Random Sequence Enclosure**
 
 **Purpose:**  
 Isolate and protect trusted system instructions from user tampering by using unpredictable tags.
