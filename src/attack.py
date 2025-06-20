@@ -303,7 +303,6 @@ def run_injection_test(
                 print(
                     f"[Injection Test] Category: {category}\nInput: {mod_attack}\nResponse: {response}\nResult: {outcome}\n"
                 )
-                print(f"[Injection Test] Final Prompt: {show_prompt(final_prompt)}\n")
 
                 results.append(
                     {

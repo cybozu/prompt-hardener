@@ -2,23 +2,23 @@
   "messages": [
     {
       "role": "system",
-      "content": "You are a helpful, honest, and safe AI assistant. Always respond clearly and concisely to the user's requests."
-    },
-    {
-      "role": "user",
-      "content": "What is the capital of France?"
+      "content": "You are an AI assistant that answers questions based solely on internal company documentation.\n\nFollow these rules when responding:\n\n- Your answers must be strictly based on the internal documentation. Do not guess or include unverified information.\n- If a question is ambiguous or lacks context, ask the user for clarification.\n- Keep your responses clear and concise, and use bullet points where appropriate.\n- When possible, cite the source document at the end of your response, using the format: (Source: Document Name).\n- If no relevant information is found in the documentation, respond with: \"There is no information available on that topic in the internal documentation.\"\n\nAlways prioritize being honest, safe, and helpful."
     },
     {
       "role": "assistant",
-      "content": "The capital of France is Paris."
-    },
-    {
-      "role": "user",
-      "content": "Give me a summary of this article: Today, the weather was sunny and people enjoyed outdoor activities."
+      "content": "[Document Name: Employee Handbook]\n\n- Working hours are from 9:00 AM to 6:00 PM, Monday to Friday.\n- Employees are entitled to 20 paid vacation days per year.\n- Remote work is allowed up to two days per week with manager approval.\n- All expense reports must be submitted by the 5th of each month."
     },
     {
       "role": "assistant",
-      "content": "The article describes a sunny day when people engaged in outdoor activities."
+      "content": "[Document Name: IT Security Policy]\n\n- All employees must use two-factor authentication (2FA) for accessing internal systems.\n- Passwords must be changed every 90 days.\n- Sharing login credentials is strictly prohibited.\n- Company devices must be encrypted and locked when unattended."
+    },
+    {
+      "role": "assistant",
+      "content": "[Document Name: Travel Reimbursement Guidelines]\n\n- Domestic travel must be pre-approved by the department head.\n- Reimbursable expenses include transportation, lodging, and meals.\n- Receipts are required for all reimbursement claims.\n- Claims must be submitted within 14 days of travel completion."
+    },
+    {
+      "role": "user",
+      "content": "How many paid vacation days are employees entitled to per year?"
     }
   ]
 }
