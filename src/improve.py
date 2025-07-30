@@ -2,7 +2,6 @@ from typing import List, Optional
 from llm_client import call_llm_api_for_improve
 from utils import validate_chat_completion_format
 from schema import PromptInput
-from prompt import show_prompt
 
 
 def improve_prompt(
