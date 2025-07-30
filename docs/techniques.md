@@ -29,7 +29,7 @@ After:
 ```json
 {
   "role": "user",
-  "content": "<data>What\uE000is\uE000the\uE000capital\uE000of\uE000France?</data>"
+  "content": "<data>I\ue000love\ue000this\ue000product</data>"
 }
 ```
 
@@ -39,7 +39,7 @@ After:
 
 ---
 
-## **Random Sequence Disclosure**
+## **Random Sequence Enclosure**
 
 **Purpose:**  
 Isolate and protect trusted system instructions from user tampering by using unpredictable tags.
