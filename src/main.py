@@ -9,7 +9,6 @@ from gen_report import generate_report
 from prompt import parse_prompt_input, write_prompt_output, show_prompt
 from webui import launch_webui
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Evaluate, improve, and test the security of system prompts using LLM APIs."
@@ -208,15 +207,15 @@ def average_satisfaction(evaluation: Dict[str, Any]) -> float:
 def main() -> None:
     args = parse_args()
     if args.command == "webui":
+        print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()
     if args.command == "improve":
         # Load and parse prompt
         current_prompt = parse_prompt_input(
             args.target_prompt_path, args.input_mode, args.input_format
         )
-        print(
-            f"Loaded prompt from {args.target_prompt_path}:\n{show_prompt(current_prompt)}"
-        )
+        print("\033[36m" + "\n🔍 Loaded Prompt from: " + args.target_prompt_path + "\033[0m")
+        print(show_prompt(current_prompt))
 
         if args.attack_api_mode is None:
             args.attack_api_mode = args.eval_api_mode
@@ -237,15 +236,15 @@ def main() -> None:
             args.user_input_description,
         )
         initial_avg_score = average_satisfaction(initial_evaluation)
-        print("Initial Evaluation Result:")
-        print(initial_evaluation)
-        print(f"Initial Average Satisfaction Score: {initial_avg_score:.2f}")
+        print("\033[35m" + "\n🧪 Initial Evaluation Result:" + "\033[0m")
+        print(json.dumps(initial_evaluation, indent=2, ensure_ascii=False))
+        print("\033[33m" + f"\n📊 Initial Average Satisfaction Score: {initial_avg_score:.2f}" + "\033[0m")
 
         evaluation_result = initial_evaluation
         final_avg_score = initial_avg_score
 
         for i in range(args.max_iterations):
-            print(f"\n--- Iteration {i + 1} ---")
+            print("\033[36m" + f"\n{'='*20} Iteration {i + 1} {'='*20}" + "\033[0m")
             if i > 0:
                 evaluation_result = evaluate_prompt(
                     args.eval_api_mode,
@@ -254,15 +253,15 @@ def main() -> None:
                     args.user_input_description,
                     aws_region=args.aws_region,
                 )
-                print("Evaluation Result:")
-                print(evaluation_result)
+                print("\033[35m" + "🔍 Evaluation Result:" + "\033[0m")
+                print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
 
                 final_avg_score = average_satisfaction(evaluation_result)
-                print(f"Average Satisfaction Score: {final_avg_score:.2f}")
+                print("\033[33m" + f"📊 Average Satisfaction Score: {final_avg_score:.2f}" + "\033[0m")
 
                 if final_avg_score >= args.threshold:
                     print(
-                        "Prompt meets the required security threshold. Stopping refinement."
+                        "\033[32m" + "✅ Prompt meets the required security threshold. Stopping refinement." + "\033[0m"
                     )
                     break
 
@@ -276,36 +275,36 @@ def main() -> None:
                 apply_techniques=apply_techniques,
                 aws_region=args.aws_region,
             )
-            print("Improved Prompt:")
+            print("\033[32m" + "\n✅ Improved Prompt:" + "\033[0m")
             print(show_prompt(current_prompt))
 
         if args.max_iterations == 1 or final_avg_score < args.threshold:
-            print("\n--- Final Evaluation ---")
             evaluation_result = evaluate_prompt(
                 args.eval_api_mode,
                 args.eval_model,
                 current_prompt,
                 args.user_input_description,
             )
-            print("Final Evaluation Result:")
-            print(evaluation_result)
             final_avg_score = average_satisfaction(evaluation_result)
-            print(f"Average Satisfaction Score: {final_avg_score:.2f}")
+            print("\033[35m" + "\n🎯 Final Evaluation Result:" + "\033[0m")
+            print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
+            print("\033[33m" + f"\n📈 Final Avg Score: {final_avg_score:.2f}" + "\033[0m")
 
         # Write the improved prompt to output file
-        print("\n--- Writing Improved Prompt to Output File ---")
+        print("\033[36m" + "\n--- Writing Improved Prompt to Output File ---" + "\033[0m")
         write_prompt_output(
             args.output_path,
             current_prompt,
             args.input_mode,
             args.input_format,
         )
+        print("\033[32m" + f"✅ Prompt written to: {args.output_path}" + "\033[0m")
 
         # Run injection test if requested
         attack_results = []
         if args.test_after:
             tools = load_tools(args.tools_path) if args.tools_path else None
-            print("\n--- Running injection test on final prompt ---")
+            print("\033[36m" + "\n--- Running injection test on final prompt ---" + "\033[0m")
             attack_results = run_injection_test(
                 current_prompt,
                 args.attack_api_mode,
@@ -319,7 +318,7 @@ def main() -> None:
 
         if args.report_dir:
             report_dir_path = os.path.abspath(args.report_dir)
-            print(f"\n--- Generating report at {report_dir_path} ---")
+            print("\033[36m" + f"\n--- Generating report at {report_dir_path} ---" + "\033[0m")
             generate_report(
                 initial_prompt,
                 initial_evaluation,
@@ -336,7 +335,7 @@ def main() -> None:
                 args.attack_api_mode,
                 args.judge_api_mode,
             )
-            print("Report generation complete.")
+            print("\033[32m" + "✅ Report generation complete." + "\033[0m")
 
 
 if __name__ == "__main__":
