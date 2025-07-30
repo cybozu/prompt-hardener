@@ -161,8 +161,6 @@ def write_prompt_output(
     else:
         raise ValueError(f"Unsupported input_mode={input_mode} for writing output")
 
-    print(f"✅ Prompt written in {output_format} format to: {output_path}")
-
 
 def show_prompt(prompt: PromptInput) -> str:
     """
