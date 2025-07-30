@@ -14,7 +14,6 @@ def improve_prompt(
     apply_techniques: Optional[List[str]] = None,
     aws_region: Optional[str] = None,
 ) -> PromptInput:
-
     if apply_techniques is None:
         apply_techniques = []
 
