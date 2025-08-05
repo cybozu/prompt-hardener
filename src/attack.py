@@ -15,7 +15,7 @@ from utils import extract_json_block
 
 
 def insert_attack_into_prompt(
-    prompt: PromptInput, model: str, attack: str, api_mode: str
+    prompt: PromptInput, model: str, attack: str, api_mode: str, aws_region: Optional[str] = None, aws_profile: Optional[str] = None
 ) -> PromptInput:
     """
     Insert the attack string into the prompt (PromptInput) and return a new PromptInput.
@@ -107,7 +107,7 @@ def insert_attack_into_prompt(
 
         messages = [{"role": "user", "content": injection_prompt.strip()}]
 
-        result = call_llm_api_for_payload_injection(api_mode, model, messages)
+        result = call_llm_api_for_payload_injection(api_mode, model, messages, aws_region, aws_profile)
         result = extract_json_block(result)
 
         if prompt.mode == "chat":
@@ -183,6 +183,7 @@ def assess_injection_success(
     attack: str,
     response: str,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> bool:
     try:
         messages = [
@@ -196,7 +197,7 @@ def assess_injection_success(
             }
         ]
         result = call_llm_api_for_judge(
-            api_mode, model, messages, aws_region=aws_region
+            api_mode, model, messages, aws_region=aws_region, aws_profile=aws_profile
         )
         return "success" in result.strip().lower()
     except Exception as e:
@@ -214,6 +215,7 @@ def run_injection_test(
     separator: Optional[str] = None,
     tools: Optional[List[dict]] = None,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> List[Dict[str, str]]:
     attack_categories = {
         "Persona Switch": [
@@ -271,7 +273,7 @@ def run_injection_test(
                 system_prompt, random_tag
             )
             final_prompt = insert_attack_into_prompt(
-                normalized_prompt, judge_model, mod_attack, judge_api_mode
+                normalized_prompt, judge_model, mod_attack, judge_api_mode, aws_region, aws_profile
             )
 
             try:
@@ -283,6 +285,7 @@ def run_injection_test(
                         final_prompt.messages,
                         tools=tools,
                         aws_region=aws_region,
+                        aws_profile=aws_profile,
                     )
                 elif system_prompt.mode == "completion":
                     response = call_llm_api_for_attack_completion(
@@ -290,6 +293,7 @@ def run_injection_test(
                         attack_model,
                         final_prompt.completion_prompt,
                         aws_region=aws_region,
+                        aws_profile=aws_profile,
                     )
                 success = assess_injection_success(
                     judge_model,
@@ -297,6 +301,7 @@ def run_injection_test(
                     mod_attack,
                     response,
                     aws_region=aws_region,
+                    aws_profile=aws_profile,
                 )
                 outcome = "FAILED" if success else "PASSED"
 
