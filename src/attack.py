@@ -15,7 +15,12 @@ from utils import extract_json_block
 
 
 def insert_attack_into_prompt(
-    prompt: PromptInput, model: str, attack: str, api_mode: str, aws_region: Optional[str] = None, aws_profile: Optional[str] = None
+    prompt: PromptInput,
+    model: str,
+    attack: str,
+    api_mode: str,
+    aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> PromptInput:
     """
     Insert the attack string into the prompt (PromptInput) and return a new PromptInput.
@@ -107,7 +112,9 @@ def insert_attack_into_prompt(
 
         messages = [{"role": "user", "content": injection_prompt.strip()}]
 
-        result = call_llm_api_for_payload_injection(api_mode, model, messages, aws_region, aws_profile)
+        result = call_llm_api_for_payload_injection(
+            api_mode, model, messages, aws_region, aws_profile
+        )
         result = extract_json_block(result)
 
         if prompt.mode == "chat":
@@ -273,7 +280,12 @@ def run_injection_test(
                 system_prompt, random_tag
             )
             final_prompt = insert_attack_into_prompt(
-                normalized_prompt, judge_model, mod_attack, judge_api_mode, aws_region, aws_profile
+                normalized_prompt,
+                judge_model,
+                mod_attack,
+                judge_api_mode,
+                aws_region,
+                aws_profile,
             )
 
             try:

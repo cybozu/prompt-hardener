@@ -11,17 +11,20 @@ from schema import PromptInput
 openai_client = None
 claude_client = None
 
+
 def get_openai_client():
     global openai_client
     if openai_client is None:
         openai_client = OpenAI()
     return openai_client
 
+
 def get_claude_client():
     global claude_client
     if claude_client is None:
         claude_client = Anthropic()
     return claude_client
+
 
 # --- Message builders ---
 
@@ -220,7 +223,11 @@ def call_llm_api_for_eval(
             )
             content = completion.content[0].text
         elif api_mode == "bedrock":
-            session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
             bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -289,7 +296,11 @@ def call_llm_api_for_improve(
             content = completion.content[0].text
 
         elif api_mode == "bedrock":
-            session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
             bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -343,7 +354,11 @@ def call_llm_api_for_payload_injection(
             return response.content[0].text.strip()
 
         elif api_mode == "bedrock":
-            session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
             bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -412,7 +427,11 @@ def call_llm_api_for_attack_completion(
                 return ""
 
         elif api_mode == "bedrock":
-            session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
             bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             kwargs = {
                 "modelId": model,
@@ -482,7 +501,11 @@ def call_llm_api_for_attack_chat(
                 return ""
 
         elif api_mode == "bedrock":
-            session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
             bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             messages = to_bedrock_message_format(messages)
             kwargs = {
@@ -537,7 +560,11 @@ def call_llm_api_for_judge(
             return response.content[0].text.strip()
 
         elif api_mode == "bedrock":
-            session = boto3.Session(profile_name=aws_profile) if aws_profile else boto3.Session()
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
             bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
