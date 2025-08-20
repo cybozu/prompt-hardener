@@ -13,6 +13,7 @@ def improve_prompt(
     user_input_description: Optional[str] = None,
     apply_techniques: Optional[List[str]] = None,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> PromptInput:
     if apply_techniques is None:
         apply_techniques = []
@@ -172,6 +173,7 @@ def improve_prompt(
         criteria=criteria,
         target_prompt=target_prompt,
         aws_region=aws_region,
+        aws_profile=aws_profile,
     )
 
     # Post-process result

@@ -8,8 +8,23 @@ import boto3
 from utils import extract_json_block, to_bedrock_message_format
 from schema import PromptInput
 
-openai_client = OpenAI()
-claude_client = Anthropic()
+openai_client = None
+claude_client = None
+
+
+def get_openai_client():
+    global openai_client
+    if openai_client is None:
+        openai_client = OpenAI()
+    return openai_client
+
+
+def get_claude_client():
+    global claude_client
+    if claude_client is None:
+        claude_client = Anthropic()
+    return claude_client
+
 
 # --- Message builders ---
 
@@ -176,6 +191,7 @@ def call_llm_api_for_eval(
     criteria: str,
     target_prompt: PromptInput,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> Union[List[Dict[str, str]], str]:
     try:
         if api_mode == "openai":
@@ -190,7 +206,7 @@ def call_llm_api_for_eval(
             raise ValueError(f"Unsupported api_mode: {api_mode}")
 
         if api_mode == "openai":
-            completion = openai_client.chat.completions.create(
+            completion = get_openai_client().chat.completions.create(
                 model=model_name,
                 messages=messages,
                 temperature=0.2,
@@ -199,7 +215,7 @@ def call_llm_api_for_eval(
             )
             content = completion.choices[0].message.content
         elif api_mode == "claude":
-            completion = claude_client.messages.create(
+            completion = get_claude_client().messages.create(
                 model=model_name,
                 messages=messages,
                 temperature=0.2,
@@ -207,7 +223,12 @@ def call_llm_api_for_eval(
             )
             content = completion.content[0].text
         elif api_mode == "bedrock":
-            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
+            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "messages": messages,
@@ -241,6 +262,7 @@ def call_llm_api_for_improve(
     criteria: str,
     target_prompt: PromptInput,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> Dict[str, Any]:
     try:
         if api_mode == "openai":
@@ -255,7 +277,7 @@ def call_llm_api_for_improve(
             raise ValueError(f"Unsupported api_mode: {api_mode}")
 
         if api_mode == "openai":
-            completion = openai_client.chat.completions.create(
+            completion = get_openai_client().chat.completions.create(
                 model=model_name,
                 messages=messages,
                 temperature=0.2,
@@ -265,7 +287,7 @@ def call_llm_api_for_improve(
             content = completion.choices[0].message.content
 
         elif api_mode == "claude":
-            completion = claude_client.messages.create(
+            completion = get_claude_client().messages.create(
                 model=model_name,
                 messages=messages,
                 temperature=0.2,
@@ -274,7 +296,12 @@ def call_llm_api_for_improve(
             content = completion.content[0].text
 
         elif api_mode == "bedrock":
-            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
+            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "messages": messages,
@@ -303,6 +330,7 @@ def call_llm_api_for_payload_injection(
     model: str,
     messages: List[Dict[str, str]],
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> str:
     try:
         if api_mode == "openai":
@@ -312,7 +340,7 @@ def call_llm_api_for_payload_injection(
                 "temperature": 0.2,
                 "max_tokens": 1024,
             }
-            response = openai_client.chat.completions.create(**kwargs)
+            response = get_openai_client().chat.completions.create(**kwargs)
             return response.choices[0].message.content
 
         elif api_mode == "claude":
@@ -322,11 +350,16 @@ def call_llm_api_for_payload_injection(
                 "temperature": 0.2,
                 "max_tokens": 1024,
             }
-            response = claude_client.messages.create(**kwargs)
+            response = get_claude_client().messages.create(**kwargs)
             return response.content[0].text.strip()
 
         elif api_mode == "bedrock":
-            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
+            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "messages": messages,
@@ -357,6 +390,7 @@ def call_llm_api_for_attack_completion(
     temperature: float = 0.2,
     max_tokens: int = 1024,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> str:
     try:
         if api_mode == "openai":
@@ -386,14 +420,19 @@ def call_llm_api_for_attack_completion(
                 "temperature": 0.2,
                 "max_tokens": 1024,
             }
-            response = claude_client.messages.create(**kwargs)
+            response = get_claude_client().messages.create(**kwargs)
             if len(response.content) > 0:
                 return response.content[0].text.strip()
             else:
                 return ""
 
         elif api_mode == "bedrock":
-            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
+            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             kwargs = {
                 "modelId": model,
                 "messages": [{"role": "user", "content": [{"text": prompt}]}],
@@ -427,6 +466,7 @@ def call_llm_api_for_attack_chat(
     temperature: float = 0.2,
     max_tokens: int = 1024,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> str:
     try:
         if api_mode == "openai":
@@ -438,7 +478,7 @@ def call_llm_api_for_attack_chat(
             }
             if tools:
                 kwargs["tools"] = tools
-            response = openai_client.chat.completions.create(**kwargs)
+            response = get_openai_client().chat.completions.create(**kwargs)
             if len(response.choices) > 0 and response.choices[0].message:
                 return response.choices[0].message.content
             else:
@@ -454,14 +494,19 @@ def call_llm_api_for_attack_chat(
             }
             if tools:
                 kwargs["tools"] = tools
-            response = claude_client.messages.create(**kwargs)
+            response = get_claude_client().messages.create(**kwargs)
             if len(response.content) > 0:
                 return response.content[0].text.strip()
             else:
                 return ""
 
         elif api_mode == "bedrock":
-            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
+            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             messages = to_bedrock_message_format(messages)
             kwargs = {
                 "modelId": model,
@@ -494,10 +539,11 @@ def call_llm_api_for_judge(
     messages: List[Dict[str, str]],
     temperature: float = 0.0,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> str:
     try:
         if api_mode == "openai":
-            response = openai_client.chat.completions.create(
+            response = get_openai_client().chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -514,7 +560,12 @@ def call_llm_api_for_judge(
             return response.content[0].text.strip()
 
         elif api_mode == "bedrock":
-            bedrock_client = boto3.client("bedrock-runtime", region_name=aws_region)
+            session = (
+                boto3.Session(profile_name=aws_profile)
+                if aws_profile
+                else boto3.Session()
+            )
+            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
             json_data = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "messages": messages,

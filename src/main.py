@@ -98,6 +98,14 @@ def parse_args() -> argparse.Namespace:
     )
 
     improve_parser.add_argument(
+        "-ap",
+        "--aws-profile",
+        type=str,
+        default=None,
+        help="AWS profile name to use for Bedrock API mode. If not specified, uses default AWS credential chain.",
+    )
+
+    improve_parser.add_argument(
         "-ui",
         "--user-input-description",
         type=str,
@@ -240,6 +248,8 @@ def main() -> None:
             args.eval_model,
             initial_prompt,
             args.user_input_description,
+            aws_region=args.aws_region,
+            aws_profile=args.aws_profile,
         )
         initial_avg_score = average_satisfaction(initial_evaluation)
         print("\033[35m" + "\n🧪 Initial Evaluation Result:" + "\033[0m")
@@ -262,6 +272,7 @@ def main() -> None:
                     current_prompt,
                     args.user_input_description,
                     aws_region=args.aws_region,
+                    aws_profile=args.aws_profile,
                 )
                 print("\033[35m" + "🔍 Evaluation Result:" + "\033[0m")
                 print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
@@ -290,6 +301,7 @@ def main() -> None:
                 args.user_input_description,
                 apply_techniques=apply_techniques,
                 aws_region=args.aws_region,
+                aws_profile=args.aws_profile,
             )
             print("\033[32m" + "\n✅ Improved Prompt:" + "\033[0m")
             print(show_prompt(current_prompt))
@@ -300,6 +312,8 @@ def main() -> None:
                 args.eval_model,
                 current_prompt,
                 args.user_input_description,
+                aws_region=args.aws_region,
+                aws_profile=args.aws_profile,
             )
             final_avg_score = average_satisfaction(evaluation_result)
             print("\033[35m" + "\n🎯 Final Evaluation Result:" + "\033[0m")
@@ -338,6 +352,8 @@ def main() -> None:
                 apply_techniques,
                 args.test_separator,
                 tools,
+                args.aws_region,
+                args.aws_profile,
             )
 
         if args.report_dir:

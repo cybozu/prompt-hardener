@@ -24,6 +24,7 @@ def run_evaluation(
     separator,
     tools_json,
     aws_region,
+    aws_profile,
 ):
     report_dir = Path(tempfile.mkdtemp())
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -81,6 +82,8 @@ def run_evaluation(
             cmd += ["--tools-path", str(tools_path)]
         if aws_region:
             cmd += ["--aws-region", aws_region]
+        if aws_profile:
+            cmd += ["--aws-profile", aws_profile]
 
         try:
             subprocess.run(cmd, text=True, check=True)
@@ -161,6 +164,10 @@ with gr.Blocks() as demo:
                 value="us-east-1",
                 placeholder="e.g., us-east-1",
             )
+            aws_profile = gr.Textbox(
+                label="AWS Profile (optional, for bedrock api mode)",
+                placeholder="e.g., default, my-profile",
+            )
             description = gr.Textbox(label="User Input Description")
             iterations = gr.Slider(1, 10, value=3, step=1, label="Max Iterations")
             threshold = gr.Slider(
@@ -201,6 +208,7 @@ with gr.Blocks() as demo:
             separator,
             tools_json,
             aws_region,
+            aws_profile,
         ],
         outputs=[result, download_html, download_json],
     )

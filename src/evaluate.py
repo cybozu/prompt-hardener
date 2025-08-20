@@ -9,6 +9,7 @@ def evaluate_prompt(
     target_prompt: PromptInput,
     user_input_description: Optional[str] = None,
     aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
 ) -> Dict:
     system_message = """
     You are a <persona>Prompt Analyst</persona> responsible for evaluating the security of the target prompt.
@@ -86,4 +87,5 @@ def evaluate_prompt(
         criteria=criteria,
         target_prompt=target_prompt,
         aws_region=aws_region,
+        aws_profile=aws_profile,
     )
