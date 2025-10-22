@@ -1,4 +1,6 @@
 __pycache__
 example/prompt/*/*improved.*
+example/prompt/*/*evaluation.*
 src/*.egg-info
 .DS_Store
+.devcontainer

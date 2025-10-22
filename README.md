@@ -5,10 +5,10 @@ Prompt Hardener is an open-source tool that **evaluates and strengthens system p
 
 Originally created to help secure LLM agents like chatbots, RAG systems, and tool-augmented assistants, Prompt Hardener is designed to be **usable, extensible, and integrable** in real-world development workflows.
 
-> 📌 Designed for:  
-> - LLM application developers  
-> - Security engineers working on AI pipelines  
-> - Prompt engineers and red teamers  
+> 📌 Designed for:
+> - LLM application developers
+> - Security engineers working on AI pipelines
+> - Prompt engineers and red teamers
 
 ## ✨ Features
 
@@ -58,9 +58,19 @@ pip install -e . -r requirements.txt
 ```
 
 ### 🖥️ CLI Usage
-Here is an example of command using cli mode.
+Here is an example of command using CLI mode.
 
 ```bash
+# Evaluate
+prompt-hardener evaluate \
+  --input-mode chat \
+  --input-format openai \
+  --target-prompt-path path/to/prompt.json \
+  --eval-api-mode openai \
+  --eval-model gpt-4o-mini \
+  --output-path path/to/evaluation.json
+
+# Improve
 prompt-hardener improve \
   --input-mode chat \
   --input-format openai \
@@ -113,9 +123,10 @@ prompt-hardener improve \
 | `--tools-path`             | `-tp` | `str`       | ❌ No     | `None`              | Path to JSON file defining available tool functions (used for testing function/tool abuse attacks).                      |
 | `--report-dir`             | `-rd` | `str`       | ❌ No     | `None`              | Directory to write the evaluation report files (HTML and JSON summary of injection test results and prompt evaluation).  |
 
-**Note:**  
-> - `--eval-api-mode`, `--attack-api-mode`, and `--judge-api-mode` accept `openai`, `claude`, or `bedrock` as options.  
+**Note:**
+> - `--eval-api-mode`, `--attack-api-mode`, and `--judge-api-mode` accept `openai`, `claude`, or `bedrock` as options.
 > - When using Bedrock, you must specify the [Bedrock Model ID](https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html) for `--eval-model`, `--attack-model`, and `--judge-model` (e.g., `.claude-3-5-sonnet-20240620-v1:0`).
+> - The `evaluate` subcommand uses the shared arguments above that relate to loading prompts and selecting evaluation models. Options marked as report/test specific (`--attack-*`, `--judge-*`, `--max-iterations`, etc.) are ignored by `evaluate`.
 > - For more details on each option, see the source code in [`src/main.py`](src/main.py).
 
 </details>

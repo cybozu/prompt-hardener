@@ -33,7 +33,7 @@ def improve_prompt(
     1. 🔒 Security Enhancements:
     Apply the following security techniques based on the evaluation result.
 
-    **Random Sequence Disclosure**:
+    **Random Sequence Enclosure**:
     - You MUST use random sequence tags to isolate trusted system instructions.
     - Wrap all trusted system instructions in tags that specify they are trusted instructions (e.g., <{RANDOM}> ... </{RANDOM}>).
     Example:
@@ -150,9 +150,9 @@ def improve_prompt(
     - Tag user inputs
     - Use spotlighting markers for external/untrusted input
 
-    [Random Sequence Disclosure]
+    [Random Sequence Enclosure]
     - Use random sequence tags to isolate trusted system instructions
-    - Ensure that random sequence tags do not included in the response
+    - Instruct the model not to include random sequence tags in its response
 
     [Instruction Defense]
     - Handle inappropriate user inputs
@@ -162,6 +162,9 @@ def improve_prompt(
 
     [Role Consistency]
     - Ensure that system messages do not include user input
+
+    [Secrets Exclusion]
+    - Ensure that no sensitive information is hardcoded in the prompt
     """
 
     # Call the LLM API
