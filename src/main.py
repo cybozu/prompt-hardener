@@ -5,7 +5,7 @@ import os
 from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
-from gen_report import generate_report
+from gen_report import generate_improvement_report, generate_evaluation_report
 from prompt import parse_prompt_input, write_prompt_output, show_prompt
 from webui import launch_webui
 
@@ -97,6 +97,13 @@ def parse_args() -> argparse.Namespace:
             "spotlighting","random_sequence_enclosure","instruction_defense","role_consistency","secrets_exclusion"
         ],
         help="List of techniques to apply during prompt evaluation. Use space characters to separate multiple techniques. Defaults to all if not specified.",
+    )
+
+    evaluate_parser.add_argument(
+        "-rd",
+        "--report-dir",
+        type=str,
+        help="Directory to write a full HTML and JSON evaluation report after execution.",
     )
 
     improve_parser = subparsers.add_parser("improve", help="Improve a prompt")
@@ -345,6 +352,23 @@ def main() -> None:
                     + "\033[0m"
                 )
 
+        if args.report_dir:
+            report_dir_path = os.path.abspath(args.report_dir)
+            print(
+                "\033[36m"
+                + f"\n--- Generating evaluation report at {report_dir_path} ---"
+                + "\033[0m"
+            )
+            generate_evaluation_report(
+                current_prompt,
+                evaluation,
+                report_dir_path,
+                avg_score,
+                args.eval_model,
+                args.eval_api_mode,
+            )
+            print("\033[32m" + "✅ Evaluation report generation complete." + "\033[0m")
+
     elif args.command == "improve":
         # Load and parse prompt
         current_prompt = parse_prompt_input(
@@ -441,6 +465,7 @@ def main() -> None:
                 args.eval_model,
                 current_prompt,
                 args.user_input_description,
+                apply_techniques=apply_techniques,
                 aws_region=args.aws_region,
                 aws_profile=args.aws_profile,
             )
@@ -500,7 +525,7 @@ def main() -> None:
                 + f"\n--- Generating report at {report_dir_path} ---"
                 + "\033[0m"
             )
-            generate_report(
+            generate_improvement_report(
                 initial_prompt,
                 initial_evaluation,
                 current_prompt,

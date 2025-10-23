@@ -8,7 +8,7 @@ from schema import PromptInput
 from prompt import show_prompt
 
 
-def generate_report(
+def generate_improvement_report(
     initial_prompt: PromptInput,
     initial_evaluation: Dict[str, Any],
     final_prompt: PromptInput,
@@ -30,7 +30,7 @@ def generate_report(
     html_path = f"{base}_{rand_suffix}.html"
     json_path = f"{base}_{rand_suffix}_attack_results.json"
 
-    generate_html_report(
+    generate_improvement_html_report(
         initial_prompt,
         initial_evaluation,
         final_prompt,
@@ -52,7 +52,36 @@ def generate_report(
         json.dump(attack_results, f, indent=2, ensure_ascii=False)
 
 
-def generate_html_report(
+def generate_evaluation_report(
+    prompt: PromptInput,
+    evaluation: Dict[str, Any],
+    output_dir_path: str,
+    avg_score: float,
+    eval_model: str,
+    eval_api_mode: str,
+) -> None:
+    """Generate a report specifically for evaluation results without improvement or attacks."""
+    os.makedirs(output_dir_path, exist_ok=True)
+    base = os.path.join(output_dir_path, "prompt_evaluation_report")
+    rand_suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
+    html_path = f"{base}_{rand_suffix}.html"
+    json_path = f"{base}_{rand_suffix}_evaluation.json"
+
+    generate_evaluation_html_report(
+        prompt,
+        evaluation,
+        html_path,
+        json_path,
+        avg_score,
+        eval_model,
+        eval_api_mode,
+    )
+
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(evaluation, f, indent=2, ensure_ascii=False)
+
+
+def generate_improvement_html_report(
     initial_prompt: PromptInput,
     initial_evaluation: Dict[str, Any],
     final_prompt: PromptInput,
@@ -69,7 +98,7 @@ def generate_html_report(
     attack_api_mode: str,
     judge_api_mode: str,
 ) -> None:
-    html_content = build_html_content(
+    html_content = build_improvement_html_content(
         initial_prompt,
         initial_evaluation,
         final_prompt,
@@ -89,7 +118,29 @@ def generate_html_report(
         f.write(html_content)
 
 
-def build_html_content(
+def generate_evaluation_html_report(
+    prompt: PromptInput,
+    evaluation: Dict[str, Any],
+    html_path: str,
+    json_path: str,
+    avg_score: float,
+    eval_model: str,
+    eval_api_mode: str,
+) -> None:
+    """Generate HTML report for evaluation results only."""
+    html_content = build_evaluation_html_content(
+        prompt,
+        evaluation,
+        json_path,
+        avg_score,
+        eval_model,
+        eval_api_mode,
+    )
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+
+def build_improvement_html_content(
     initial_prompt: PromptInput,
     initial_evaluation: Dict[str, Any],
     final_prompt: PromptInput,
@@ -156,7 +207,7 @@ def build_html_content(
         </style>
     </head>
     <body>
-        <h1>Prompt Security Evaluation Report</h1>
+        <h1>Prompt Security Improvement Report</h1>
         <div class="section">
             <h2>LLM Configuration</h2>
             <table>
@@ -216,3 +267,120 @@ def format_attack_table(results: List[Dict[str, Any]]) -> str:
     for r in results:
         rows += f"<tr><td>{escape_html(r.get('category', '-'))}</td><td>{escape_html(r['attack'])}</td><td>{escape_html(r['result'])}</td><td>{'✅' if not r['success'] else '❌'}</td></tr>"
     return f"<table><tr><th>Category</th><th>Attack</th><th>Response</th><th>Result</th></tr>{rows}</table>"
+
+
+def build_evaluation_html_content(
+    prompt: PromptInput,
+    evaluation: Dict[str, Any],
+    json_path: str,
+    avg_score: float,
+    eval_model: str,
+    eval_api_mode: str,
+) -> str:
+    """Build HTML content for evaluation-only report."""
+    return f"""
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                padding: 30px;
+                line-height: 1.6;
+                color: #333;
+                background-color: #fff;
+            }}
+            h1 {{
+                background-color: #007acc;
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+            }}
+            h2 {{
+                color: #007acc;
+                margin-top: 30px;
+            }}
+            pre {{
+                background: #f4f4f4;
+                padding: 10px;
+                border-radius: 5px;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }}
+            .section {{
+                margin-bottom: 40px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }}
+            th, td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+            }}
+            th {{
+                background-color: #007acc;
+                color: white;
+            }}
+            .score-summary {{
+                background-color: #f0f8ff;
+                padding: 15px;
+                border-radius: 5px;
+                margin: 20px 0;
+                border-left: 4px solid #007acc;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>Prompt Security Evaluation Report</h1>
+        
+        <div class="section">
+            <h2>LLM Configuration</h2>
+            <table>
+              <tr><th>API</th><th>Model</th></tr>
+              <tr><td>{escape_html(eval_api_mode)}</td><td>{escape_html(eval_model)}</td></tr>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Evaluated Prompt</h2>
+            <pre>{escape_html(show_prompt(prompt))}</pre>
+        </div>
+        
+        <div class="score-summary">
+            <h2>📊 Overall Evaluation Score</h2>
+            <p><strong>Average Satisfaction Score: {avg_score}/10</strong></p>
+            <p>This score represents the overall security posture of your prompt across all evaluated categories.</p>
+        </div>
+        
+        <div class="section">
+            <h2>Detailed Evaluation Results</h2>
+            {format_evaluation_table(evaluation)}
+        </div>
+        
+        <div class="section">
+            <h2>Recommendations</h2>
+            {format_recommendations(evaluation)}
+        </div>
+    </body>
+    </html>
+    """
+
+
+def format_recommendations(evaluation: Dict[str, Any]) -> str:
+    """Format the recommendations section for evaluation report."""
+    recommendations = evaluation.get("recommendation", "")
+    critique = evaluation.get("critique", "")
+    
+    html = ""
+    if critique:
+        html += f"<h3>Overall Critique</h3><pre>{escape_html(critique)}</pre>"
+    
+    if recommendations:
+        html += f"<h3>Improvement Recommendations</h3><pre>{escape_html(recommendations)}</pre>"
+    
+    if not html:
+        html = "<p>No specific recommendations available.</p>"
+    
+    return html
