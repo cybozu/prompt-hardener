@@ -114,10 +114,10 @@ prompt-hardener improve \
 | `--aws-region`             | `-ar` | `str`       | ❌ No     | `us-east-1`         | AWS region for Bedrock API mode. Default is `us-east-1`.                                                                 |
 | `--aws-profile`            | `-ap` | `str`       | ❌ No     | `None`              | AWS profile name for Bedrock API mode. If not specified, uses default AWS credential chain.                             |
 | `--user-input-description` | `-ui` | `str`       | ❌ No     | `None`              | Description of user input fields (e.g., `Comments`), used to guide placement and tagging of user data.                   |
-| `--output-path`            | `-o`  | `str`       | ✅ Yes    | -                   | File path to write the final improved prompt as JSON.                                                                    |
+| `--output-path`            | `-o`  | `str`       | ❌ No    | -                   | File path to write the final improved prompt as JSON.                                                                    |
 | `--max-iterations`         | `-n`  | `int`       | ❌ No     | `3`                 | Maximum number of improvement iterations.                                                                                |
 | `--threshold`              |       | `float`     | ❌ No     | `8.5`               | Satisfaction score threshold (0–10) to stop refinement early if reached.                                                 |
-| `--apply-techniques`       | `-a`  | `list[str]` | ❌ No     | All techniques      | Defense techniques to apply:<br>• `spotlighting`                                                                         |
+| `--apply-techniques`       | `-a`  | `list[str]` | ❌ No     | All techniques      | Defense techniques to apply: `spotlighting`, `random_sequence_enclosure`, `instruction_defense`, `role_consistency`, `secrets_exclusion`                                                                         |
 | `--test-after`             | `-ta` | `flag`      | ❌ No     | `False`             | If set, runs a prompt injection test using various attack payloads after prompt improvement.                             |
 | `--test-separator`         | `-ts` | `str`       | ❌ No     | `None`              | Optional string to prepend to each attack payload during injection testing (e.g., `\\n`, `###`).                         |
 | `--tools-path`             | `-tp` | `str`       | ❌ No     | `None`              | Path to JSON file defining available tool functions (used for testing function/tool abuse attacks).                      |
@@ -178,6 +178,8 @@ Prompt Hardener includes multiple defense strategies:
 | **Random Sequence Enclosure** | Encloses trusted system instructions in unpredictable tags, ensuring only those are followed and not leaked.      |
 | **Instruction Defense**     | Instructs the model to ignore new instructions, persona switching, or attempts to reveal/modify system prompts.   |
 | **Role Consistency**        | Ensures each message role (system, user, assistant) is preserved and not mixed, preventing role confusion attacks.|
+| **Secrets Exclusion**       | Ensure that no sensitive information is hardcoded in the prompt. |
+
 
 You can see the details of each hardening techniques from below.
 

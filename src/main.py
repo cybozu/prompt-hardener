@@ -89,6 +89,16 @@ def parse_args() -> argparse.Namespace:
         help="Optional file path to write the evaluation result as JSON.",
     )
 
+    evaluate_parser.add_argument(
+        "-a",
+        "--apply-techniques",
+        nargs="+",
+        choices=[
+            "spotlighting","random_sequence_enclosure","instruction_defense","role_consistency","secrets_exclusion"
+        ],
+        help="List of techniques to apply during prompt evaluation. Use space characters to separate multiple techniques. Defaults to all if not specified.",
+    )
+
     improve_parser = subparsers.add_parser("improve", help="Improve a prompt")
 
     improve_parser.add_argument(
@@ -187,7 +197,6 @@ def parse_args() -> argparse.Namespace:
         "-o",
         "--output-path",
         type=str,
-        required=True,
         help="File path to write the improved prompt as JSON.",
     )
 
@@ -211,9 +220,9 @@ def parse_args() -> argparse.Namespace:
         "--apply-techniques",
         nargs="+",
         choices=[
-            "spotlighting",
+            "spotlighting","random_sequence_enclosure","instruction_defense","role_consistency","secrets_exclusion"
         ],
-        help="List of techniques to apply during prompt improvement. Defaults to all if not specified.",
+        help="List of techniques to apply during prompt improvement. Use space characters to separate multiple techniques. Defaults to all if not specified.",
     )
 
     improve_parser.add_argument(
@@ -306,6 +315,7 @@ def main() -> None:
             args.eval_model,
             current_prompt,
             args.user_input_description,
+            apply_techniques=args.apply_techniques,
             aws_region=args.aws_region,
             aws_profile=args.aws_profile,
         )
@@ -365,6 +375,7 @@ def main() -> None:
             args.eval_model,
             initial_prompt,
             args.user_input_description,
+            apply_techniques=apply_techniques,
             aws_region=args.aws_region,
             aws_profile=args.aws_profile,
         )
@@ -388,6 +399,7 @@ def main() -> None:
                     args.eval_model,
                     current_prompt,
                     args.user_input_description,
+                    apply_techniques=apply_techniques,
                     aws_region=args.aws_region,
                     aws_profile=args.aws_profile,
                 )
@@ -440,16 +452,24 @@ def main() -> None:
             )
 
         # Write the improved prompt to output file
-        print(
-            "\033[36m" + "\n--- Writing Improved Prompt to Output File ---" + "\033[0m"
-        )
-        write_prompt_output(
-            args.output_path,
-            current_prompt,
-            args.input_mode,
-            args.input_format,
-        )
-        print("\033[32m" + f"✅ Prompt written to: {args.output_path}" + "\033[0m")
+        if args.output_path:
+            print(
+                "\033[36m" + "\n--- Writing Improved Prompt to Output File ---" + "\033[0m"
+            )
+            try:
+                write_prompt_output(
+                    args.output_path,
+                    current_prompt,
+                    args.input_mode,
+                    args.input_format,
+                )
+                print("\033[32m" + f"✅ Prompt written to: {args.output_path}" + "\033[0m")
+            except OSError as e:
+                print(
+                    "\033[31m"
+                    + f"\n[Error] Failed to write prompt output: {e}"
+                    + "\033[0m"
+                )
 
         # Run injection test if requested
         attack_results = []
