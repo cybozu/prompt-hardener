@@ -5,7 +5,7 @@ import os
 from evaluate import evaluate_prompt
 from improve import improve_prompt
 from attack import run_injection_test
-from gen_report import generate_report
+from gen_report import generate_improvement_report, generate_evaluation_report
 from prompt import parse_prompt_input, write_prompt_output, show_prompt
 from webui import launch_webui
 
@@ -17,6 +17,98 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("webui", help="Launch the web UI")
+
+    evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a prompt")
+
+    evaluate_parser.add_argument(
+        "-t",
+        "--target-prompt-path",
+        type=str,
+        required=True,
+        help="Path to the file containing the target prompt in Chat Completion message format (JSON).",
+    )
+
+    evaluate_parser.add_argument(
+        "--input-mode",
+        choices=["chat", "completion"],
+        default="chat",
+        help="Prompt format type: 'chat' for role-based messages, 'completion' for single prompt string. Default is 'chat'.",
+    )
+
+    evaluate_parser.add_argument(
+        "--input-format",
+        choices=["openai", "claude", "bedrock"],
+        default="openai",
+        help="Input message format to parse: openai, claude, or bedrock. Default is 'openai'.",
+    )
+
+    evaluate_parser.add_argument(
+        "-ea",
+        "--eval-api-mode",
+        type=str,
+        choices=["openai", "claude", "bedrock"],
+        required=True,
+        help="LLM API to use for evaluating the prompt (e.g., OpenAI or Claude).",
+    )
+
+    evaluate_parser.add_argument(
+        "-em",
+        "--eval-model",
+        type=str,
+        required=True,
+        help="Model name for evaluation (e.g., 'gpt-4o-mini', 'claude-3-7sonnet-latest').",
+    )
+
+    evaluate_parser.add_argument(
+        "-ar",
+        "--aws-region",
+        type=str,
+        default="us-east-1",
+        help="AWS region for Bedrock API mode. Default is 'us-east-1'.",
+    )
+
+    evaluate_parser.add_argument(
+        "-ap",
+        "--aws-profile",
+        type=str,
+        default=None,
+        help="AWS profile name to use for Bedrock API mode. If not specified, uses default AWS credential chain.",
+    )
+
+    evaluate_parser.add_argument(
+        "-ui",
+        "--user-input-description",
+        type=str,
+        help="Description of user input fields. Helps prevent incorrect placement inside secure instruction tags.",
+    )
+
+    evaluate_parser.add_argument(
+        "-o",
+        "--output-path",
+        type=str,
+        help="Optional file path to write the evaluation result as JSON.",
+    )
+
+    evaluate_parser.add_argument(
+        "-a",
+        "--apply-techniques",
+        nargs="+",
+        choices=[
+            "spotlighting",
+            "random_sequence_enclosure",
+            "instruction_defense",
+            "role_consistency",
+            "secrets_exclusion",
+        ],
+        help="List of techniques to apply during prompt evaluation. Use space characters to separate multiple techniques. Defaults to all if not specified.",
+    )
+
+    evaluate_parser.add_argument(
+        "-rd",
+        "--report-dir",
+        type=str,
+        help="Directory to write a full HTML and JSON evaluation report after execution.",
+    )
 
     improve_parser = subparsers.add_parser("improve", help="Improve a prompt")
 
@@ -116,7 +208,6 @@ def parse_args() -> argparse.Namespace:
         "-o",
         "--output-path",
         type=str,
-        required=True,
         help="File path to write the improved prompt as JSON.",
     )
 
@@ -141,8 +232,12 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         choices=[
             "spotlighting",
+            "random_sequence_enclosure",
+            "instruction_defense",
+            "role_consistency",
+            "secrets_exclusion",
         ],
-        help="List of techniques to apply during prompt improvement. Defaults to all if not specified.",
+        help="List of techniques to apply during prompt improvement. Use space characters to separate multiple techniques. Defaults to all if not specified.",
     )
 
     improve_parser.add_argument(
@@ -218,7 +313,69 @@ def main() -> None:
     if args.command == "webui":
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()
-    if args.command == "improve":
+    elif args.command == "evaluate":
+        current_prompt = parse_prompt_input(
+            args.target_prompt_path, args.input_mode, args.input_format
+        )
+        print(
+            "\033[36m"
+            + "\n🔍 Loaded Prompt from: "
+            + args.target_prompt_path
+            + "\033[0m"
+        )
+        print(show_prompt(current_prompt))
+
+        evaluation = evaluate_prompt(
+            args.eval_api_mode,
+            args.eval_model,
+            current_prompt,
+            args.user_input_description,
+            apply_techniques=args.apply_techniques,
+            aws_region=args.aws_region,
+            aws_profile=args.aws_profile,
+        )
+
+        avg_score = average_satisfaction(evaluation)
+        print("\033[35m" + "\n🧪 Evaluation Result:" + "\033[0m")
+        print(json.dumps(evaluation, indent=2, ensure_ascii=False))
+        print(
+            "\033[33m" + f"\n📊 Average Satisfaction Score: {avg_score:.2f}" + "\033[0m"
+        )
+
+        if args.output_path:
+            try:
+                with open(args.output_path, "w", encoding="utf-8") as f:
+                    json.dump(evaluation, f, ensure_ascii=False, indent=2)
+                print(
+                    "\033[32m"
+                    + f"\n✅ Evaluation written to: {args.output_path}"
+                    + "\033[0m"
+                )
+            except OSError as e:
+                print(
+                    "\033[31m"
+                    + f"\n[Error] Failed to write evaluation output: {e}"
+                    + "\033[0m"
+                )
+
+        if args.report_dir:
+            report_dir_path = os.path.abspath(args.report_dir)
+            print(
+                "\033[36m"
+                + f"\n--- Generating evaluation report at {report_dir_path} ---"
+                + "\033[0m"
+            )
+            generate_evaluation_report(
+                current_prompt,
+                evaluation,
+                report_dir_path,
+                avg_score,
+                args.eval_model,
+                args.eval_api_mode,
+            )
+            print("\033[32m" + "✅ Evaluation report generation complete." + "\033[0m")
+
+    elif args.command == "improve":
         # Load and parse prompt
         current_prompt = parse_prompt_input(
             args.target_prompt_path, args.input_mode, args.input_format
@@ -248,6 +405,7 @@ def main() -> None:
             args.eval_model,
             initial_prompt,
             args.user_input_description,
+            apply_techniques=apply_techniques,
             aws_region=args.aws_region,
             aws_profile=args.aws_profile,
         )
@@ -271,6 +429,7 @@ def main() -> None:
                     args.eval_model,
                     current_prompt,
                     args.user_input_description,
+                    apply_techniques=apply_techniques,
                     aws_region=args.aws_region,
                     aws_profile=args.aws_profile,
                 )
@@ -312,6 +471,7 @@ def main() -> None:
                 args.eval_model,
                 current_prompt,
                 args.user_input_description,
+                apply_techniques=apply_techniques,
                 aws_region=args.aws_region,
                 aws_profile=args.aws_profile,
             )
@@ -323,16 +483,28 @@ def main() -> None:
             )
 
         # Write the improved prompt to output file
-        print(
-            "\033[36m" + "\n--- Writing Improved Prompt to Output File ---" + "\033[0m"
-        )
-        write_prompt_output(
-            args.output_path,
-            current_prompt,
-            args.input_mode,
-            args.input_format,
-        )
-        print("\033[32m" + f"✅ Prompt written to: {args.output_path}" + "\033[0m")
+        if args.output_path:
+            print(
+                "\033[36m"
+                + "\n--- Writing Improved Prompt to Output File ---"
+                + "\033[0m"
+            )
+            try:
+                write_prompt_output(
+                    args.output_path,
+                    current_prompt,
+                    args.input_mode,
+                    args.input_format,
+                )
+                print(
+                    "\033[32m" + f"✅ Prompt written to: {args.output_path}" + "\033[0m"
+                )
+            except OSError as e:
+                print(
+                    "\033[31m"
+                    + f"\n[Error] Failed to write prompt output: {e}"
+                    + "\033[0m"
+                )
 
         # Run injection test if requested
         attack_results = []
@@ -363,7 +535,7 @@ def main() -> None:
                 + f"\n--- Generating report at {report_dir_path} ---"
                 + "\033[0m"
             )
-            generate_report(
+            generate_improvement_report(
                 initial_prompt,
                 initial_evaluation,
                 current_prompt,
