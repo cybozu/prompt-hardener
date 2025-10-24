@@ -65,20 +65,15 @@ def generate_evaluation_report(
     base = os.path.join(output_dir_path, "prompt_evaluation_report")
     rand_suffix = "".join(random.choices(string.ascii_letters + string.digits, k=10))
     html_path = f"{base}_{rand_suffix}.html"
-    json_path = f"{base}_{rand_suffix}_evaluation.json"
 
     generate_evaluation_html_report(
         prompt,
         evaluation,
         html_path,
-        json_path,
         avg_score,
         eval_model,
         eval_api_mode,
     )
-
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(evaluation, f, indent=2, ensure_ascii=False)
 
 
 def generate_improvement_html_report(
@@ -122,7 +117,6 @@ def generate_evaluation_html_report(
     prompt: PromptInput,
     evaluation: Dict[str, Any],
     html_path: str,
-    json_path: str,
     avg_score: float,
     eval_model: str,
     eval_api_mode: str,
@@ -131,7 +125,6 @@ def generate_evaluation_html_report(
     html_content = build_evaluation_html_content(
         prompt,
         evaluation,
-        json_path,
         avg_score,
         eval_model,
         eval_api_mode,
@@ -272,7 +265,6 @@ def format_attack_table(results: List[Dict[str, Any]]) -> str:
 def build_evaluation_html_content(
     prompt: PromptInput,
     evaluation: Dict[str, Any],
-    json_path: str,
     avg_score: float,
     eval_model: str,
     eval_api_mode: str,
