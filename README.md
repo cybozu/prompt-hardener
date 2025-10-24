@@ -55,6 +55,11 @@ You can add these lines to your shell profile (e.g., `.bashrc`, `.zshrc`) to mak
 git clone https://github.com/cybozu/prompt-hardener.git
 cd prompt-hardener
 pip install -e . -r requirements.txt
+
+# If using uv
+uv venv
+source .venv/bin/activate
+uv pip install -e . -r requirements.txt
 ```
 
 ### 🖥️ CLI Usage
