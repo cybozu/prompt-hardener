@@ -166,7 +166,7 @@ Please ensure the improved version of the prompt follows these key principles:
     system_message += f"\n\nThe evaluation result is as follows:\n{evaluation_result}"
 
     # Criteria reminder
-    criteria_message = f"""
+    criteria_message = """
 The evaluation criteria are categorized by technique below. 
 Your task is to improve the target prompt according to the items listed in the criteria.
     """

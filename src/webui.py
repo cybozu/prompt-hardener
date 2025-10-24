@@ -173,9 +173,6 @@ def run_evaluation(
 
             # Find generated report files
             html_report = next(report_dir.glob("prompt_evaluation_report_*.html"), None)
-            json_report = next(
-                report_dir.glob("prompt_evaluation_report_*_evaluation.json"), None
-            )
 
             # Create temporary files for download
             eval_tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
