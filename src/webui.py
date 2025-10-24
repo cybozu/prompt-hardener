@@ -165,30 +165,37 @@ def run_evaluation(
             result = subprocess.run(cmd, text=True, check=True, capture_output=True)
             status = "✅ Evaluation Complete"
             stdout_output = result.stdout
-            
+
             # Read the evaluation result from the output file
             evaluation_result = ""
             if output_path.exists():
                 evaluation_result = output_path.read_text(encoding="utf-8")
-                
+
             # Find generated report files
             html_report = next(report_dir.glob("prompt_evaluation_report_*.html"), None)
-            json_report = next(report_dir.glob("prompt_evaluation_report_*_evaluation.json"), None)
-            
+            json_report = next(
+                report_dir.glob("prompt_evaluation_report_*_evaluation.json"), None
+            )
+
             # Create temporary files for download
             eval_tmp = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
             html_tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
-            
+
             if evaluation_result:
-                eval_tmp.write(evaluation_result.encode('utf-8'))
+                eval_tmp.write(evaluation_result.encode("utf-8"))
             eval_tmp.close()
-            
+
             if html_report:
                 shutil.copy(html_report, html_tmp.name)
             html_tmp.close()
-            
-            return status, stdout_output, eval_tmp.name if evaluation_result else None, html_tmp.name if html_report else None
-            
+
+            return (
+                status,
+                stdout_output,
+                eval_tmp.name if evaluation_result else None,
+                html_tmp.name if html_report else None,
+            )
+
         except subprocess.CalledProcessError as e:
             error_output = e.stderr or e.stdout or str(e)
             status = f"❌ Error: {error_output}"
@@ -203,7 +210,7 @@ with gr.Blocks() as demo:
         # Evaluate Tab
         with gr.TabItem("🧪 Evaluate"):
             gr.Markdown("## Evaluate the security of your prompt")
-            
+
             with gr.Row():
                 with gr.Column():
                     eval_input_mode = gr.Radio(
@@ -259,18 +266,20 @@ with gr.Blocks() as demo:
                         label="Evaluation Techniques",
                         info="Select which security techniques to evaluate. If none selected, all will be used.",
                     )
-                
+
                 with gr.Column():
                     eval_run_button = gr.Button("🧪 Run Evaluation", variant="primary")
                     eval_status = gr.Textbox(label="Status")
                     eval_output = gr.Textbox(
-                        label="Evaluation Output", 
-                        lines=15, 
+                        label="Evaluation Output",
+                        lines=15,
                         max_lines=30,
-                        show_copy_button=True
+                        show_copy_button=True,
                     )
                     eval_download = gr.File(label="Download Evaluation Results (JSON)")
-                    eval_html_download = gr.File(label="Download Evaluation Report (HTML)")
+                    eval_html_download = gr.File(
+                        label="Download Evaluation Report (HTML)"
+                    )
 
             eval_run_button.click(
                 run_evaluation,
@@ -291,7 +300,7 @@ with gr.Blocks() as demo:
         # Improve Tab
         with gr.TabItem("🚀 Improve"):
             gr.Markdown("## Improve the security of your prompt")
-            
+
             with gr.Row():
                 with gr.Column():
                     input_mode = gr.Radio(
@@ -327,11 +336,15 @@ with gr.Blocks() as demo:
                     )
                     eval_model = gr.Textbox(label="Evaluation Model", value="gpt-4o")
                     attack_api_mode = gr.Radio(
-                        ["openai", "claude", "bedrock"], value="openai", label="Attack API Mode"
+                        ["openai", "claude", "bedrock"],
+                        value="openai",
+                        label="Attack API Mode",
                     )
                     attack_model = gr.Textbox(label="Attack Model (optional)")
                     judge_api_mode = gr.Radio(
-                        ["openai", "claude", "bedrock"], value="openai", label="Judge API Mode"
+                        ["openai", "claude", "bedrock"],
+                        value="openai",
+                        label="Judge API Mode",
                     )
                     judge_model = gr.Textbox(label="Judge Model (optional)")
                     aws_region = gr.Textbox(
@@ -344,7 +357,9 @@ with gr.Blocks() as demo:
                         placeholder="e.g., default, my-profile",
                     )
                     description = gr.Textbox(label="User Input Description")
-                    iterations = gr.Slider(1, 10, value=3, step=1, label="Max Iterations")
+                    iterations = gr.Slider(
+                        1, 10, value=3, step=1, label="Max Iterations"
+                    )
                     threshold = gr.Slider(
                         0, 10, value=8.5, step=0.1, label="Satisfaction Threshold"
                     )

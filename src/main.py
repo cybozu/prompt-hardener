@@ -94,7 +94,11 @@ def parse_args() -> argparse.Namespace:
         "--apply-techniques",
         nargs="+",
         choices=[
-            "spotlighting","random_sequence_enclosure","instruction_defense","role_consistency","secrets_exclusion"
+            "spotlighting",
+            "random_sequence_enclosure",
+            "instruction_defense",
+            "role_consistency",
+            "secrets_exclusion",
         ],
         help="List of techniques to apply during prompt evaluation. Use space characters to separate multiple techniques. Defaults to all if not specified.",
     )
@@ -227,7 +231,11 @@ def parse_args() -> argparse.Namespace:
         "--apply-techniques",
         nargs="+",
         choices=[
-            "spotlighting","random_sequence_enclosure","instruction_defense","role_consistency","secrets_exclusion"
+            "spotlighting",
+            "random_sequence_enclosure",
+            "instruction_defense",
+            "role_consistency",
+            "secrets_exclusion",
         ],
         help="List of techniques to apply during prompt improvement. Use space characters to separate multiple techniques. Defaults to all if not specified.",
     )
@@ -331,9 +339,7 @@ def main() -> None:
         print("\033[35m" + "\n🧪 Evaluation Result:" + "\033[0m")
         print(json.dumps(evaluation, indent=2, ensure_ascii=False))
         print(
-            "\033[33m"
-            + f"\n📊 Average Satisfaction Score: {avg_score:.2f}"
-            + "\033[0m"
+            "\033[33m" + f"\n📊 Average Satisfaction Score: {avg_score:.2f}" + "\033[0m"
         )
 
         if args.output_path:
@@ -479,7 +485,9 @@ def main() -> None:
         # Write the improved prompt to output file
         if args.output_path:
             print(
-                "\033[36m" + "\n--- Writing Improved Prompt to Output File ---" + "\033[0m"
+                "\033[36m"
+                + "\n--- Writing Improved Prompt to Output File ---"
+                + "\033[0m"
             )
             try:
                 write_prompt_output(
@@ -488,7 +496,9 @@ def main() -> None:
                     args.input_mode,
                     args.input_format,
                 )
-                print("\033[32m" + f"✅ Prompt written to: {args.output_path}" + "\033[0m")
+                print(
+                    "\033[32m" + f"✅ Prompt written to: {args.output_path}" + "\033[0m"
+                )
             except OSError as e:
                 print(
                     "\033[31m"

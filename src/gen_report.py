@@ -364,15 +364,15 @@ def format_recommendations(evaluation: Dict[str, Any]) -> str:
     """Format the recommendations section for evaluation report."""
     recommendations = evaluation.get("recommendation", "")
     critique = evaluation.get("critique", "")
-    
+
     html = ""
     if critique:
         html += f"<h3>Overall Critique</h3><pre>{escape_html(critique)}</pre>"
-    
+
     if recommendations:
         html += f"<h3>Improvement Recommendations</h3><pre>{escape_html(recommendations)}</pre>"
-    
+
     if not html:
         html = "<p>No specific recommendations available.</p>"
-    
+
     return html
