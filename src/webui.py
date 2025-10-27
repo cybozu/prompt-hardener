@@ -370,7 +370,7 @@ with gr.Blocks() as demo:
                         ],
                         label="Defense Techniques",
                     )
-                    test = gr.Checkbox(label="Run Injection Test", value=True)
+                    test = gr.Checkbox(label="Run Injection Test", value=False)
                     separator = gr.Textbox(label="Attack Separator", value="")
                     tools_json = gr.Textbox(label="Tools (JSON)", lines=4)
                 with gr.Column():
