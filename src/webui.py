@@ -271,7 +271,6 @@ with gr.Blocks() as demo:
                         label="Evaluation Output",
                         lines=15,
                         max_lines=30,
-                        show_copy_button=True,
                     )
                     eval_download = gr.File(label="Download Evaluation Results (JSON)")
                     eval_html_download = gr.File(
