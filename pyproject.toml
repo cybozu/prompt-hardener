@@ -4,12 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prompt-hardener"
-version = "0.2.0"
+version = "0.3.0"
 description = "A toolkit for evaluating and hardening LLM prompts"
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Apache 2.0" }
-dependencies = []
+dependencies = [
+  "requests==2.32.5",
+  "openai==2.14.0",
+  "argparse==1.4.0",
+  "ruff==0.14.10",
+  "gradio==6.2.0",
+  "anthropic==0.75.0",
+  "boto3==1.42.22",
+  "pytest==9.0.2"
+]
 
 [project.scripts]
 prompt-hardener = "main:main"
