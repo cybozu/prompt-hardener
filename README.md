@@ -53,11 +53,14 @@ You can add these lines to your shell profile (e.g., `.bashrc`, `.zshrc`) to mak
 ### 🔧 Installation
 
 ```bash
+# Option 1 (Recommended): Install as a CLI tool using uv
+uv tool install \
+  https://github.com/cybozu/prompt-hardener/releases/download/vX.Y.Z/prompt_hardener-X.Y.Z-py3-none-any.whl
+
+# Option 2: Development / editable install
 git clone https://github.com/cybozu/prompt-hardener.git
 cd prompt-hardener
-pip install -e .
 
-# If using uv
 uv venv
 source .venv/bin/activate
 uv pip install -e .
