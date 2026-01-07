@@ -1,8 +1,10 @@
 import json
 import tempfile
+
 import pytest
-from prompt import parse_prompt_input, format_prompt_output
-from schema import PromptInput
+
+from prompt_hardener.prompt import format_prompt_output, parse_prompt_input
+from prompt_hardener.schema import PromptInput
 
 
 def write_temp_json(data: dict) -> str:

@@ -1,7 +1,7 @@
 from typing import List, Optional
-from llm_client import call_llm_api_for_improve
-from utils import validate_chat_completion_format
-from schema import PromptInput
+from prompt_hardener.llm_client import call_llm_api_for_improve
+from prompt_hardener.utils import validate_chat_completion_format
+from prompt_hardener.schema import PromptInput
 
 
 def improve_prompt(

@@ -3,15 +3,15 @@ import random
 import string
 import re
 import json
-from llm_client import (
+from prompt_hardener.llm_client import (
     call_llm_api_for_payload_injection,
     call_llm_api_for_attack_chat,
     call_llm_api_for_attack_completion,
     call_llm_api_for_judge,
 )
-from schema import PromptInput
-from prompt import show_prompt
-from utils import extract_json_block
+from prompt_hardener.schema import PromptInput
+from prompt_hardener.prompt import show_prompt
+from prompt_hardener.utils import extract_json_block
 
 
 def insert_attack_into_prompt(

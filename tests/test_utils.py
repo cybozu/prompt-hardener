@@ -1,5 +1,5 @@
 import pytest
-from utils import extract_json_block, to_bedrock_message_format
+from prompt_hardener.utils import extract_json_block, to_bedrock_message_format
 
 # Test cases for extract_json_block function
 

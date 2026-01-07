@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version tag (e.g. v0.4.0)"
+        required: true
+        type: string
+      target_ref:
+        description: "Git ref to release from (branch/sha). Default: main"
+        required: false
+        default: "main"
+        type: string
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write          # create/push tags, create GitHub Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate version format
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="${{ inputs.version }}"
+          if [[ ! "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([\-+].*)?$ ]]; then
+            echo "Invalid version: $v"
+            echo "Expected semver like v0.4.0 (optionally with -rc.1, +meta)"
+            exit 1
+          fi
+
+      - name: Checkout target ref
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ inputs.target_ref }}
+          fetch-depth: 0
+
+      - name: Fail if tag already exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.version }}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag already exists locally: ${tag}"
+            exit 1
+          fi
+          # remote check
+          if git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
+            echo "Tag already exists on origin: ${tag}"
+            exit 1
+          fi
+
+      - name: Create & push git tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ inputs.version }}"
+          sha="$(git rev-parse HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$tag" -m "Release $tag" "$sha"
+          git push origin "refs/tags/$tag"
+
+      - name: Build Python package (wheel)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade uv
+          uv build
+
+      # Create GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
+        with:
+          prerelease: ${{ contains(inputs.version, '-rc.') || contains(inputs.version, '-beta') || contains(inputs.version, '-alpha') }}
+          tag_name: ${{ inputs.version }}
+          generate_release_notes: true
+          draft: false
+          files: |
+            dist/*.whl

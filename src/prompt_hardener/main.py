@@ -2,12 +2,19 @@ from typing import Dict, Any, Optional
 import argparse
 import json
 import os
-from evaluate import evaluate_prompt
-from improve import improve_prompt
-from attack import run_injection_test
-from gen_report import generate_improvement_report, generate_evaluation_report
-from prompt import parse_prompt_input, write_prompt_output, show_prompt
-from webui import launch_webui
+from prompt_hardener.evaluate import evaluate_prompt
+from prompt_hardener.improve import improve_prompt
+from prompt_hardener.attack import run_injection_test
+from prompt_hardener.gen_report import (
+    generate_improvement_report,
+    generate_evaluation_report,
+)
+from prompt_hardener.prompt import (
+    parse_prompt_input,
+    write_prompt_output,
+    show_prompt,
+)
+from prompt_hardener.webui import launch_webui
 
 
 def parse_args() -> argparse.Namespace:
