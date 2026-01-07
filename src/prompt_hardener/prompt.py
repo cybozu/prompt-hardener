@@ -1,7 +1,7 @@
 import json
 from typing import Literal
 from pathlib import Path
-from schema import PromptInput
+from prompt_hardener.schema import PromptInput
 
 
 def parse_prompt_input(path: str, input_mode: str, input_format: str) -> PromptInput:

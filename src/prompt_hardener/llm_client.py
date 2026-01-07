@@ -5,8 +5,8 @@ from typing import List, Dict, Union, Optional, Any
 from openai import OpenAI
 from anthropic import Anthropic
 import boto3
-from utils import extract_json_block, to_bedrock_message_format
-from schema import PromptInput
+from prompt_hardener.utils import extract_json_block, to_bedrock_message_format
+from prompt_hardener.schema import PromptInput
 
 openai_client = None
 claude_client = None

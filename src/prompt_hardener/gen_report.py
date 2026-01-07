@@ -4,8 +4,8 @@ import html
 import json
 import random
 import string
-from schema import PromptInput
-from prompt import show_prompt
+from prompt_hardener.schema import PromptInput
+from prompt_hardener.prompt import show_prompt
 
 
 def generate_improvement_report(

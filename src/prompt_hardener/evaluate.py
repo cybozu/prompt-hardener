@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
-from llm_client import call_llm_api_for_eval
-from schema import PromptInput
+from prompt_hardener.llm_client import call_llm_api_for_eval
+from prompt_hardener.schema import PromptInput
 
 
 def evaluate_prompt(
