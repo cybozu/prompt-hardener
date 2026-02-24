@@ -16,7 +16,7 @@ dependencies = [
   "ruff==0.14.10",
   "gradio==6.2.0",
   "anthropic==0.75.0",
-  "boto3==1.42.22",
+  "boto3==1.42.45",
   "pytest==9.0.2"
 ]
 
