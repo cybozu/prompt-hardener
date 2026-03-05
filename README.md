@@ -1,6 +1,4 @@
 # 🔐 Prompt Hardener
-<img width="300" alt="prompt-hardener-logo" src="https://github.com/user-attachments/assets/6701018c-0e31-4e9e-ad16-eff91c3bf3b6" />
-
 
 Prompt Hardener is an open-source tool that **evaluates and strengthens system prompts** used in LLM-based applications. It helps developers proactively defend against **prompt injection attacks** by combining automated evaluation, self-refinement, and attack simulation — all exportable as structured reports.
 
