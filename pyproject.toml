@@ -11,7 +11,7 @@ requires-python = ">=3.8"
 license = { text = "Apache 2.0" }
 dependencies = [
   "requests==2.32.5",
-  "openai==2.14.0",
+  "openai==2.21.0",
   "argparse==1.4.0",
   "ruff==0.15.1",
   "gradio==6.2.0",
