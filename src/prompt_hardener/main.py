@@ -25,6 +25,34 @@ def parse_args() -> argparse.Namespace:
 
     subparsers.add_parser("webui", help="Launch the web UI")
 
+    # --- init subcommand ---
+    init_parser = subparsers.add_parser(
+        "init", help="Create a new agent_spec.yaml from a template"
+    )
+    init_parser.add_argument(
+        "--type",
+        choices=["chatbot", "rag", "agent", "mcp-agent"],
+        default="chatbot",
+        help="Agent type template to use. Default is 'chatbot'.",
+    )
+    init_parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default="./agent_spec.yaml",
+        help="Output file path. Default is './agent_spec.yaml'.",
+    )
+
+    # --- validate subcommand ---
+    validate_parser = subparsers.add_parser(
+        "validate", help="Validate an agent_spec.yaml file"
+    )
+    validate_parser.add_argument(
+        "spec_path",
+        type=str,
+        help="Path to the agent_spec.yaml file to validate.",
+    )
+
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a prompt")
 
     evaluate_parser.add_argument(
@@ -315,9 +343,75 @@ def average_satisfaction(evaluation: Dict[str, Any]) -> float:
     return round((total / count), 2) if count else 0.0
 
 
+def run_init(args: argparse.Namespace) -> None:
+    import shutil
+    from pathlib import Path
+
+    output_path = Path(args.output)
+    if output_path.exists():
+        print(
+            "\033[31m"
+            + "[Error] %s already exists. Use a different path or remove the file first." % args.output
+            + "\033[0m"
+        )
+        raise SystemExit(1)
+
+    templates_dir = Path(__file__).parent / "templates"
+    template_file = templates_dir / ("%s.yaml" % args.type)
+    if not template_file.exists():
+        print(
+            "\033[31m"
+            + "[Error] Template not found for type '%s'" % args.type
+            + "\033[0m"
+        )
+        raise SystemExit(1)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(str(template_file), str(output_path))
+    print("Created %s (type: %s)" % (args.output, args.type))
+    print("Edit the file to customize your agent specification, then run:")
+    print("  prompt-hardener validate %s" % args.output)
+
+
+def run_validate(args: argparse.Namespace) -> None:
+    from prompt_hardener.agent_spec import load_yaml, validate
+
+    try:
+        data = load_yaml(args.spec_path)
+    except ValueError as e:
+        print(
+            "\033[31m" + str(e) + "\033[0m"
+        )
+        raise SystemExit(1)
+
+    result = validate(data)
+
+    # Print warnings
+    for w in result.warnings:
+        print("  " + str(w))
+
+    if not result.is_valid:
+        print(
+            "%s has %d error(s):" % (args.spec_path, len(result.errors))
+        )
+        for err in result.errors:
+            print("  " + str(err))
+        raise SystemExit(1)
+
+    agent_type = data.get("type", "unknown")
+    agent_name = data.get("name", "unnamed")
+    print("%s is valid (type: %s, name: %s)" % (args.spec_path, agent_type, agent_name))
+    if result.warnings:
+        print("  %d warning(s)" % len(result.warnings))
+
+
 def main() -> None:
     args = parse_args()
-    if args.command == "webui":
+    if args.command == "init":
+        run_init(args)
+    elif args.command == "validate":
+        run_validate(args)
+    elif args.command == "webui":
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()
     elif args.command == "evaluate":

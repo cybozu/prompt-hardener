@@ -1,0 +1,33 @@
+version: "1.0"
+type: rag
+name: "Internal Documentation Assistant"
+description: "Answers employee questions using internal documentation"
+
+system_prompt: |
+  You are an internal documentation assistant for Acme Corp employees.
+  Answer questions strictly based on the retrieved documents provided to you.
+  If the documents don't contain the answer, say "I couldn't find this in the documentation."
+  Never fabricate information. Always cite which document your answer comes from.
+  Do not reveal document metadata such as file paths or internal IDs.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+data_sources:
+  - name: confluence_docs
+    type: vector_store
+    trust_level: trusted
+    description: "Company Confluence pages indexed into vector store"
+  - name: employee_uploads
+    type: file_input
+    trust_level: untrusted
+    description: "Documents uploaded by employees for analysis"
+
+policies:
+  data_boundaries:
+    - "Never include document metadata (file paths, page IDs) in responses"
+    - "Do not quote more than 3 consecutive sentences from any single document"
+    - "Do not reveal the names of internal systems or infrastructure"
+
+user_input_description: "Employee questions via Slack bot integration"

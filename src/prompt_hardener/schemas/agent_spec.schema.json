@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cybozu/prompt-hardener/schemas/agent_spec.schema.json",
+  "title": "Prompt Hardener Agent Specification",
+  "description": "Schema for agent_spec.yaml used by Prompt Hardener vNext",
+  "type": "object",
+  "required": ["version", "type", "name", "system_prompt", "provider"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "const": "1.0"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["chatbot", "rag", "agent", "mcp-agent"],
+      "description": "Agent architecture type"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for this agent"
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of the agent's purpose"
+    },
+    "system_prompt": {
+      "type": "string",
+      "description": "The system prompt text (or file path via !include)"
+    },
+    "messages": {
+      "type": "array",
+      "description": "Few-shot example messages in provider-neutral format",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant"]
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "provider": {
+      "type": "object",
+      "required": ["api", "model"],
+      "properties": {
+        "api": {
+          "type": "string",
+          "enum": ["openai", "claude", "bedrock"],
+          "description": "LLM API provider"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model identifier (e.g., gpt-4o, claude-sonnet-4-20250514)"
+        },
+        "region": {
+          "type": "string",
+          "description": "AWS region (bedrock only)"
+        },
+        "profile": {
+          "type": "string",
+          "description": "AWS profile name (bedrock only)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tools": {
+      "type": "array",
+      "description": "Tool definitions in OpenAI function calling format",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tool function name"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this tool does"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "JSON Schema for tool parameters",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "object"
+              },
+              "properties": {
+                "type": "object"
+              },
+              "required": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "description": "Security policies for the agent",
+      "properties": {
+        "allowed_actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Explicitly allowed tool actions"
+        },
+        "denied_actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Explicitly denied tool actions"
+        },
+        "data_boundaries": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Data handling constraints (natural language)"
+        },
+        "escalation_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["condition", "action"],
+            "properties": {
+              "condition": {
+                "type": "string",
+                "description": "When this rule triggers"
+              },
+              "action": {
+                "type": "string",
+                "description": "What should happen"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Rules for escalation to human or other system"
+        }
+      },
+      "additionalProperties": false
+    },
+    "data_sources": {
+      "type": "array",
+      "description": "Data sources for RAG and agent types",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "trust_level"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "Source type (e.g., vector_store, file_input, api)"
+          },
+          "trust_level": {
+            "type": "string",
+            "enum": ["trusted", "untrusted"],
+            "description": "Whether this source content is trusted"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mcp_servers": {
+      "type": "array",
+      "description": "MCP server definitions for mcp-agent type",
+      "items": {
+        "type": "object",
+        "required": ["name", "trust_level"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "MCP server identifier"
+          },
+          "trust_level": {
+            "type": "string",
+            "enum": ["trusted", "untrusted"],
+            "description": "Trust level for this server"
+          },
+          "allowed_tools": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Tools exposed by this server"
+          },
+          "data_access": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Data sources this server can access"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "user_input_description": {
+      "type": "string",
+      "description": "Description of how users provide input to this agent"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "rag" } } },
+      "then": { "required": ["version", "type", "name", "system_prompt", "provider", "data_sources"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "agent" } } },
+      "then": { "required": ["version", "type", "name", "system_prompt", "provider", "tools"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "mcp-agent" } } },
+      "then": { "required": ["version", "type", "name", "system_prompt", "provider", "tools", "mcp_servers"] }
+    }
+  ]
+}

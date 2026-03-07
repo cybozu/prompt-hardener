@@ -1,0 +1,7 @@
+version: "1.0"
+type: agent
+name: "Agent Bot"
+system_prompt: "You are an agent."
+provider:
+  api: openai
+  model: gpt-4o-mini

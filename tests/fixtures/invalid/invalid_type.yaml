@@ -1,0 +1,7 @@
+version: "1.0"
+type: "unknown"
+name: "Test Bot"
+system_prompt: "You are a test bot."
+provider:
+  api: openai
+  model: gpt-4o-mini
