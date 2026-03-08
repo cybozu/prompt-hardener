@@ -1,6 +1,21 @@
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 import re
 import json
+
+
+def average_satisfaction(evaluation: Dict[str, Any]) -> float:
+    """Calculate average satisfaction score from an evaluation dict."""
+    total, count = 0, 0
+    for category, items in evaluation.items():
+        if category in ("critique", "recommendation"):
+            continue
+        for sub in items.values():
+            try:
+                total += float(sub["satisfaction"])
+                count += 1
+            except (ValueError, TypeError):
+                continue
+    return round((total / count), 2) if count else 0.0
 
 
 def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:

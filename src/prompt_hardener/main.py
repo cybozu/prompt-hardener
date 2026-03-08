@@ -4,6 +4,7 @@ import json
 import os
 from prompt_hardener.evaluate import evaluate_prompt
 from prompt_hardener.improve import improve_prompt
+from prompt_hardener.utils import average_satisfaction
 from prompt_hardener.attack import run_injection_test
 from prompt_hardener.gen_report import (
     generate_improvement_report,
@@ -82,6 +83,93 @@ def parse_args() -> argparse.Namespace:
         choices=["prompt", "tool", "architecture"],
         default=None,
         help="Layers to analyze. Defaults to all applicable layers.",
+    )
+
+    # --- remediate subcommand ---
+    remediate_parser = subparsers.add_parser(
+        "remediate", help="Generate actionable remediations from static analysis findings"
+    )
+    remediate_parser.add_argument(
+        "spec_path",
+        type=str,
+        help="Path to the agent_spec.yaml file to remediate.",
+    )
+    remediate_parser.add_argument(
+        "-l",
+        "--layers",
+        nargs="+",
+        choices=["prompt", "tool", "architecture"],
+        default=None,
+        help="Layers to remediate. Defaults to all applicable layers for the spec type.",
+    )
+    remediate_parser.add_argument(
+        "-n",
+        "--max-iterations",
+        type=int,
+        default=3,
+        help="Maximum iterations for prompt improvement. Default is 3.",
+    )
+    remediate_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=8.5,
+        help="Score threshold (0-10) to stop prompt refinement. Default is 8.5.",
+    )
+    remediate_parser.add_argument(
+        "-a",
+        "--apply-techniques",
+        nargs="+",
+        choices=[
+            "spotlighting",
+            "random_sequence_enclosure",
+            "instruction_defense",
+            "role_consistency",
+            "secrets_exclusion",
+        ],
+        help="Techniques to apply during prompt improvement. Defaults to all.",
+    )
+    remediate_parser.add_argument(
+        "-ea",
+        "--eval-api-mode",
+        type=str,
+        choices=["openai", "claude", "bedrock"],
+        required=True,
+        help="LLM API to use for evaluation and improvement.",
+    )
+    remediate_parser.add_argument(
+        "-em",
+        "--eval-model",
+        type=str,
+        required=True,
+        help="Model name for evaluation and improvement.",
+    )
+    remediate_parser.add_argument(
+        "-o",
+        "--output-path",
+        type=str,
+        default=None,
+        help="File path to write updated agent_spec.yaml with improved system prompt.",
+    )
+    remediate_parser.add_argument(
+        "-rd",
+        "--report-dir",
+        type=str,
+        default=None,
+        help="Directory to write the remediation report as JSON.",
+    )
+    remediate_parser.add_argument(
+        "-ar",
+        "--aws-region",
+        type=str,
+        default="us-east-1",
+        help="AWS region for Bedrock API mode. Default is 'us-east-1'.",
+    )
+    remediate_parser.add_argument(
+        "-ap",
+        "--aws-profile",
+        type=str,
+        default=None,
+        help="AWS profile name for Bedrock API mode.",
     )
 
     # --- simulate subcommand ---
@@ -462,20 +550,6 @@ def load_tools(path: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def average_satisfaction(evaluation: Dict[str, Any]) -> float:
-    total, count = 0, 0
-    for category, items in evaluation.items():
-        if category in ("critique", "recommendation"):
-            continue
-        for sub in items.values():
-            try:
-                total += float(sub["satisfaction"])
-                count += 1
-            except (ValueError, TypeError):
-                continue
-    return round((total / count), 2) if count else 0.0
-
-
 def run_init(args: argparse.Namespace) -> None:
     import shutil
     from pathlib import Path
@@ -637,6 +711,59 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
             print(md_output)
 
 
+def run_remediate_cmd(args: argparse.Namespace) -> None:
+    from prompt_hardener.remediate.engine import run_remediate
+
+    try:
+        report = run_remediate(
+            spec_path=args.spec_path,
+            eval_api_mode=args.eval_api_mode,
+            eval_model=args.eval_model,
+            layers=args.layers,
+            max_iterations=args.max_iterations,
+            threshold=args.threshold,
+            apply_techniques=args.apply_techniques,
+            output_path=args.output_path,
+            aws_region=args.aws_region,
+            aws_profile=args.aws_profile,
+        )
+    except (ValueError, SystemExit) as e:
+        print("\033[31m" + str(e) + "\033[0m")
+        raise SystemExit(1)
+
+    report_dict = report.to_dict()
+    json_output = json.dumps(report_dict, indent=2, ensure_ascii=False)
+
+    # Console summary
+    print("\n--- Remediation Summary ---")
+    if report.prompt is not None:
+        print("Prompt: %s" % report.prompt.changes)
+    if report.tool is not None:
+        print("Tool: %d recommendation(s)" % len(report.tool))
+        for r in report.tool:
+            print("  [%s] %s" % (r.severity.upper(), r.title))
+    if report.architecture is not None:
+        print("Architecture: %d recommendation(s)" % len(report.architecture))
+        for r in report.architecture:
+            print("  [%s] %s" % (r.severity.upper(), r.title))
+
+    if args.output_path:
+        print("Updated agent spec written to %s" % args.output_path)
+
+    if args.report_dir:
+        import os
+        os.makedirs(args.report_dir, exist_ok=True)
+        report_path = os.path.join(args.report_dir, "remediation_report.json")
+        try:
+            with open(report_path, "w", encoding="utf-8") as f:
+                f.write(json_output)
+            print("Remediation report written to %s" % report_path)
+        except OSError as e:
+            print("\033[31m[Error] Failed to write report: %s\033[0m" % e)
+    else:
+        print(json_output)
+
+
 def main() -> None:
     args = parse_args()
     if args.command == "init":
@@ -645,6 +772,8 @@ def main() -> None:
         run_validate(args)
     elif args.command == "analyze":
         run_analyze_cmd(args)
+    elif args.command == "remediate":
+        run_remediate_cmd(args)
     elif args.command == "simulate":
         run_simulate_cmd(args)
     elif args.command == "webui":

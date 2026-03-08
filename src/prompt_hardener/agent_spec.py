@@ -315,3 +315,17 @@ def load_and_validate(path):
     result = validate(data)
     spec = dict_to_agent_spec(data) if result.is_valid else None
     return spec, result
+
+
+def write_updated_spec(original_path, improved_system_prompt, output_path):
+    # type: (str, str, str) -> None
+    """Write a copy of the agent spec with an updated system_prompt.
+
+    Loads the original YAML, replaces the system_prompt field, and writes
+    to *output_path* using yaml.dump(). Note: comments and formatting
+    from the original file are not preserved.
+    """
+    data = load_yaml(original_path)
+    data["system_prompt"] = improved_system_prompt
+    with open(output_path, "w", encoding="utf-8") as f:
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
