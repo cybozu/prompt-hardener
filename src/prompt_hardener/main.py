@@ -316,6 +316,52 @@ def parse_args() -> argparse.Namespace:
         help="AWS profile name for Bedrock API mode.",
     )
 
+    # --- report subcommand ---
+    report_parser = subparsers.add_parser(
+        "report", help="Generate a formatted report from analyze/simulate/remediate JSON output"
+    )
+    report_parser.add_argument(
+        "results_path",
+        type=str,
+        help="Path to a JSON result file from analyze, simulate, or remediate.",
+    )
+    report_parser.add_argument(
+        "-f",
+        "--format",
+        choices=["html", "json", "markdown"],
+        default="markdown",
+        help="Output format. Default is 'markdown'.",
+    )
+    report_parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default=None,
+        help="Output file path. Defaults to stdout.",
+    )
+
+    # --- diff subcommand ---
+    diff_parser = subparsers.add_parser(
+        "diff", help="Show differences between two agent_spec.yaml files"
+    )
+    diff_parser.add_argument(
+        "before_path",
+        type=str,
+        help="Path to the first (before) agent_spec.yaml file.",
+    )
+    diff_parser.add_argument(
+        "after_path",
+        type=str,
+        help="Path to the second (after) agent_spec.yaml file.",
+    )
+    diff_parser.add_argument(
+        "-f",
+        "--format",
+        choices=["text", "json", "markdown"],
+        default="text",
+        help="Output format. Default is 'text'.",
+    )
+
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a prompt")
 
     evaluate_parser.add_argument(
@@ -834,6 +880,45 @@ def run_remediate_cmd(args: argparse.Namespace) -> None:
         print(json_output)
 
 
+def run_report_cmd(args):
+    # type: (argparse.Namespace) -> None
+    from prompt_hardener.report import generate_report
+
+    fmt = getattr(args, "format", "markdown")
+    try:
+        output = generate_report(
+            results_path=args.results_path,
+            output_format=fmt,
+            output_path=args.output,
+        )
+    except (ValueError, OSError) as e:
+        print("\033[31m" + str(e) + "\033[0m")
+        raise SystemExit(1)
+
+    if args.output:
+        print("Report written to %s" % args.output)
+    else:
+        print(output)
+
+
+def run_diff_cmd(args):
+    # type: (argparse.Namespace) -> None
+    from prompt_hardener.diff import run_diff
+
+    fmt = getattr(args, "format", "text")
+    try:
+        output = run_diff(
+            before_path=args.before_path,
+            after_path=args.after_path,
+            output_format=fmt,
+        )
+    except (ValueError, OSError) as e:
+        print("\033[31m" + str(e) + "\033[0m")
+        raise SystemExit(1)
+
+    print(output)
+
+
 def _prompt_input_to_agent_spec(prompt_input, args):
     """Build a temporary AgentSpec from PromptInput + CLI args for analyze."""
     from prompt_hardener.models import AgentSpec, ProviderConfig
@@ -873,6 +958,10 @@ def main() -> None:
         run_remediate_cmd(args)
     elif args.command == "simulate":
         run_simulate_cmd(args)
+    elif args.command == "report":
+        run_report_cmd(args)
+    elif args.command == "diff":
+        run_diff_cmd(args)
     elif args.command == "webui":
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()

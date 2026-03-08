@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "tool_version": "0.1.0",
+    "timestamp": "2025-01-15T11:30:00Z",
+    "agent_type": "agent",
+    "layers": ["prompt", "tool", "architecture"],
+    "models": {
+      "eval": {"api": "openai", "model": "gpt-4o-mini"}
+    }
+  },
+  "remediation": {
+    "prompt": {
+      "changes": "Added role boundary instructions and data separation markers",
+      "techniques_applied": ["instruction_defense", "role_consistency", "spotlighting"]
+    },
+    "tool": {
+      "recommendations": [
+        {
+          "severity": "critical",
+          "title": "Restrict execute_query tool",
+          "description": "Add parameter validation and limit query scope to read-only operations.",
+          "suggested_change": "Add 'read_only: true' constraint to tool parameters."
+        },
+        {
+          "severity": "medium",
+          "title": "Add input sanitization",
+          "description": "Tool parameters should be validated before execution."
+        }
+      ]
+    },
+    "architecture": {
+      "recommendations": [
+        {
+          "severity": "high",
+          "title": "Add human approval for destructive actions",
+          "description": "Require human-in-the-loop confirmation for account deletion and billing changes.",
+          "suggested_change": "Add escalation_rules for delete_account and modify_billing actions."
+        }
+      ]
+    }
+  },
+  "summary": {
+    "risk_level": "high",
+    "key_findings": [
+      "Prompt remediation applied (3 techniques)",
+      "1 critical/high tool recommendations",
+      "1 critical/high architecture recommendations"
+    ]
+  }
+}
