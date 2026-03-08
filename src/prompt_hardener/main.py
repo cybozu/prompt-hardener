@@ -84,6 +84,108 @@ def parse_args() -> argparse.Namespace:
         help="Layers to analyze. Defaults to all applicable layers.",
     )
 
+    # --- simulate subcommand ---
+    simulate_parser = subparsers.add_parser(
+        "simulate", help="Run attack simulation against an agent_spec.yaml"
+    )
+    simulate_parser.add_argument(
+        "spec_path",
+        type=str,
+        help="Path to the agent_spec.yaml file to simulate against.",
+    )
+    simulate_parser.add_argument(
+        "--scenarios",
+        type=str,
+        default=None,
+        help="Path to a custom scenario catalog directory. Defaults to built-in catalog.",
+    )
+    simulate_parser.add_argument(
+        "--categories",
+        type=str,
+        default=None,
+        help="Comma-separated list of scenario categories to include.",
+    )
+    simulate_parser.add_argument(
+        "-l",
+        "--layers",
+        type=str,
+        default=None,
+        help="Comma-separated list of target layers to include (prompt, tool, architecture).",
+    )
+    simulate_parser.add_argument(
+        "-ea",
+        "--eval-api-mode",
+        type=str,
+        choices=["openai", "claude", "bedrock"],
+        required=True,
+        help="LLM API to use (also the default for attack and judge).",
+    )
+    simulate_parser.add_argument(
+        "-em",
+        "--eval-model",
+        type=str,
+        required=True,
+        help="Model name (also the default for attack and judge).",
+    )
+    simulate_parser.add_argument(
+        "-aa",
+        "--attack-api-mode",
+        type=str,
+        choices=["openai", "claude", "bedrock"],
+        default=None,
+        help="LLM API for executing attacks. Defaults to --eval-api-mode.",
+    )
+    simulate_parser.add_argument(
+        "-am",
+        "--attack-model",
+        type=str,
+        default=None,
+        help="Model for executing attacks. Defaults to --eval-model.",
+    )
+    simulate_parser.add_argument(
+        "-ja",
+        "--judge-api-mode",
+        type=str,
+        choices=["openai", "claude", "bedrock"],
+        default=None,
+        help="LLM API for judging attack success. Defaults to --eval-api-mode.",
+    )
+    simulate_parser.add_argument(
+        "-jm",
+        "--judge-model",
+        type=str,
+        default=None,
+        help="Model for judging attack success. Defaults to --eval-model.",
+    )
+    simulate_parser.add_argument(
+        "-ts",
+        "--separator",
+        type=str,
+        default=None,
+        help="Optional string to prepend to each attack payload.",
+    )
+    simulate_parser.add_argument(
+        "-o",
+        "--output-path",
+        type=str,
+        default=None,
+        help="File path to write the simulation report as JSON.",
+    )
+    simulate_parser.add_argument(
+        "-ar",
+        "--aws-region",
+        type=str,
+        default="us-east-1",
+        help="AWS region for Bedrock API mode. Default is 'us-east-1'.",
+    )
+    simulate_parser.add_argument(
+        "-ap",
+        "--aws-profile",
+        type=str,
+        default=None,
+        help="AWS profile name for Bedrock API mode.",
+    )
+
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a prompt")
 
     evaluate_parser.add_argument(
@@ -436,6 +538,59 @@ def run_validate(args: argparse.Namespace) -> None:
         print("  %d warning(s)" % len(result.warnings))
 
 
+def run_simulate_cmd(args: argparse.Namespace) -> None:
+    from prompt_hardener.simulate import run_simulate
+
+    # Resolve fallback parameters
+    attack_api_mode = args.attack_api_mode or args.eval_api_mode
+    attack_model = args.attack_model or args.eval_model
+    judge_api_mode = args.judge_api_mode or args.eval_api_mode
+    judge_model = args.judge_model or args.eval_model
+
+    # Parse comma-separated filters
+    categories = [c.strip() for c in args.categories.split(",")] if args.categories else None
+    layers = [l.strip() for l in args.layers.split(",")] if args.layers else None
+
+    try:
+        report = run_simulate(
+            spec_path=args.spec_path,
+            attack_api_mode=attack_api_mode,
+            attack_model=attack_model,
+            judge_api_mode=judge_api_mode,
+            judge_model=judge_model,
+            scenarios_dir=args.scenarios,
+            categories=categories,
+            layers=layers,
+            separator=args.separator,
+            aws_region=args.aws_region,
+            aws_profile=args.aws_profile,
+        )
+    except ValueError as e:
+        print("\033[31m" + str(e) + "\033[0m")
+        raise SystemExit(1)
+
+    report_dict = report.to_dict()
+    json_output = json.dumps(report_dict, indent=2, ensure_ascii=False)
+
+    # Console summary
+    s = report.summary
+    print(
+        "\n--- Simulation Summary ---\n"
+        "Total: %d | Blocked: %d | Succeeded: %d | Block rate: %.1f%%"
+        % (s.total, s.blocked, s.succeeded, s.block_rate * 100)
+    )
+
+    if args.output_path:
+        try:
+            with open(args.output_path, "w", encoding="utf-8") as f:
+                f.write(json_output)
+            print("Simulation report written to %s" % args.output_path)
+        except OSError as e:
+            print("\033[31m[Error] Failed to write report: %s\033[0m" % e)
+    else:
+        print(json_output)
+
+
 def run_analyze_cmd(args: argparse.Namespace) -> None:
     from prompt_hardener.analyze.engine import run_analyze
     from prompt_hardener.analyze.markdown import render_markdown
@@ -490,6 +645,8 @@ def main() -> None:
         run_validate(args)
     elif args.command == "analyze":
         run_analyze_cmd(args)
+    elif args.command == "simulate":
+        run_simulate_cmd(args)
     elif args.command == "webui":
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()
