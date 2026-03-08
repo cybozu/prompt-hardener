@@ -5,6 +5,25 @@ from prompt_hardener.schema import PromptInput
 
 
 @dataclass
+class SuccessCriteria:
+    description: str
+    indicators: List[str]
+
+
+@dataclass
+class Scenario:
+    id: str
+    name: str
+    category: str
+    target_layer: str
+    applicability: List[str]
+    injection_method: str
+    payloads: List[str]
+    success_criteria: SuccessCriteria
+    description: Optional[str] = None
+
+
+@dataclass
 class ProviderConfig:
     api: str  # "openai" | "claude" | "bedrock"
     model: str

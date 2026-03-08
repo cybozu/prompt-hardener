@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cybozu/prompt-hardener/schemas/scenario.schema.json",
+  "title": "Prompt Hardener Attack Scenario",
+  "description": "Schema for attack scenario YAML files used by Prompt Hardener vNext",
+  "type": "object",
+  "required": ["id", "name", "category", "target_layer", "applicability", "injection_method", "payloads", "success_criteria"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Unique scenario identifier (snake_case)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable scenario name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of what this scenario tests"
+    },
+    "category": {
+      "type": "string",
+      "description": "Attack category identifier",
+      "enum": [
+        "persona_switch",
+        "prompt_leaking",
+        "output_attack",
+        "cot_escape",
+        "function_call_hijacking",
+        "ignoring_rag",
+        "privilege_escalation",
+        "tool_definition_leakage",
+        "mcp_server_poisoning",
+        "tool_schema_manipulation",
+        "multi_turn_state_attack",
+        "cross_agent_escalation",
+        "data_source_poisoning"
+      ]
+    },
+    "target_layer": {
+      "type": "string",
+      "enum": ["prompt", "tool", "architecture"],
+      "description": "Which remediation layer this scenario targets"
+    },
+    "applicability": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["chatbot", "rag", "agent", "mcp-agent"]
+      },
+      "minItems": 1,
+      "description": "Agent types this scenario applies to"
+    },
+    "injection_method": {
+      "type": "string",
+      "enum": ["user_message", "tool_result", "mcp_response", "rag_context"],
+      "description": "How the attack payload is injected"
+    },
+    "payloads": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Attack payload strings"
+    },
+    "success_criteria": {
+      "type": "object",
+      "required": ["description", "indicators"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "What constitutes a successful attack"
+        },
+        "indicators": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Observable indicators that the attack succeeded"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

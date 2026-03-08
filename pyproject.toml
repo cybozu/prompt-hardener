@@ -32,4 +32,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-prompt_hardener = ["schemas/*.json", "templates/*.yaml"]
+prompt_hardener = ["schemas/*.json", "templates/*.yaml", "catalog/*.yaml"]
