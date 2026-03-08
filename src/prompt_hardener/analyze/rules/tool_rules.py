@@ -1,11 +1,9 @@
 """Tool/Policy layer rules."""
 
 import re
-from typing import List
 
 from prompt_hardener.analyze.report import Finding
 from prompt_hardener.analyze.rules import rule
-from prompt_hardener.models import AgentSpec
 
 # Tool names that suggest destructive or sensitive operations
 _SENSITIVE_TOOL_PATTERNS = [
@@ -74,37 +72,37 @@ def check_sensitive_tool_approval(spec):
         # Check if any escalation rule references this tool
         tool_lower = tool.name.lower()
         has_escalation = any(
-            tool_lower in text or any(
-                word in text for word in tool_lower.split("_")
-            )
+            tool_lower in text or any(word in text for word in tool_lower.split("_"))
             for text in escalation_texts
         )
         if has_escalation:
             continue
 
-        findings.append(Finding(
-            id="",
-            rule_id="TOOL-001",
-            title="Sensitive tool '%s' without escalation rule" % tool.name,
-            severity="high",
-            layer="tool",
-            description=(
-                "Tool '%s' appears to perform a sensitive or destructive operation "
-                "but has no corresponding escalation rule requiring human approval." % tool.name
-            ),
-            evidence=[
-                "tools[%d].name = '%s' matches sensitive pattern" % (i, tool.name),
-                "No escalation_rule references this tool",
-            ],
-            spec_path="tools[%d]" % i,
-            recommendation=(
-                "Add an escalation rule for '%s' that requires human approval "
-                "before execution. Example: condition: 'User requests %s', "
-                "action: 'Require explicit confirmation before proceeding'." % (
-                    tool.name, tool.name.replace("_", " ")
-                )
-            ),
-        ))
+        findings.append(
+            Finding(
+                id="",
+                rule_id="TOOL-001",
+                title="Sensitive tool '%s' without escalation rule" % tool.name,
+                severity="high",
+                layer="tool",
+                description=(
+                    "Tool '%s' appears to perform a sensitive or destructive operation "
+                    "but has no corresponding escalation rule requiring human approval."
+                    % tool.name
+                ),
+                evidence=[
+                    "tools[%d].name = '%s' matches sensitive pattern" % (i, tool.name),
+                    "No escalation_rule references this tool",
+                ],
+                spec_path="tools[%d]" % i,
+                recommendation=(
+                    "Add an escalation rule for '%s' that requires human approval "
+                    "before execution. Example: condition: 'User requests %s', "
+                    "action: 'Require explicit confirmation before proceeding'."
+                    % (tool.name, tool.name.replace("_", " "))
+                ),
+            )
+        )
 
     return findings
 
@@ -134,25 +132,29 @@ def check_broad_tool_permissions(spec):
         return findings
 
     tool_names = [t.name for t in spec.tools]
-    findings.append(Finding(
-        id="",
-        rule_id="TOOL-002",
-        title="No allowed_actions defined for %d tools" % len(spec.tools),
-        severity="medium",
-        layer="tool",
-        description=(
-            "%d tools are defined but policies.allowed_actions is not set. "
-            "This implicitly allows all tools without an explicit allowlist." % len(spec.tools)
-        ),
-        evidence=[
-            "tools contains %d definitions: %s" % (len(tool_names), ", ".join(tool_names)),
-            "policies.allowed_actions is not defined",
-        ],
-        spec_path="policies.allowed_actions",
-        recommendation=(
-            "Define an explicit allowed_actions list in policies to restrict which "
-            "tools the agent can use. This follows the principle of least privilege."
-        ),
-    ))
+    findings.append(
+        Finding(
+            id="",
+            rule_id="TOOL-002",
+            title="No allowed_actions defined for %d tools" % len(spec.tools),
+            severity="medium",
+            layer="tool",
+            description=(
+                "%d tools are defined but policies.allowed_actions is not set. "
+                "This implicitly allows all tools without an explicit allowlist."
+                % len(spec.tools)
+            ),
+            evidence=[
+                "tools contains %d definitions: %s"
+                % (len(tool_names), ", ".join(tool_names)),
+                "policies.allowed_actions is not defined",
+            ],
+            spec_path="policies.allowed_actions",
+            recommendation=(
+                "Define an explicit allowed_actions list in policies to restrict which "
+                "tools the agent can use. This follows the principle of least privilege."
+            ),
+        )
+    )
 
     return findings

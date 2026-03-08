@@ -1,9 +1,7 @@
 """Rule registry for static analysis."""
 
-from dataclasses import dataclass, field
-from typing import List, Optional
-
-from prompt_hardener.analyze.report import Finding
+from dataclasses import dataclass
+from typing import List
 
 
 @dataclass
@@ -24,6 +22,7 @@ def rule(id, name, layer, severity, types, description=""):
 
     Each decorated function must have signature (AgentSpec) -> List[Finding].
     """
+
     def decorator(fn):
         fn.meta = RuleMeta(
             id=id,
@@ -35,6 +34,7 @@ def rule(id, name, layer, severity, types, description=""):
         )
         _RULE_REGISTRY.append(fn)
         return fn
+
     return decorator
 
 

@@ -3,7 +3,7 @@
 import difflib
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from prompt_hardener.agent_spec import load_yaml
 
@@ -12,11 +12,13 @@ from prompt_hardener.agent_spec import load_yaml
 # Data models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class FieldDiff:
     """A single field-level difference."""
-    path: str           # e.g., "system_prompt", "tools[0].name"
-    change_type: str    # "added" | "removed" | "modified"
+
+    path: str  # e.g., "system_prompt", "tools[0].name"
+    change_type: str  # "added" | "removed" | "modified"
     before: Optional[str] = None
     after: Optional[str] = None
 
@@ -24,6 +26,7 @@ class FieldDiff:
 @dataclass
 class SpecDiff:
     """Complete diff result between two specs."""
+
     before_path: str
     after_path: str
     before_type: str
@@ -61,27 +64,42 @@ def compute_diff(before, after):
         if b_val == a_val:
             continue
         if b_val is None:
-            diff.changes.append(FieldDiff(path=f, change_type="added", after=str(a_val)))
+            diff.changes.append(
+                FieldDiff(path=f, change_type="added", after=str(a_val))
+            )
         elif a_val is None:
-            diff.changes.append(FieldDiff(path=f, change_type="removed", before=str(b_val)))
+            diff.changes.append(
+                FieldDiff(path=f, change_type="removed", before=str(b_val))
+            )
         else:
-            diff.changes.append(FieldDiff(path=f, change_type="modified", before=str(b_val), after=str(a_val)))
+            diff.changes.append(
+                FieldDiff(
+                    path=f, change_type="modified", before=str(b_val), after=str(a_val)
+                )
+            )
 
     # System prompt: unified diff
     b_prompt = before.get("system_prompt", "")
     a_prompt = after.get("system_prompt", "")
     if b_prompt != a_prompt:
-        diff.changes.append(FieldDiff(
-            path="system_prompt", change_type="modified",
-            before=str(b_prompt), after=str(a_prompt),
-        ))
+        diff.changes.append(
+            FieldDiff(
+                path="system_prompt",
+                change_type="modified",
+                before=str(b_prompt),
+                after=str(a_prompt),
+            )
+        )
         b_lines = str(b_prompt).splitlines(keepends=True)
         a_lines = str(a_prompt).splitlines(keepends=True)
-        unified = list(difflib.unified_diff(
-            b_lines, a_lines,
-            fromfile="before/system_prompt",
-            tofile="after/system_prompt",
-        ))
+        unified = list(
+            difflib.unified_diff(
+                b_lines,
+                a_lines,
+                fromfile="before/system_prompt",
+                tofile="after/system_prompt",
+            )
+        )
         if unified:
             diff.system_prompt_diff = "".join(unified)
 
@@ -104,32 +122,45 @@ def _compare_named_list(diff, before, after, field_name):
     b_items = before.get(field_name) or []
     a_items = after.get(field_name) or []
 
-    b_by_name = {item.get("name", ""): item for item in b_items if isinstance(item, dict)}
-    a_by_name = {item.get("name", ""): item for item in a_items if isinstance(item, dict)}
+    b_by_name = {
+        item.get("name", ""): item for item in b_items if isinstance(item, dict)
+    }
+    a_by_name = {
+        item.get("name", ""): item for item in a_items if isinstance(item, dict)
+    }
 
     all_names = list(dict.fromkeys(list(b_by_name.keys()) + list(a_by_name.keys())))
 
     for name in all_names:
         path = "%s[%s]" % (field_name, name)
         if name not in b_by_name:
-            diff.changes.append(FieldDiff(
-                path=path, change_type="added",
-                after=json.dumps(a_by_name[name], ensure_ascii=False),
-            ))
+            diff.changes.append(
+                FieldDiff(
+                    path=path,
+                    change_type="added",
+                    after=json.dumps(a_by_name[name], ensure_ascii=False),
+                )
+            )
         elif name not in a_by_name:
-            diff.changes.append(FieldDiff(
-                path=path, change_type="removed",
-                before=json.dumps(b_by_name[name], ensure_ascii=False),
-            ))
+            diff.changes.append(
+                FieldDiff(
+                    path=path,
+                    change_type="removed",
+                    before=json.dumps(b_by_name[name], ensure_ascii=False),
+                )
+            )
         else:
             b_item = b_by_name[name]
             a_item = a_by_name[name]
             if b_item != a_item:
-                diff.changes.append(FieldDiff(
-                    path=path, change_type="modified",
-                    before=json.dumps(b_item, ensure_ascii=False),
-                    after=json.dumps(a_item, ensure_ascii=False),
-                ))
+                diff.changes.append(
+                    FieldDiff(
+                        path=path,
+                        change_type="modified",
+                        before=json.dumps(b_item, ensure_ascii=False),
+                        after=json.dumps(a_item, ensure_ascii=False),
+                    )
+                )
 
 
 def _compare_policies(diff, before, after):
@@ -141,28 +172,42 @@ def _compare_policies(diff, before, after):
     if b_pol == a_pol:
         return
 
-    for sub_field in ["allowed_actions", "denied_actions", "data_boundaries", "escalation_rules"]:
+    for sub_field in [
+        "allowed_actions",
+        "denied_actions",
+        "data_boundaries",
+        "escalation_rules",
+    ]:
         path = "policies.%s" % sub_field
         b_val = b_pol.get(sub_field)
         a_val = a_pol.get(sub_field)
         if b_val == a_val:
             continue
         if b_val is None:
-            diff.changes.append(FieldDiff(
-                path=path, change_type="added",
-                after=json.dumps(a_val, ensure_ascii=False),
-            ))
+            diff.changes.append(
+                FieldDiff(
+                    path=path,
+                    change_type="added",
+                    after=json.dumps(a_val, ensure_ascii=False),
+                )
+            )
         elif a_val is None:
-            diff.changes.append(FieldDiff(
-                path=path, change_type="removed",
-                before=json.dumps(b_val, ensure_ascii=False),
-            ))
+            diff.changes.append(
+                FieldDiff(
+                    path=path,
+                    change_type="removed",
+                    before=json.dumps(b_val, ensure_ascii=False),
+                )
+            )
         else:
-            diff.changes.append(FieldDiff(
-                path=path, change_type="modified",
-                before=json.dumps(b_val, ensure_ascii=False),
-                after=json.dumps(a_val, ensure_ascii=False),
-            ))
+            diff.changes.append(
+                FieldDiff(
+                    path=path,
+                    change_type="modified",
+                    before=json.dumps(b_val, ensure_ascii=False),
+                    after=json.dumps(a_val, ensure_ascii=False),
+                )
+            )
 
 
 def _compare_provider(diff, before, after):
@@ -181,11 +226,22 @@ def _compare_provider(diff, before, after):
         if b_val == a_val:
             continue
         if b_val is None:
-            diff.changes.append(FieldDiff(path=path, change_type="added", after=str(a_val)))
+            diff.changes.append(
+                FieldDiff(path=path, change_type="added", after=str(a_val))
+            )
         elif a_val is None:
-            diff.changes.append(FieldDiff(path=path, change_type="removed", before=str(b_val)))
+            diff.changes.append(
+                FieldDiff(path=path, change_type="removed", before=str(b_val))
+            )
         else:
-            diff.changes.append(FieldDiff(path=path, change_type="modified", before=str(b_val), after=str(a_val)))
+            diff.changes.append(
+                FieldDiff(
+                    path=path,
+                    change_type="modified",
+                    before=str(b_val),
+                    after=str(a_val),
+                )
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +266,10 @@ def render_text_diff(diff):
     lines.append("")
 
     if diff.before_type != diff.after_type:
-        lines.append("%sType changed: %s -> %s%s" % (_YELLOW, diff.before_type, diff.after_type, _RESET))
+        lines.append(
+            "%sType changed: %s -> %s%s"
+            % (_YELLOW, diff.before_type, diff.after_type, _RESET)
+        )
         lines.append("")
 
     if not diff.changes:
@@ -256,6 +315,7 @@ def render_text_diff(diff):
 # JSON renderer
 # ---------------------------------------------------------------------------
 
+
 def render_json_diff(diff):
     # type: (SpecDiff) -> str
     """Render diff as JSON."""
@@ -286,6 +346,7 @@ def render_json_diff(diff):
 # ---------------------------------------------------------------------------
 # Markdown renderer
 # ---------------------------------------------------------------------------
+
 
 def render_markdown_diff(diff):
     # type: (SpecDiff) -> str
@@ -327,10 +388,13 @@ def render_markdown_diff(diff):
             continue  # already shown above
         before_str = _md_truncate(change.before or "-")
         after_str = _md_truncate(change.after or "-")
-        change_icon = {"added": "+", "removed": "-", "modified": "~"}.get(change.change_type, "?")
-        lines.append("| %s %s | `%s` | %s | %s |" % (
-            change_icon, change.change_type, change.path, before_str, after_str
-        ))
+        change_icon = {"added": "+", "removed": "-", "modified": "~"}.get(
+            change.change_type, "?"
+        )
+        lines.append(
+            "| %s %s | `%s` | %s | %s |"
+            % (change_icon, change.change_type, change.path, before_str, after_str)
+        )
     lines.append("")
 
     return "\n".join(lines)
@@ -359,6 +423,7 @@ _RENDERERS = {
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def run_diff(before_path, after_path, output_format="text"):
     # type: (str, str, str) -> str

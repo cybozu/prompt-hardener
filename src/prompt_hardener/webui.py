@@ -278,8 +278,9 @@ def download_yaml(yaml_text):
     return tmp.name
 
 
-def run_analyze_webui(spec_file, layers, eval_api_mode, eval_model,
-                      techniques, aws_region, aws_profile):
+def run_analyze_webui(
+    spec_file, layers, eval_api_mode, eval_model, techniques, aws_region, aws_profile
+):
     """Run static analysis (+ optional LLM eval) on an agent spec."""
     if spec_file is None:
         return "❌ Error: No spec file uploaded", "", None, None
@@ -323,10 +324,18 @@ def run_analyze_webui(spec_file, layers, eval_api_mode, eval_model,
         return "❌ Error: %s" % str(e), "", None, None
 
 
-def run_simulate_webui(spec_file, attack_api_mode, attack_model,
-                       judge_api_mode, judge_model,
-                       categories, layers, separator,
-                       aws_region, aws_profile):
+def run_simulate_webui(
+    spec_file,
+    attack_api_mode,
+    attack_model,
+    judge_api_mode,
+    judge_model,
+    categories,
+    layers,
+    separator,
+    aws_region,
+    aws_profile,
+):
     """Run attack simulation on an agent spec."""
     if spec_file is None:
         return "❌ Error: No spec file uploaded", "", None, None
@@ -378,9 +387,17 @@ def run_simulate_webui(spec_file, attack_api_mode, attack_model,
         return "❌ Error: %s" % str(e), "", None, None
 
 
-def run_remediate_webui(spec_file, layers, eval_api_mode, eval_model,
-                        max_iterations, threshold,
-                        techniques, aws_region, aws_profile):
+def run_remediate_webui(
+    spec_file,
+    layers,
+    eval_api_mode,
+    eval_model,
+    max_iterations,
+    threshold,
+    techniques,
+    aws_region,
+    aws_profile,
+):
     """Run remediation on an agent spec."""
     if spec_file is None:
         return "❌ Error: No spec file uploaded", "", None, None, None
@@ -435,7 +452,13 @@ def run_remediate_webui(spec_file, layers, eval_api_mode, eval_model,
         if not Path(improved_spec_path).stat().st_size:
             improved_spec_path = None
 
-        return "✅ Remediation Complete", md_str, json_tmp.name, html_tmp.name, improved_spec_path
+        return (
+            "✅ Remediation Complete",
+            md_str,
+            json_tmp.name,
+            html_tmp.name,
+            improved_spec_path,
+        )
 
     except Exception as e:
         return "❌ Error: %s" % str(e), "", None, None, None
@@ -735,11 +758,17 @@ with gr.Blocks() as demo:
                         value="gpt-4o",
                     )
                     rem_iterations = gr.Slider(
-                        1, 10, value=3, step=1,
+                        1,
+                        10,
+                        value=3,
+                        step=1,
                         label="Max Iterations",
                     )
                     rem_threshold = gr.Slider(
-                        0, 10, value=8.5, step=0.1,
+                        0,
+                        10,
+                        value=8.5,
+                        step=0.1,
                         label="Satisfaction Threshold",
                     )
                     rem_techniques = gr.CheckboxGroup(
@@ -888,7 +917,9 @@ with gr.Blocks() as demo:
                         value="openai",
                         label="Evaluation API Mode",
                     )
-                    legacy_eval_model = gr.Textbox(label="Evaluation Model", value="gpt-4o")
+                    legacy_eval_model = gr.Textbox(
+                        label="Evaluation Model", value="gpt-4o"
+                    )
                     eval_aws_region = gr.Textbox(
                         label="AWS Region (optional, for bedrock api mode)",
                         value="us-east-1",
@@ -979,7 +1010,9 @@ with gr.Blocks() as demo:
                         value="openai",
                         label="Evaluation API Mode",
                     )
-                    improve_eval_model = gr.Textbox(label="Evaluation Model", value="gpt-4o")
+                    improve_eval_model = gr.Textbox(
+                        label="Evaluation Model", value="gpt-4o"
+                    )
                     attack_api_mode = gr.Radio(
                         ["openai", "claude", "bedrock"],
                         value="openai",

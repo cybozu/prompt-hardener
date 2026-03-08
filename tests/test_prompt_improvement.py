@@ -2,7 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
 
 from prompt_hardener.prompt_improvement import ImprovementResult, run_improvement_loop
 from prompt_hardener.schema import PromptInput
@@ -11,6 +10,7 @@ from prompt_hardener.schema import PromptInput
 # =========================================================================
 # Helper
 # =========================================================================
+
 
 def _make_prompt(content="Test prompt"):
     return PromptInput(
@@ -182,9 +182,9 @@ class TestAttackApiMode:
 
         # improve_prompt should receive attack_api_mode="claude"
         call_args = mock_improve.call_args
-        assert call_args[0][0] == "openai"   # eval_api_mode
+        assert call_args[0][0] == "openai"  # eval_api_mode
         assert call_args[0][1] == "gpt-4o-mini"  # eval_model
-        assert call_args[0][2] == "claude"    # attack_api_mode
+        assert call_args[0][2] == "claude"  # attack_api_mode
 
     @patch("prompt_hardener.prompt_improvement.improve_prompt")
     @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
@@ -230,9 +230,15 @@ class TestParameterForwarding:
         )
 
         eval_kwargs = mock_eval.call_args
-        assert eval_kwargs[1]["apply_techniques"] == ["spotlighting", "role_consistency"]
+        assert eval_kwargs[1]["apply_techniques"] == [
+            "spotlighting",
+            "role_consistency",
+        ]
         improve_kwargs = mock_improve.call_args
-        assert improve_kwargs[1]["apply_techniques"] == ["spotlighting", "role_consistency"]
+        assert improve_kwargs[1]["apply_techniques"] == [
+            "spotlighting",
+            "role_consistency",
+        ]
 
     @patch("prompt_hardener.prompt_improvement.improve_prompt")
     @patch("prompt_hardener.prompt_improvement.evaluate_prompt")

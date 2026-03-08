@@ -2,12 +2,11 @@
 
 import hashlib
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from prompt_hardener.agent_spec import load_and_validate, write_updated_spec
 from prompt_hardener.analyze.engine import run_analyze
 from prompt_hardener.analyze.scoring import TYPE_LAYERS
-from prompt_hardener.models import AgentSpec
 from prompt_hardener.remediate.arch_layer import remediate_architecture
 from prompt_hardener.remediate.prompt_layer import remediate_prompt
 from prompt_hardener.remediate.report import RemediationReport

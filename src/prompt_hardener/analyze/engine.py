@@ -2,7 +2,6 @@
 
 import hashlib
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Union
 
 from prompt_hardener.agent_spec import load_and_validate
 from prompt_hardener.analyze.report import (
@@ -10,7 +9,6 @@ from prompt_hardener.analyze.report import (
     AnalyzeReport,
     AnalyzeSummary,
     AttackPath,
-    Finding,
     RecommendedFix,
 )
 from prompt_hardener.analyze.rules import _ensure_rules_loaded, get_rules
@@ -46,62 +44,68 @@ def _derive_attack_paths(findings, spec):
 
     if untrusted_data_findings:
         counter += 1
-        paths.append(AttackPath(
-            id="path-%03d" % counter,
-            name="Indirect prompt injection via untrusted data source",
-            severity="high",
-            description=(
-                "An attacker can inject malicious instructions through an untrusted "
-                "data source. Without instruction/data boundaries, injected content "
-                "may be interpreted as system instructions."
-            ),
-            steps=[
-                "Attacker crafts content containing injected instructions",
-                "Content is ingested through an untrusted data source",
-                "RAG retrieval or data processing includes the malicious content",
-                "Without boundary markers, injected content is treated as instructions",
-                "Agent follows attacker-controlled instructions",
-            ],
-            related_findings=[f.id for f in untrusted_data_findings],
-        ))
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Indirect prompt injection via untrusted data source",
+                severity="high",
+                description=(
+                    "An attacker can inject malicious instructions through an untrusted "
+                    "data source. Without instruction/data boundaries, injected content "
+                    "may be interpreted as system instructions."
+                ),
+                steps=[
+                    "Attacker crafts content containing injected instructions",
+                    "Content is ingested through an untrusted data source",
+                    "RAG retrieval or data processing includes the malicious content",
+                    "Without boundary markers, injected content is treated as instructions",
+                    "Agent follows attacker-controlled instructions",
+                ],
+                related_findings=[f.id for f in untrusted_data_findings],
+            )
+        )
 
     if tool_findings:
         counter += 1
-        paths.append(AttackPath(
-            id="path-%03d" % counter,
-            name="Unauthorized tool execution via prompt injection",
-            severity="high",
-            description=(
-                "Without proper escalation rules or human-in-the-loop controls, "
-                "a prompt injection attack could trigger sensitive tool calls "
-                "without user approval."
-            ),
-            steps=[
-                "Attacker injects instructions via user message or tool result",
-                "Injected instructions request execution of sensitive tools",
-                "Agent executes the tool without requiring human approval",
-                "Sensitive operation is performed without authorization",
-            ],
-            related_findings=[f.id for f in tool_findings],
-        ))
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Unauthorized tool execution via prompt injection",
+                severity="high",
+                description=(
+                    "Without proper escalation rules or human-in-the-loop controls, "
+                    "a prompt injection attack could trigger sensitive tool calls "
+                    "without user approval."
+                ),
+                steps=[
+                    "Attacker injects instructions via user message or tool result",
+                    "Injected instructions request execution of sensitive tools",
+                    "Agent executes the tool without requiring human approval",
+                    "Sensitive operation is performed without authorization",
+                ],
+                related_findings=[f.id for f in tool_findings],
+            )
+        )
 
     if mcp_findings:
         counter += 1
-        paths.append(AttackPath(
-            id="path-%03d" % counter,
-            name="MCP server compromise leading to broad tool access",
-            severity="high",
-            description=(
-                "An untrusted MCP server without tool restrictions could be "
-                "compromised and used to invoke any available tool."
-            ),
-            steps=[
-                "Untrusted MCP server is compromised or returns malicious responses",
-                "Without allowed_tools restrictions, server can invoke any tool",
-                "Attacker gains access to sensitive operations through the MCP server",
-            ],
-            related_findings=[f.id for f in mcp_findings],
-        ))
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="MCP server compromise leading to broad tool access",
+                severity="high",
+                description=(
+                    "An untrusted MCP server without tool restrictions could be "
+                    "compromised and used to invoke any available tool."
+                ),
+                steps=[
+                    "Untrusted MCP server is compromised or returns malicious responses",
+                    "Without allowed_tools restrictions, server can invoke any tool",
+                    "Attacker gains access to sensitive operations through the MCP server",
+                ],
+                related_findings=[f.id for f in mcp_findings],
+            )
+        )
 
     return paths
 
@@ -113,15 +117,19 @@ def _derive_fixes(findings):
     for i, f in enumerate(findings):
         # Map severity to effort (heuristic: prompt fixes are low effort)
         effort = "low" if f.layer == "prompt" else "medium"
-        fixes.append(RecommendedFix(
-            id="fix-%03d" % (i + 1),
-            finding_id=f.id,
-            layer=f.layer,
-            title=f.recommendation.split(".")[0] if f.recommendation else "Fix %s" % f.rule_id,
-            description=f.recommendation,
-            priority=f.severity,
-            effort=effort,
-        ))
+        fixes.append(
+            RecommendedFix(
+                id="fix-%03d" % (i + 1),
+                finding_id=f.id,
+                layer=f.layer,
+                title=f.recommendation.split(".")[0]
+                if f.recommendation
+                else "Fix %s" % f.rule_id,
+                description=f.recommendation,
+                priority=f.severity,
+                effort=effort,
+            )
+        )
     return fixes
 
 
@@ -194,9 +202,7 @@ def run_analyze(
     _assign_finding_ids(all_findings)
 
     # Compute scores
-    scores_by_layer, overall_score, risk_level = compute_scores(
-        all_findings, spec.type
-    )
+    scores_by_layer, overall_score, risk_level = compute_scores(all_findings, spec.type)
 
     # Derive attack paths and fixes
     attack_paths = _derive_attack_paths(all_findings, spec)

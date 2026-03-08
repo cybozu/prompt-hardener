@@ -2,7 +2,6 @@
 
 import html
 import json
-from typing import Any, Dict
 
 # ---------------------------------------------------------------------------
 # Shared HTML styles (reused from gen_report.py pattern)
@@ -85,12 +84,16 @@ def _severity_class(severity):
 
 def _risk_badge_html(risk_level):
     # type: (str) -> str
-    return '<span class="risk-badge risk-%s">%s</span>' % (risk_level, risk_level.upper())
+    return '<span class="risk-badge risk-%s">%s</span>' % (
+        risk_level,
+        risk_level.upper(),
+    )
 
 
 # ---------------------------------------------------------------------------
 # Type detection
 # ---------------------------------------------------------------------------
+
 
 def detect_result_type(data):
     # type: (Dict[str, Any]) -> str
@@ -114,6 +117,7 @@ def detect_result_type(data):
 # Analyze renderers
 # ---------------------------------------------------------------------------
 
+
 def render_analyze_json(data):
     # type: (Dict[str, Any]) -> str
     return json.dumps(data, indent=2, ensure_ascii=False)
@@ -128,11 +132,18 @@ def render_analyze_markdown(data):
 
     # Metadata
     m = data.get("metadata", {})
-    lines.append("**Agent:** %s (type: %s)" % (m.get("agent_name", ""), m.get("agent_type", "")))
+    lines.append(
+        "**Agent:** %s (type: %s)" % (m.get("agent_name", ""), m.get("agent_type", ""))
+    )
     lines.append("**Generated:** %s" % m.get("timestamp", ""))
-    lines.append("**Tool Version:** %s | **Rules Version:** %s | **Rules Evaluated:** %s" % (
-        m.get("tool_version", ""), m.get("rules_version", ""), m.get("rules_evaluated", "")
-    ))
+    lines.append(
+        "**Tool Version:** %s | **Rules Version:** %s | **Rules Evaluated:** %s"
+        % (
+            m.get("tool_version", ""),
+            m.get("rules_version", ""),
+            m.get("rules_evaluated", ""),
+        )
+    )
     lines.append("")
 
     # Summary
@@ -214,13 +225,21 @@ def render_analyze_markdown(data):
         lines.append("")
         lines.append("| Priority | Layer | Title | Effort |")
         lines.append("|----------|-------|-------|--------|")
-        for rf in sorted(fixes, key=lambda x: (
-            {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(x.get("priority", ""), 4)
-        )):
-            lines.append("| %s | %s | %s | %s |" % (
-                rf.get("priority", ""), rf.get("layer", ""),
-                rf.get("title", ""), rf.get("effort", "")
-            ))
+        for rf in sorted(
+            fixes,
+            key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
+                x.get("priority", ""), 4
+            ),
+        ):
+            lines.append(
+                "| %s | %s | %s | %s |"
+                % (
+                    rf.get("priority", ""),
+                    rf.get("layer", ""),
+                    rf.get("title", ""),
+                    rf.get("effort", ""),
+                )
+            )
         lines.append("")
 
     return "\n".join(lines)
@@ -234,15 +253,15 @@ def render_analyze_html(data):
 
     # Metadata table
     meta_html = (
-        '<table>'
-        '<tr><th>Field</th><th>Value</th></tr>'
-        '<tr><td>Agent Name</td><td>%s</td></tr>'
-        '<tr><td>Agent Type</td><td>%s</td></tr>'
-        '<tr><td>Timestamp</td><td>%s</td></tr>'
-        '<tr><td>Tool Version</td><td>%s</td></tr>'
-        '<tr><td>Rules Version</td><td>%s</td></tr>'
-        '<tr><td>Rules Evaluated</td><td>%s</td></tr>'
-        '</table>'
+        "<table>"
+        "<tr><th>Field</th><th>Value</th></tr>"
+        "<tr><td>Agent Name</td><td>%s</td></tr>"
+        "<tr><td>Agent Type</td><td>%s</td></tr>"
+        "<tr><td>Timestamp</td><td>%s</td></tr>"
+        "<tr><td>Tool Version</td><td>%s</td></tr>"
+        "<tr><td>Rules Version</td><td>%s</td></tr>"
+        "<tr><td>Rules Evaluated</td><td>%s</td></tr>"
+        "</table>"
     ) % (
         _esc(m.get("agent_name", "")),
         _esc(m.get("agent_type", "")),
@@ -254,13 +273,16 @@ def render_analyze_html(data):
 
     # Summary
     fc = s.get("finding_counts", {})
-    summary_html = (
-        '<p>Risk Level: %s</p>'
-        '<p>Overall Score: %.1f / 10.0</p>'
-    ) % (_risk_badge_html(risk_level), s.get("overall_score", 0))
+    summary_html = ("<p>Risk Level: %s</p><p>Overall Score: %.1f / 10.0</p>") % (
+        _risk_badge_html(risk_level),
+        s.get("overall_score", 0),
+    )
 
     for layer, score in sorted(s.get("scores_by_layer", {}).items()):
-        summary_html += "<p>%s Layer: %.1f / 10.0</p>" % (_esc(layer.capitalize()), score)
+        summary_html += "<p>%s Layer: %.1f / 10.0</p>" % (
+            _esc(layer.capitalize()),
+            score,
+        )
 
     summary_html += "<p>Findings: %d total" % fc.get("total", 0)
     parts = []
@@ -283,12 +305,12 @@ def render_analyze_html(data):
 
         findings_html += (
             '<div class="section">'
-            '<h3>%s: %s</h3>'
+            "<h3>%s: %s</h3>"
             '<p><span class="%s">Severity: %s</span> | Layer: %s | Spec Path: <code>%s</code></p>'
-            '<p>%s</p>'
-            '%s'
-            '%s'
-            '</div>'
+            "<p>%s</p>"
+            "%s"
+            "%s"
+            "</div>"
         ) % (
             _esc(f.get("rule_id", "")),
             _esc(f.get("title", "")),
@@ -297,8 +319,13 @@ def render_analyze_html(data):
             _esc(f.get("layer", "")),
             _esc(f.get("spec_path", "")),
             _esc(f.get("description", "")),
-            "<p><strong>Evidence:</strong></p>%s" % evidence_html if evidence_html else "",
-            "<p><strong>Recommendation:</strong> %s</p>" % _esc(f.get("recommendation", "")) if f.get("recommendation") else "",
+            "<p><strong>Evidence:</strong></p>%s" % evidence_html
+            if evidence_html
+            else "",
+            "<p><strong>Recommendation:</strong> %s</p>"
+            % _esc(f.get("recommendation", ""))
+            if f.get("recommendation")
+            else "",
         )
 
     # Attack Paths
@@ -312,11 +339,11 @@ def render_analyze_html(data):
 
         attack_paths_html += (
             '<div class="section">'
-            '<h3>%s</h3>'
+            "<h3>%s</h3>"
             '<p><span class="%s">Severity: %s</span></p>'
-            '<p>%s</p>'
-            '%s'
-            '</div>'
+            "<p>%s</p>"
+            "%s"
+            "</div>"
         ) % (
             _esc(ap.get("name", "")),
             _severity_class(ap.get("severity", "")),
@@ -327,14 +354,17 @@ def render_analyze_html(data):
 
     # Recommended Fixes
     fixes_rows = ""
-    for rf in sorted(data.get("recommended_fixes", []), key=lambda x: (
-        {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(x.get("priority", ""), 4)
-    )):
+    for rf in sorted(
+        data.get("recommended_fixes", []),
+        key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
+            x.get("priority", ""), 4
+        ),
+    ):
         fixes_rows += (
-            '<tr>'
+            "<tr>"
             '<td><span class="%s">%s</span></td>'
-            '<td>%s</td><td>%s</td><td>%s</td>'
-            '</tr>'
+            "<td>%s</td><td>%s</td><td>%s</td>"
+            "</tr>"
         ) % (
             _severity_class(rf.get("priority", "")),
             _esc(rf.get("priority", "")),
@@ -345,25 +375,34 @@ def render_analyze_html(data):
     fixes_html = ""
     if fixes_rows:
         fixes_html = (
-            '<table>'
-            '<tr><th>Priority</th><th>Layer</th><th>Title</th><th>Effort</th></tr>'
-            '%s</table>'
+            "<table>"
+            "<tr><th>Priority</th><th>Layer</th><th>Title</th><th>Effort</th></tr>"
+            "%s</table>"
         ) % fixes_rows
 
-    return _wrap_html("Prompt Hardener Analysis Report", (
-        '<div class="section"><h2>Metadata</h2>%s</div>'
-        '<div class="section"><h2>Summary</h2>%s</div>'
-        '<div class="section"><h2>Findings</h2>%s</div>'
-        '<div class="section"><h2>Attack Paths</h2>%s</div>'
-        '<div class="section"><h2>Recommended Fixes</h2>%s</div>'
-    ) % (meta_html, summary_html, findings_html or "<p>No findings.</p>",
-         attack_paths_html or "<p>No attack paths.</p>",
-         fixes_html or "<p>No recommended fixes.</p>"))
+    return _wrap_html(
+        "Prompt Hardener Analysis Report",
+        (
+            '<div class="section"><h2>Metadata</h2>%s</div>'
+            '<div class="section"><h2>Summary</h2>%s</div>'
+            '<div class="section"><h2>Findings</h2>%s</div>'
+            '<div class="section"><h2>Attack Paths</h2>%s</div>'
+            '<div class="section"><h2>Recommended Fixes</h2>%s</div>'
+        )
+        % (
+            meta_html,
+            summary_html,
+            findings_html or "<p>No findings.</p>",
+            attack_paths_html or "<p>No attack paths.</p>",
+            fixes_html or "<p>No recommended fixes.</p>",
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
 # Simulate renderers
 # ---------------------------------------------------------------------------
+
 
 def render_simulate_json(data):
     # type: (Dict[str, Any]) -> str
@@ -383,10 +422,15 @@ def render_simulate_markdown(data):
     models = m.get("models", {})
     attack_m = models.get("attack", {})
     judge_m = models.get("judge", {})
-    lines.append("**Attack Model:** %s/%s | **Judge Model:** %s/%s" % (
-        attack_m.get("api", ""), attack_m.get("model", ""),
-        judge_m.get("api", ""), judge_m.get("model", ""),
-    ))
+    lines.append(
+        "**Attack Model:** %s/%s | **Judge Model:** %s/%s"
+        % (
+            attack_m.get("api", ""),
+            attack_m.get("model", ""),
+            judge_m.get("api", ""),
+            judge_m.get("model", ""),
+        )
+    )
     lines.append("")
 
     # Summary
@@ -424,13 +468,16 @@ def render_simulate_markdown(data):
             payload_short = sc.get("payload", "")[:60]
             if len(sc.get("payload", "")) > 60:
                 payload_short += "..."
-            lines.append("| %s | %s | %s | %s | %s |" % (
-                sc.get("id", ""),
-                sc.get("category", ""),
-                sc.get("target_layer", ""),
-                sc.get("outcome", ""),
-                payload_short,
-            ))
+            lines.append(
+                "| %s | %s | %s | %s | %s |"
+                % (
+                    sc.get("id", ""),
+                    sc.get("category", ""),
+                    sc.get("target_layer", ""),
+                    sc.get("outcome", ""),
+                    payload_short,
+                )
+            )
         lines.append("")
 
         # Details for succeeded scenarios
@@ -463,25 +510,32 @@ def render_simulate_html(data):
     judge_m = models.get("judge", {})
 
     meta_html = (
-        '<table>'
-        '<tr><th>Field</th><th>Value</th></tr>'
-        '<tr><td>Agent Type</td><td>%s</td></tr>'
-        '<tr><td>Timestamp</td><td>%s</td></tr>'
-        '<tr><td>Attack Model</td><td>%s / %s</td></tr>'
-        '<tr><td>Judge Model</td><td>%s / %s</td></tr>'
-        '</table>'
+        "<table>"
+        "<tr><th>Field</th><th>Value</th></tr>"
+        "<tr><td>Agent Type</td><td>%s</td></tr>"
+        "<tr><td>Timestamp</td><td>%s</td></tr>"
+        "<tr><td>Attack Model</td><td>%s / %s</td></tr>"
+        "<tr><td>Judge Model</td><td>%s / %s</td></tr>"
+        "</table>"
     ) % (
         _esc(m.get("agent_type", "")),
         _esc(m.get("timestamp", "")),
-        _esc(attack_m.get("api", "")), _esc(attack_m.get("model", "")),
-        _esc(judge_m.get("api", "")), _esc(judge_m.get("model", "")),
+        _esc(attack_m.get("api", "")),
+        _esc(attack_m.get("model", "")),
+        _esc(judge_m.get("api", "")),
+        _esc(judge_m.get("model", "")),
     )
 
     summary_html = (
-        '<p>Risk Level: %s</p>'
-        '<p>Total: %d | Blocked: %d | Succeeded: %d | Block Rate: %.1f%%</p>'
-    ) % (_risk_badge_html(risk_level), s.get("total", 0), s.get("blocked", 0),
-         s.get("succeeded", 0), s.get("block_rate", 0) * 100)
+        "<p>Risk Level: %s</p>"
+        "<p>Total: %d | Blocked: %d | Succeeded: %d | Block Rate: %.1f%%</p>"
+    ) % (
+        _risk_badge_html(risk_level),
+        s.get("total", 0),
+        s.get("blocked", 0),
+        s.get("succeeded", 0),
+        s.get("block_rate", 0) * 100,
+    )
 
     # Scenarios table
     rows = ""
@@ -489,11 +543,11 @@ def render_simulate_html(data):
         outcome = sc.get("outcome", "")
         outcome_style = "color: #388e3c;" if outcome == "BLOCKED" else "color: #d32f2f;"
         rows += (
-            '<tr>'
-            '<td>%s</td><td>%s</td><td>%s</td>'
+            "<tr>"
+            "<td>%s</td><td>%s</td><td>%s</td>"
             '<td style="%s"><strong>%s</strong></td>'
             '<td><pre style="margin:0;">%s</pre></td>'
-            '</tr>'
+            "</tr>"
         ) % (
             _esc(sc.get("id", "")),
             _esc(sc.get("category", "")),
@@ -506,21 +560,26 @@ def render_simulate_html(data):
     scenarios_html = ""
     if rows:
         scenarios_html = (
-            '<table>'
-            '<tr><th>ID</th><th>Category</th><th>Layer</th><th>Outcome</th><th>Payload</th></tr>'
-            '%s</table>'
+            "<table>"
+            "<tr><th>ID</th><th>Category</th><th>Layer</th><th>Outcome</th><th>Payload</th></tr>"
+            "%s</table>"
         ) % rows
 
-    return _wrap_html("Prompt Hardener Simulation Report", (
-        '<div class="section"><h2>Metadata</h2>%s</div>'
-        '<div class="section"><h2>Summary</h2>%s</div>'
-        '<div class="section"><h2>Scenario Results</h2>%s</div>'
-    ) % (meta_html, summary_html, scenarios_html or "<p>No scenarios.</p>"))
+    return _wrap_html(
+        "Prompt Hardener Simulation Report",
+        (
+            '<div class="section"><h2>Metadata</h2>%s</div>'
+            '<div class="section"><h2>Summary</h2>%s</div>'
+            '<div class="section"><h2>Scenario Results</h2>%s</div>'
+        )
+        % (meta_html, summary_html, scenarios_html or "<p>No scenarios.</p>"),
+    )
 
 
 # ---------------------------------------------------------------------------
 # Remediate renderers
 # ---------------------------------------------------------------------------
+
 
 def render_remediate_json(data):
     # type: (Dict[str, Any]) -> str
@@ -578,7 +637,9 @@ def render_remediate_markdown(data):
             lines.append("## Tool Recommendations")
             lines.append("")
             for r in recs:
-                lines.append("### [%s] %s" % (r.get("severity", "").upper(), r.get("title", "")))
+                lines.append(
+                    "### [%s] %s" % (r.get("severity", "").upper(), r.get("title", ""))
+                )
                 lines.append("")
                 lines.append(r.get("description", ""))
                 lines.append("")
@@ -594,7 +655,9 @@ def render_remediate_markdown(data):
             lines.append("## Architecture Recommendations")
             lines.append("")
             for r in recs:
-                lines.append("### [%s] %s" % (r.get("severity", "").upper(), r.get("title", "")))
+                lines.append(
+                    "### [%s] %s" % (r.get("severity", "").upper(), r.get("title", ""))
+                )
                 lines.append("")
                 lines.append(r.get("description", ""))
                 lines.append("")
@@ -613,19 +676,19 @@ def render_remediate_html(data):
     rem = data.get("remediation", {})
 
     meta_html = (
-        '<table>'
-        '<tr><th>Field</th><th>Value</th></tr>'
-        '<tr><td>Agent Type</td><td>%s</td></tr>'
-        '<tr><td>Timestamp</td><td>%s</td></tr>'
-        '<tr><td>Layers</td><td>%s</td></tr>'
-        '</table>'
+        "<table>"
+        "<tr><th>Field</th><th>Value</th></tr>"
+        "<tr><td>Agent Type</td><td>%s</td></tr>"
+        "<tr><td>Timestamp</td><td>%s</td></tr>"
+        "<tr><td>Layers</td><td>%s</td></tr>"
+        "</table>"
     ) % (
         _esc(m.get("agent_type", "")),
         _esc(m.get("timestamp", "")),
         _esc(", ".join(m.get("layers", []))),
     )
 
-    summary_html = '<p>Risk Level: %s</p>' % _risk_badge_html(risk_level)
+    summary_html = "<p>Risk Level: %s</p>" % _risk_badge_html(risk_level)
     for kf in top.get("key_findings", []):
         summary_html += "<p>%s</p>" % _esc(kf)
 
@@ -640,12 +703,16 @@ def render_remediate_html(data):
             techniques_html = "<ul>%s</ul>" % techniques_html
         prompt_html = (
             '<div class="section">'
-            '<h2>Prompt Remediation</h2>'
-            '<p><strong>Changes:</strong> %s</p>'
-            '%s'
-            '</div>'
-        ) % (_esc(prompt_rem.get("changes", "")),
-             "<p><strong>Techniques Applied:</strong></p>%s" % techniques_html if techniques_html else "")
+            "<h2>Prompt Remediation</h2>"
+            "<p><strong>Changes:</strong> %s</p>"
+            "%s"
+            "</div>"
+        ) % (
+            _esc(prompt_rem.get("changes", "")),
+            "<p><strong>Techniques Applied:</strong></p>%s" % techniques_html
+            if techniques_html
+            else "",
+        )
 
     # Recommendations helper
     def _render_rec_section(title, section_data):
@@ -657,10 +724,10 @@ def render_remediate_html(data):
         rows = ""
         for r in recs:
             rows += (
-                '<tr>'
+                "<tr>"
                 '<td><span class="%s">%s</span></td>'
-                '<td>%s</td><td>%s</td><td>%s</td>'
-                '</tr>'
+                "<td>%s</td><td>%s</td><td>%s</td>"
+                "</tr>"
             ) % (
                 _severity_class(r.get("severity", "")),
                 _esc(r.get("severity", "").upper()),
@@ -670,31 +737,38 @@ def render_remediate_html(data):
             )
         return (
             '<div class="section">'
-            '<h2>%s</h2>'
-            '<table>'
-            '<tr><th>Severity</th><th>Title</th><th>Description</th><th>Suggested Change</th></tr>'
-            '%s</table></div>'
+            "<h2>%s</h2>"
+            "<table>"
+            "<tr><th>Severity</th><th>Title</th><th>Description</th><th>Suggested Change</th></tr>"
+            "%s</table></div>"
         ) % (_esc(title), rows)
 
     tool_html = _render_rec_section("Tool Recommendations", rem.get("tool"))
-    arch_html = _render_rec_section("Architecture Recommendations", rem.get("architecture"))
+    arch_html = _render_rec_section(
+        "Architecture Recommendations", rem.get("architecture")
+    )
 
-    return _wrap_html("Prompt Hardener Remediation Report", (
-        '<div class="section"><h2>Metadata</h2>%s</div>'
-        '<div class="section"><h2>Summary</h2>%s</div>'
-        '%s%s%s'
-    ) % (meta_html, summary_html, prompt_html, tool_html, arch_html))
+    return _wrap_html(
+        "Prompt Hardener Remediation Report",
+        (
+            '<div class="section"><h2>Metadata</h2>%s</div>'
+            '<div class="section"><h2>Summary</h2>%s</div>'
+            "%s%s%s"
+        )
+        % (meta_html, summary_html, prompt_html, tool_html, arch_html),
+    )
 
 
 # ---------------------------------------------------------------------------
 # HTML wrapper
 # ---------------------------------------------------------------------------
 
+
 def _wrap_html(title, body_content):
     # type: (str, str) -> str
     return (
-        '<html>\n<head>\n<style>\n%s\n</style>\n</head>\n<body>\n'
-        '<h1>%s</h1>\n%s\n</body>\n</html>'
+        "<html>\n<head>\n<style>\n%s\n</style>\n</head>\n<body>\n"
+        "<h1>%s</h1>\n%s\n</body>\n</html>"
     ) % (_HTML_STYLE, _esc(title), body_content)
 
 
@@ -719,6 +793,7 @@ _RENDERERS = {
 # Main entry point
 # ---------------------------------------------------------------------------
 
+
 def generate_report(results_path, output_format="markdown", output_path=None):
     # type: (str, str, str | None) -> str
     """Load a JSON result file, detect type, render in requested format, and optionally write to file.
@@ -734,7 +809,8 @@ def generate_report(results_path, output_format="markdown", output_path=None):
     renderer = _RENDERERS.get(key)
     if renderer is None:
         raise ValueError(
-            "Unsupported format '%s' for result type '%s'" % (output_format, result_type)
+            "Unsupported format '%s' for result type '%s'"
+            % (output_format, result_type)
         )
 
     output = renderer(data)

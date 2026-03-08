@@ -7,12 +7,9 @@ import sys
 import tempfile
 
 import pytest
-import yaml
 
 from prompt_hardener.agent_spec import (
-    ValidationResult,
     dict_to_agent_spec,
-    load_and_validate,
     load_yaml,
     validate,
     validate_schema,
@@ -20,10 +17,6 @@ from prompt_hardener.agent_spec import (
 )
 from prompt_hardener.models import (
     AgentSpec,
-    DataSource,
-    McpServer,
-    Policies,
-    ProviderConfig,
     ToolDef,
 )
 
@@ -60,9 +53,7 @@ class TestYamlLoading:
             load_yaml("/nonexistent/path.yaml")
 
     def test_load_invalid_yaml_syntax(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(":\n  bad: [yaml\n  unclosed")
             f.flush()
             path = f.name
@@ -145,7 +136,10 @@ class TestSchemaValidationInvalid:
         data = load_yaml(os.path.join(INVALID_DIR, "extra_field.yaml"))
         result = validate_schema(data)
         assert not result.is_valid
-        assert any("additional" in str(e).lower() or "unknown_field" in str(e) for e in result.errors)
+        assert any(
+            "additional" in str(e).lower() or "unknown_field" in str(e)
+            for e in result.errors
+        )
 
 
 # =========================================================================
@@ -177,8 +171,7 @@ class TestSemanticValidation:
         data["tools"] = [{"name": "test", "description": "test tool"}]
         result = validate_semantic(data)
         assert any(
-            "tools" in str(w) and "ignored" in str(w).lower()
-            for w in result.warnings
+            "tools" in str(w) and "ignored" in str(w).lower() for w in result.warnings
         )
 
     def test_missing_user_input_description(self):
@@ -244,8 +237,14 @@ class TestCLIIntegration:
         output = tmp_path / "agent_spec.yaml"
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "init", "--type", "chatbot", "-o", str(output),
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "init",
+                "--type",
+                "chatbot",
+                "-o",
+                str(output),
             ],
             capture_output=True,
             text=True,
@@ -259,8 +258,14 @@ class TestCLIIntegration:
         output.write_text("existing content")
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "init", "--type", "chatbot", "-o", str(output),
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "init",
+                "--type",
+                "chatbot",
+                "-o",
+                str(output),
             ],
             capture_output=True,
             text=True,
@@ -272,8 +277,11 @@ class TestCLIIntegration:
         spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "validate", spec_path,
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "validate",
+                spec_path,
             ],
             capture_output=True,
             text=True,
@@ -285,8 +293,11 @@ class TestCLIIntegration:
         spec_path = os.path.join(INVALID_DIR, "missing_version.yaml")
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "validate", spec_path,
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "validate",
+                spec_path,
             ],
             capture_output=True,
             text=True,
@@ -305,8 +316,14 @@ class TestRoundtrip:
         output = tmp_path / "spec.yaml"
         subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "init", "--type", "chatbot", "-o", str(output),
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "init",
+                "--type",
+                "chatbot",
+                "-o",
+                str(output),
             ],
             capture_output=True,
             text=True,
@@ -314,8 +331,11 @@ class TestRoundtrip:
         )
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "validate", str(output),
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "validate",
+                str(output),
             ],
             capture_output=True,
             text=True,
@@ -327,8 +347,14 @@ class TestRoundtrip:
         output = tmp_path / ("spec_%s.yaml" % agent_type.replace("-", "_"))
         subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "init", "--type", agent_type, "-o", str(output),
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "init",
+                "--type",
+                agent_type,
+                "-o",
+                str(output),
             ],
             capture_output=True,
             text=True,
@@ -336,14 +362,18 @@ class TestRoundtrip:
         )
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "validate", str(output),
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "validate",
+                str(output),
             ],
             capture_output=True,
             text=True,
         )
-        assert result.returncode == 0, (
-            "validate failed for type %s: %s" % (agent_type, result.stdout)
+        assert result.returncode == 0, "validate failed for type %s: %s" % (
+            agent_type,
+            result.stdout,
         )
 
 

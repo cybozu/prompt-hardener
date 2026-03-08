@@ -33,6 +33,7 @@ def _load_fixture(name):
 # detect_result_type
 # =========================================================================
 
+
 class TestDetectResultType:
     def test_detect_analyze(self):
         data = _load_fixture("analyze_result.json")
@@ -58,6 +59,7 @@ class TestDetectResultType:
 # =========================================================================
 # Analyze rendering
 # =========================================================================
+
 
 class TestAnalyzeRendering:
     @pytest.fixture
@@ -93,10 +95,20 @@ class TestAnalyzeRendering:
 
     def test_markdown_no_findings(self):
         data = {
-            "metadata": {"agent_name": "Bot", "agent_type": "chatbot",
-                         "timestamp": "", "tool_version": "", "rules_version": "", "rules_evaluated": 0},
-            "summary": {"risk_level": "low", "overall_score": 9.5,
-                        "scores_by_layer": {}, "finding_counts": {"total": 0}},
+            "metadata": {
+                "agent_name": "Bot",
+                "agent_type": "chatbot",
+                "timestamp": "",
+                "tool_version": "",
+                "rules_version": "",
+                "rules_evaluated": 0,
+            },
+            "summary": {
+                "risk_level": "low",
+                "overall_score": 9.5,
+                "scores_by_layer": {},
+                "finding_counts": {"total": 0},
+            },
             "findings": [],
             "attack_paths": [],
             "recommended_fixes": [],
@@ -109,6 +121,7 @@ class TestAnalyzeRendering:
 # =========================================================================
 # Simulate rendering
 # =========================================================================
+
 
 class TestSimulateRendering:
     @pytest.fixture
@@ -143,6 +156,7 @@ class TestSimulateRendering:
 # Remediate rendering
 # =========================================================================
 
+
 class TestRemediateRendering:
     @pytest.fixture
     def data(self):
@@ -172,7 +186,11 @@ class TestRemediateRendering:
 
     def test_markdown_prompt_only(self):
         data = {
-            "metadata": {"agent_type": "chatbot", "timestamp": "", "layers": ["prompt"]},
+            "metadata": {
+                "agent_type": "chatbot",
+                "timestamp": "",
+                "layers": ["prompt"],
+            },
             "remediation": {
                 "prompt": {
                     "changes": "Added security instructions",
@@ -189,6 +207,7 @@ class TestRemediateRendering:
 # =========================================================================
 # generate_report (integration)
 # =========================================================================
+
 
 class TestGenerateReport:
     def test_analyze_to_markdown(self):

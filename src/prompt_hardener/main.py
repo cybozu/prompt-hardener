@@ -2,7 +2,6 @@ from typing import Dict, Any, Optional
 import argparse
 import json
 import os
-from prompt_hardener.utils import average_satisfaction
 from prompt_hardener.attack import run_injection_test
 from prompt_hardener.gen_report import (
     generate_improvement_report,
@@ -129,7 +128,8 @@ def parse_args() -> argparse.Namespace:
 
     # --- remediate subcommand ---
     remediate_parser = subparsers.add_parser(
-        "remediate", help="Generate actionable remediations from static analysis findings"
+        "remediate",
+        help="Generate actionable remediations from static analysis findings",
     )
     remediate_parser.add_argument(
         "spec_path",
@@ -318,7 +318,8 @@ def parse_args() -> argparse.Namespace:
 
     # --- report subcommand ---
     report_parser = subparsers.add_parser(
-        "report", help="Generate a formatted report from analyze/simulate/remediate JSON output"
+        "report",
+        help="Generate a formatted report from analyze/simulate/remediate JSON output",
     )
     report_parser.add_argument(
         "results_path",
@@ -646,7 +647,8 @@ def run_init(args: argparse.Namespace) -> None:
     if output_path.exists():
         print(
             "\033[31m"
-            + "[Error] %s already exists. Use a different path or remove the file first." % args.output
+            + "[Error] %s already exists. Use a different path or remove the file first."
+            % args.output
             + "\033[0m"
         )
         raise SystemExit(1)
@@ -674,9 +676,7 @@ def run_validate(args: argparse.Namespace) -> None:
     try:
         data = load_yaml(args.spec_path)
     except ValueError as e:
-        print(
-            "\033[31m" + str(e) + "\033[0m"
-        )
+        print("\033[31m" + str(e) + "\033[0m")
         raise SystemExit(1)
 
     result = validate(data)
@@ -686,9 +686,7 @@ def run_validate(args: argparse.Namespace) -> None:
         print("  " + str(w))
 
     if not result.is_valid:
-        print(
-            "%s has %d error(s):" % (args.spec_path, len(result.errors))
-        )
+        print("%s has %d error(s):" % (args.spec_path, len(result.errors)))
         for err in result.errors:
             print("  " + str(err))
         raise SystemExit(1)
@@ -710,8 +708,12 @@ def run_simulate_cmd(args: argparse.Namespace) -> None:
     judge_model = args.judge_model or args.eval_model
 
     # Parse comma-separated filters
-    categories = [c.strip() for c in args.categories.split(",")] if args.categories else None
-    layers = [l.strip() for l in args.layers.split(",")] if args.layers else None
+    categories = (
+        [c.strip() for c in args.categories.split(",")] if args.categories else None
+    )
+    layers = (
+        [layer.strip() for layer in args.layers.split(",")] if args.layers else None
+    )
 
     try:
         report = run_simulate(
@@ -798,7 +800,11 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
             with open(json_path, "w", encoding="utf-8") as f:
                 f.write(json_output)
             # Write Markdown alongside
-            md_path = args.output.rsplit(".", 1)[0] + ".md" if "." in args.output else args.output + ".md"
+            md_path = (
+                args.output.rsplit(".", 1)[0] + ".md"
+                if "." in args.output
+                else args.output + ".md"
+            )
             with open(md_path, "w", encoding="utf-8") as f:
                 f.write(md_output)
             print("Analyze reports written to %s and %s" % (json_path, md_path))
@@ -814,11 +820,7 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
 
     # Print LLM evaluation results if available
     if report.prompt_evaluation is not None:
-        print(
-            "\033[35m"
-            + "\n--- LLM Prompt Evaluation ---"
-            + "\033[0m"
-        )
+        print("\033[35m" + "\n--- LLM Prompt Evaluation ---" + "\033[0m")
         print(json.dumps(report.prompt_evaluation, indent=2, ensure_ascii=False))
         print(
             "\033[33m"
@@ -868,6 +870,7 @@ def run_remediate_cmd(args: argparse.Namespace) -> None:
 
     if args.report_dir:
         import os
+
         os.makedirs(args.report_dir, exist_ok=True)
         report_path = os.path.join(args.report_dir, "remediation_report.json")
         try:
@@ -1086,9 +1089,7 @@ def main() -> None:
         )
         print("\033[35m" + "\n🎯 Final Evaluation Result:" + "\033[0m")
         print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
-        print(
-            "\033[33m" + f"\n📈 Final Avg Score: {final_avg_score:.2f}" + "\033[0m"
-        )
+        print("\033[33m" + f"\n📈 Final Avg Score: {final_avg_score:.2f}" + "\033[0m")
         print("\033[32m" + "\n✅ Improved Prompt:" + "\033[0m")
         print(show_prompt(improved_prompt))
 

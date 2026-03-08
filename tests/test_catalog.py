@@ -47,10 +47,7 @@ class TestBuiltinCatalogBasics:
 class TestSchemaValidation:
     @pytest.mark.parametrize(
         "filename",
-        sorted(
-            f.name
-            for f in get_builtin_catalog_dir().glob("*.yaml")
-        ),
+        sorted(f.name for f in get_builtin_catalog_dir().glob("*.yaml")),
     )
     def test_builtin_yaml_is_schema_valid(self, filename):
         """Each built-in YAML passes scenario.schema.json validation."""
@@ -93,9 +90,7 @@ class TestLoadScenario:
             load_scenario("/nonexistent/scenario.yaml")
 
     def test_load_invalid_yaml_syntax(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write(":\n  bad: [yaml\n  unclosed")
             f.flush()
             path = f.name
@@ -106,9 +101,7 @@ class TestLoadScenario:
             os.unlink(path)
 
     def test_load_schema_violation(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             yaml.dump({"id": "test", "name": "Test"}, f)  # missing required fields
             f.flush()
             path = f.name
@@ -119,9 +112,7 @@ class TestLoadScenario:
             os.unlink(path)
 
     def test_load_non_mapping(self):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("- just\n- a\n- list\n")
             f.flush()
             path = f.name
@@ -263,9 +254,7 @@ class TestFilterScenarios:
         assert len(filtered) == 2
 
     def test_filter_by_injection_method(self, all_scenarios):
-        filtered = filter_scenarios(
-            all_scenarios, injection_methods=["user_message"]
-        )
+        filtered = filter_scenarios(all_scenarios, injection_methods=["user_message"])
         assert len(filtered) == 8  # all v0.4.0 scenarios use user_message
 
     def test_filter_combined_agent_type_and_layer(self, all_scenarios):
@@ -275,15 +264,11 @@ class TestFilterScenarios:
         assert len(filtered) == 0  # tool layer scenarios don't apply to chatbot
 
     def test_filter_combined_agent_and_tool_layer(self, all_scenarios):
-        filtered = filter_scenarios(
-            all_scenarios, agent_type="agent", layers=["tool"]
-        )
+        filtered = filter_scenarios(all_scenarios, agent_type="agent", layers=["tool"])
         assert len(filtered) == 2
 
     def test_filter_no_match(self, all_scenarios):
-        filtered = filter_scenarios(
-            all_scenarios, injection_methods=["mcp_response"]
-        )
+        filtered = filter_scenarios(all_scenarios, injection_methods=["mcp_response"])
         assert len(filtered) == 0
 
     def test_filter_no_criteria_returns_all(self, all_scenarios):
@@ -349,9 +334,7 @@ class TestPayloadFidelity:
         scenarios = load_catalog()
         scenario = next(s for s in scenarios if s.id == scenario_id)
         expected = self.ATTACK_PY_PAYLOADS[scenario_id]
-        assert scenario.payloads == expected, (
-            "Payload mismatch for %s" % scenario_id
-        )
+        assert scenario.payloads == expected, "Payload mismatch for %s" % scenario_id
 
 
 # =========================================================================
@@ -466,6 +449,5 @@ class TestScenarioContent:
         """All v0.4.0 migrated scenarios use user_message injection."""
         for s in load_catalog():
             assert s.injection_method == "user_message", (
-                "%s has unexpected injection_method: %s"
-                % (s.id, s.injection_method)
+                "%s has unexpected injection_method: %s" % (s.id, s.injection_method)
             )

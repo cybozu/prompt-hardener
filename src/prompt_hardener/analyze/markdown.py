@@ -1,7 +1,5 @@
 """Render AnalyzeReport as Markdown."""
 
-from prompt_hardener.analyze.report import AnalyzeReport
-
 
 def render_markdown(report):
     # type: (AnalyzeReport) -> str
@@ -16,9 +14,10 @@ def render_markdown(report):
     m = report.metadata
     lines.append("**Agent:** %s (type: %s)" % (m.agent_name, m.agent_type))
     lines.append("**Generated:** %s" % m.timestamp)
-    lines.append("**Tool Version:** %s | **Rules Version:** %s | **Rules Evaluated:** %d" % (
-        m.tool_version, m.rules_version, m.rules_evaluated
-    ))
+    lines.append(
+        "**Tool Version:** %s | **Rules Version:** %s | **Rules Evaluated:** %d"
+        % (m.tool_version, m.rules_version, m.rules_evaluated)
+    )
     lines.append("")
 
     # Summary
@@ -90,7 +89,9 @@ def render_markdown(report):
                     lines.append("%d. %s" % (i, step))
                 lines.append("")
             if ap.related_findings:
-                lines.append("**Related Findings:** %s" % ", ".join(ap.related_findings))
+                lines.append(
+                    "**Related Findings:** %s" % ", ".join(ap.related_findings)
+                )
                 lines.append("")
 
     # Recommended Fixes
@@ -99,12 +100,15 @@ def render_markdown(report):
         lines.append("")
         lines.append("| Priority | Layer | Title | Effort |")
         lines.append("|----------|-------|-------|--------|")
-        for rf in sorted(report.recommended_fixes, key=lambda x: (
-            {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(x.priority, 4)
-        )):
-            lines.append("| %s | %s | %s | %s |" % (
-                rf.priority, rf.layer, rf.title, rf.effort
-            ))
+        for rf in sorted(
+            report.recommended_fixes,
+            key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
+                x.priority, 4
+            ),
+        ):
+            lines.append(
+                "| %s | %s | %s | %s |" % (rf.priority, rf.layer, rf.title, rf.effort)
+            )
         lines.append("")
 
     return "\n".join(lines)

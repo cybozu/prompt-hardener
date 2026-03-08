@@ -4,7 +4,6 @@ import json
 import os
 import tempfile
 
-import pytest
 import yaml
 
 from prompt_hardener.webui import (
@@ -40,7 +39,11 @@ def _write_temp_yaml(data):
 class TestLoadTemplate:
     def test_load_chatbot_template(self):
         result = load_template("chatbot")
-        assert "type: chatbot" in result or "type: 'chatbot'" in result or 'type: "chatbot"' in result
+        assert (
+            "type: chatbot" in result
+            or "type: 'chatbot'" in result
+            or 'type: "chatbot"' in result
+        )
 
     def test_load_rag_template(self):
         result = load_template("rag")
@@ -59,7 +62,9 @@ class TestLoadTemplate:
         for agent_type in ["chatbot", "rag", "agent", "mcp-agent"]:
             content = load_template(agent_type)
             data = yaml.safe_load(content)
-            assert isinstance(data, dict), "Template %s should parse to a dict" % agent_type
+            assert isinstance(data, dict), (
+                "Template %s should parse to a dict" % agent_type
+            )
             assert "type" in data
             assert "version" in data
 
@@ -258,8 +263,13 @@ class TestRunDiffWebui:
             os.unlink(path2)
 
     def test_diff_missing_before(self):
-        spec = {"version": "1.0", "type": "chatbot", "name": "Bot",
-                "system_prompt": "Hi", "provider": {"api": "openai", "model": "m"}}
+        spec = {
+            "version": "1.0",
+            "type": "chatbot",
+            "name": "Bot",
+            "system_prompt": "Hi",
+            "provider": {"api": "openai", "model": "m"},
+        }
         path = _write_temp_yaml(spec)
         try:
             status, md = run_diff_webui(None, path)
@@ -268,8 +278,13 @@ class TestRunDiffWebui:
             os.unlink(path)
 
     def test_diff_missing_after(self):
-        spec = {"version": "1.0", "type": "chatbot", "name": "Bot",
-                "system_prompt": "Hi", "provider": {"api": "openai", "model": "m"}}
+        spec = {
+            "version": "1.0",
+            "type": "chatbot",
+            "name": "Bot",
+            "system_prompt": "Hi",
+            "provider": {"api": "openai", "model": "m"},
+        }
         path = _write_temp_yaml(spec)
         try:
             status, md = run_diff_webui(path, None)
@@ -344,8 +359,7 @@ class TestRunSimulateWebui:
         from prompt_hardener.webui import run_simulate_webui
 
         status, md, json_dl, html_dl = run_simulate_webui(
-            None, "openai", "gpt-4o", "openai", "gpt-4o",
-            [], [], None, None, None
+            None, "openai", "gpt-4o", "openai", "gpt-4o", [], [], None, None, None
         )
         assert "Error" in status
 
@@ -353,14 +367,16 @@ class TestRunSimulateWebui:
         from prompt_hardener.webui import run_simulate_webui
 
         spec = {
-            "version": "1.0", "type": "chatbot", "name": "Test",
-            "system_prompt": "Hi", "provider": {"api": "openai", "model": "m"},
+            "version": "1.0",
+            "type": "chatbot",
+            "name": "Test",
+            "system_prompt": "Hi",
+            "provider": {"api": "openai", "model": "m"},
         }
         path = _write_temp_yaml(spec)
         try:
             status, md, json_dl, html_dl = run_simulate_webui(
-                path, None, None, None, None,
-                [], [], None, None, None
+                path, None, None, None, None, [], [], None, None, None
             )
             assert "Error" in status
         finally:
@@ -385,8 +401,11 @@ class TestRunRemediateWebui:
         from prompt_hardener.webui import run_remediate_webui
 
         spec = {
-            "version": "1.0", "type": "chatbot", "name": "Test",
-            "system_prompt": "Hi", "provider": {"api": "openai", "model": "m"},
+            "version": "1.0",
+            "type": "chatbot",
+            "name": "Test",
+            "system_prompt": "Hi",
+            "provider": {"api": "openai", "model": "m"},
         }
         path = _write_temp_yaml(spec)
         try:

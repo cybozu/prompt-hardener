@@ -66,13 +66,17 @@ def remediate_prompt(
         changes += " System prompt unchanged (already meets threshold or no improvement possible)."
 
     techniques = apply_techniques or []
-    used_techniques = techniques if techniques else [
-        "spotlighting",
-        "random_sequence_enclosure",
-        "instruction_defense",
-        "role_consistency",
-        "secrets_exclusion",
-    ]
+    used_techniques = (
+        techniques
+        if techniques
+        else [
+            "spotlighting",
+            "random_sequence_enclosure",
+            "instruction_defense",
+            "role_consistency",
+            "secrets_exclusion",
+        ]
+    )
 
     remediation = PromptRemediation(
         changes=changes,

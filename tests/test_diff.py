@@ -22,7 +22,9 @@ EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), "..", "examples")
 
 def _write_temp_yaml(data):
     """Write a dict as YAML to a temp file and return the path."""
-    f = tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False, encoding="utf-8")
+    f = tempfile.NamedTemporaryFile(
+        suffix=".yaml", mode="w", delete=False, encoding="utf-8"
+    )
     yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
     f.close()
     return f.name
@@ -31,6 +33,7 @@ def _write_temp_yaml(data):
 # =========================================================================
 # compute_diff
 # =========================================================================
+
 
 class TestComputeDiff:
     def test_identical_specs(self):
@@ -204,6 +207,7 @@ class TestComputeDiff:
 # System prompt diff
 # =========================================================================
 
+
 class TestSystemPromptDiff:
     def test_single_line_change(self):
         before = {
@@ -252,6 +256,7 @@ class TestSystemPromptDiff:
 # Rendering
 # =========================================================================
 
+
 class TestDiffRendering:
     @pytest.fixture
     def sample_diff(self):
@@ -261,12 +266,26 @@ class TestDiffRendering:
             before_type="chatbot",
             after_type="agent",
             changes=[
-                FieldDiff(path="type", change_type="modified", before="chatbot", after="agent"),
-                FieldDiff(path="name", change_type="modified", before="Old Bot", after="New Agent"),
-                FieldDiff(path="system_prompt", change_type="modified",
-                          before="You are a bot.", after="You are an agent."),
-                FieldDiff(path="tools[search]", change_type="added",
-                          after='{"name": "search", "description": "Search docs"}'),
+                FieldDiff(
+                    path="type", change_type="modified", before="chatbot", after="agent"
+                ),
+                FieldDiff(
+                    path="name",
+                    change_type="modified",
+                    before="Old Bot",
+                    after="New Agent",
+                ),
+                FieldDiff(
+                    path="system_prompt",
+                    change_type="modified",
+                    before="You are a bot.",
+                    after="You are an agent.",
+                ),
+                FieldDiff(
+                    path="tools[search]",
+                    change_type="added",
+                    after='{"name": "search", "description": "Search docs"}',
+                ),
             ],
             system_prompt_diff="--- before/system_prompt\n+++ after/system_prompt\n@@ -1 +1 @@\n-You are a bot.\n+You are an agent.\n",
         )
@@ -321,6 +340,7 @@ class TestDiffRendering:
 # =========================================================================
 # run_diff (integration)
 # =========================================================================
+
 
 class TestRunDiff:
     def test_diff_same_file(self):

@@ -3,7 +3,7 @@
 Used by both the `improve` CLI command and `remediate` prompt layer.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from prompt_hardener.evaluate import evaluate_prompt

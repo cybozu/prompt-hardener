@@ -1,9 +1,5 @@
 """Scoring logic: findings -> layer scores + overall score + risk level."""
 
-from typing import Dict, List, Tuple
-
-from prompt_hardener.analyze.report import Finding
-
 SEVERITY_WEIGHTS = {
     "critical": 3.0,
     "high": 2.0,
@@ -63,9 +59,7 @@ def compute_scores(findings, agent_type):
 
     # Overall score is the average of active layer scores
     if scores_by_layer:
-        overall_score = round(
-            sum(scores_by_layer.values()) / len(scores_by_layer), 1
-        )
+        overall_score = round(sum(scores_by_layer.values()) / len(scores_by_layer), 1)
     else:
         overall_score = LAYER_BASE_SCORE
 

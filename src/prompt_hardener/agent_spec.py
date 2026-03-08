@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 import jsonschema
 import yaml
@@ -22,13 +21,14 @@ from prompt_hardener.models import (
 # Result types
 # ---------------------------------------------------------------------------
 
+
 class ValidationMessage:
     """A single validation error or warning."""
 
     def __init__(self, level, path, message):
         # type: (str, str, str) -> None
-        self.level = level   # "error" or "warning"
-        self.path = path     # JSON-pointer-like path e.g. "(root)", "tools[0].name"
+        self.level = level  # "error" or "warning"
+        self.path = path  # JSON-pointer-like path e.g. "(root)", "tools[0].name"
         self.message = message
 
     def __str__(self):
@@ -45,7 +45,7 @@ class ValidationResult:
 
     def __init__(self):
         # type: () -> None
-        self.errors = []   # type: List[ValidationMessage]
+        self.errors = []  # type: List[ValidationMessage]
         self.warnings = []  # type: List[ValidationMessage]
 
     @property
@@ -66,6 +66,7 @@ class ValidationResult:
 # Schema path resolution
 # ---------------------------------------------------------------------------
 
+
 def _get_schema_path():
     # type: () -> Path
     return Path(__file__).parent / "schemas" / "agent_spec.schema.json"
@@ -81,6 +82,7 @@ def _load_schema():
 # ---------------------------------------------------------------------------
 # YAML loading
 # ---------------------------------------------------------------------------
+
 
 def load_yaml(path):
     # type: (str) -> Dict[str, Any]
@@ -104,6 +106,7 @@ def load_yaml(path):
 # ---------------------------------------------------------------------------
 # JSON Schema validation
 # ---------------------------------------------------------------------------
+
 
 def validate_schema(data, result=None):
     # type: (Dict[str, Any], Optional[ValidationResult]) -> ValidationResult
@@ -170,7 +173,8 @@ def validate_semantic(data, result=None):
         if field_name in data and data[field_name]:
             result.add_warning(
                 field_name,
-                "'%s' is not used for type '%s' and will be ignored" % (field_name, agent_type),
+                "'%s' is not used for type '%s' and will be ignored"
+                % (field_name, agent_type),
             )
 
     # --- policies cross-checks ---
@@ -191,7 +195,8 @@ def validate_semantic(data, result=None):
         if action in tool_names:
             result.add_warning(
                 "policies.denied_actions",
-                "'%s' is listed in denied_actions but is also defined in tools" % action,
+                "'%s' is listed in denied_actions but is also defined in tools"
+                % action,
             )
 
     # --- recommended field warnings ---
@@ -208,6 +213,7 @@ def validate_semantic(data, result=None):
 # High-level validate
 # ---------------------------------------------------------------------------
 
+
 def validate(data):
     # type: (Dict[str, Any]) -> ValidationResult
     """Run both schema and semantic validation on *data*."""
@@ -220,6 +226,7 @@ def validate(data):
 # ---------------------------------------------------------------------------
 # dict → AgentSpec conversion
 # ---------------------------------------------------------------------------
+
 
 def dict_to_agent_spec(data):
     # type: (Dict[str, Any]) -> AgentSpec
@@ -303,6 +310,7 @@ def dict_to_agent_spec(data):
 # All-in-one: load + validate + convert
 # ---------------------------------------------------------------------------
 
+
 def load_and_validate(path):
     # type: (str) -> Tuple[AgentSpec, ValidationResult]
     """Load a YAML file, validate it, and return (AgentSpec, ValidationResult).
@@ -328,4 +336,6 @@ def write_updated_spec(original_path, improved_system_prompt, output_path):
     data = load_yaml(original_path)
     data["system_prompt"] = improved_system_prompt
     with open(output_path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        yaml.dump(
+            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+        )

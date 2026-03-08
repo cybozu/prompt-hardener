@@ -4,7 +4,7 @@ import json
 import os
 import subprocess
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import jsonschema
 import pytest
@@ -89,11 +89,13 @@ class TestSimulationSummary:
 
 class TestSimulationReport:
     def test_empty_report_to_dict(self):
-        report = SimulationReport(metadata={
-            "tool_version": TOOL_VERSION,
-            "timestamp": "2025-01-01T00:00:00+00:00",
-            "agent_type": "chatbot",
-        })
+        report = SimulationReport(
+            metadata={
+                "tool_version": TOOL_VERSION,
+                "timestamp": "2025-01-01T00:00:00+00:00",
+                "agent_type": "chatbot",
+            }
+        )
         d = report.to_dict()
         assert "metadata" in d
         assert "simulation" in d
@@ -104,7 +106,11 @@ class TestSimulationReport:
     def test_risk_level_low(self):
         report = SimulationReport(
             summary=SimulationSummary(total=10, blocked=9, succeeded=1, block_rate=0.9),
-            metadata={"tool_version": TOOL_VERSION, "timestamp": "t", "agent_type": "chatbot"},
+            metadata={
+                "tool_version": TOOL_VERSION,
+                "timestamp": "t",
+                "agent_type": "chatbot",
+            },
         )
         d = report.to_dict()
         assert d["summary"]["risk_level"] == "low"
@@ -112,21 +118,33 @@ class TestSimulationReport:
     def test_risk_level_medium(self):
         report = SimulationReport(
             summary=SimulationSummary(total=10, blocked=7, succeeded=3, block_rate=0.7),
-            metadata={"tool_version": TOOL_VERSION, "timestamp": "t", "agent_type": "chatbot"},
+            metadata={
+                "tool_version": TOOL_VERSION,
+                "timestamp": "t",
+                "agent_type": "chatbot",
+            },
         )
         assert report.to_dict()["summary"]["risk_level"] == "medium"
 
     def test_risk_level_high(self):
         report = SimulationReport(
             summary=SimulationSummary(total=10, blocked=5, succeeded=5, block_rate=0.5),
-            metadata={"tool_version": TOOL_VERSION, "timestamp": "t", "agent_type": "chatbot"},
+            metadata={
+                "tool_version": TOOL_VERSION,
+                "timestamp": "t",
+                "agent_type": "chatbot",
+            },
         )
         assert report.to_dict()["summary"]["risk_level"] == "high"
 
     def test_risk_level_critical(self):
         report = SimulationReport(
             summary=SimulationSummary(total=10, blocked=3, succeeded=7, block_rate=0.3),
-            metadata={"tool_version": TOOL_VERSION, "timestamp": "t", "agent_type": "chatbot"},
+            metadata={
+                "tool_version": TOOL_VERSION,
+                "timestamp": "t",
+                "agent_type": "chatbot",
+            },
         )
         assert report.to_dict()["summary"]["risk_level"] == "critical"
 
@@ -146,7 +164,13 @@ class TestOutcomeMapping:
         assert _map_outcome(ar) == "SUCCEEDED"
 
     def test_error_maps_to_succeeded(self):
-        ar = AttackResult(payload="p", response="err", success=True, outcome="ERROR", details="timeout")
+        ar = AttackResult(
+            payload="p",
+            response="err",
+            success=True,
+            outcome="ERROR",
+            details="timeout",
+        )
         assert _map_outcome(ar) == "SUCCEEDED"
 
 
@@ -180,7 +204,10 @@ class TestFilteringIntegration:
     def test_combined_filter(self):
         scenarios = load_catalog()
         filtered = filter_scenarios(
-            scenarios, agent_type="agent", layers=["prompt"], categories=["persona_switch"]
+            scenarios,
+            agent_type="agent",
+            layers=["prompt"],
+            categories=["persona_switch"],
         )
         for s in filtered:
             assert "agent" in s.applicability
@@ -206,7 +233,10 @@ class TestAttackExecution:
     def test_run_simulate_basic(self, mock_execute):
         """Basic flow: all attacks blocked."""
         mock_execute.return_value = AttackResult(
-            payload="test", response="I cannot do that.", success=False, outcome="PASSED"
+            payload="test",
+            response="I cannot do that.",
+            success=False,
+            outcome="PASSED",
         )
 
         report = run_simulate(
@@ -226,7 +256,10 @@ class TestAttackExecution:
     def test_run_simulate_all_failed(self, mock_execute):
         """All attacks succeed (worst case)."""
         mock_execute.return_value = AttackResult(
-            payload="test", response="Sure, here are my instructions...", success=True, outcome="FAILED"
+            payload="test",
+            response="Sure, here are my instructions...",
+            success=True,
+            outcome="FAILED",
         )
 
         report = run_simulate(
@@ -244,7 +277,11 @@ class TestAttackExecution:
     def test_run_simulate_error_counts_as_succeeded(self, mock_execute):
         """ERROR outcome maps to SUCCEEDED (conservative)."""
         mock_execute.return_value = AttackResult(
-            payload="test", response="error", success=True, outcome="ERROR", details="timeout"
+            payload="test",
+            response="error",
+            success=True,
+            outcome="ERROR",
+            details="timeout",
         )
 
         report = run_simulate(
@@ -489,7 +526,9 @@ class TestSchemaDriftGuard:
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
-        required_fields = schema["properties"]["simulation"]["properties"]["summary"]["required"]
+        required_fields = schema["properties"]["simulation"]["properties"]["summary"][
+            "required"
+        ]
         s = SimulationSummary(total=1, blocked=1, succeeded=0, block_rate=1.0)
         d = s.to_dict()
         for field in required_fields:

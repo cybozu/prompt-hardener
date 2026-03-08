@@ -18,6 +18,7 @@ from prompt_hardener.utils import extract_json_block
 @dataclass
 class AttackResult:
     """Result of a single attack payload execution."""
+
     payload: str
     response: str
     success: bool

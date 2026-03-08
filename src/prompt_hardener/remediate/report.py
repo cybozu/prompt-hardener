@@ -6,7 +6,7 @@ from typing import Dict, List, Optional
 
 @dataclass
 class Recommendation:
-    severity: str      # "low" | "medium" | "high" | "critical"
+    severity: str  # "low" | "medium" | "high" | "critical"
     title: str
     description: str
     suggested_change: Optional[str] = None
@@ -25,7 +25,7 @@ class Recommendation:
 
 @dataclass
 class PromptRemediation:
-    changes: str                    # text summary of changes
+    changes: str  # text summary of changes
     techniques_applied: List[str] = field(default_factory=list)
 
     def to_dict(self):
@@ -67,19 +67,26 @@ class RemediationReport:
         findings = []
         total_recs = 0
         if self.prompt is not None:
-            findings.append("Prompt remediation applied (%d techniques)" % len(self.prompt.techniques_applied))
+            findings.append(
+                "Prompt remediation applied (%d techniques)"
+                % len(self.prompt.techniques_applied)
+            )
         if self.tool is not None:
             total_recs += len(self.tool)
             critical = sum(1 for r in self.tool if r.severity == "critical")
             high = sum(1 for r in self.tool if r.severity == "high")
             if critical or high:
-                findings.append("%d critical/high tool recommendations" % (critical + high))
+                findings.append(
+                    "%d critical/high tool recommendations" % (critical + high)
+                )
         if self.architecture is not None:
             total_recs += len(self.architecture)
             critical = sum(1 for r in self.architecture if r.severity == "critical")
             high = sum(1 for r in self.architecture if r.severity == "high")
             if critical or high:
-                findings.append("%d critical/high architecture recommendations" % (critical + high))
+                findings.append(
+                    "%d critical/high architecture recommendations" % (critical + high)
+                )
 
         # Risk level based on highest severity recommendation
         risk_level = "low"
