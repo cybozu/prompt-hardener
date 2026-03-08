@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "tool_version": "0.1.0",
+    "tool_version": "0.5.0",
     "timestamp": "2025-01-15T11:30:00Z",
     "agent_type": "agent",
     "layers": ["prompt", "tool", "architecture"],

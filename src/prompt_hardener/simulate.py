@@ -12,21 +12,22 @@ from prompt_hardener.catalog import (
     filter_scenarios,
     load_catalog,
 )
-from prompt_hardener.models import Scenario
 
 # Supported injection methods in the current implementation.
 _SUPPORTED_INJECTION_METHODS = {"user_message"}
 
-TOOL_VERSION = "0.1.0"
+TOOL_VERSION = "0.5.0"
 
 
 # ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ScenarioResult:
     """Outcome of one (scenario, payload) pair."""
+
     id: str
     category: str
     target_layer: str
@@ -119,6 +120,7 @@ class SimulationReport:
 # Outcome mapping: attack.py terms -> report schema terms
 # ---------------------------------------------------------------------------
 
+
 def _map_outcome(attack_result: AttackResult) -> str:
     """Map AttackResult.outcome to report schema outcome.
 
@@ -134,6 +136,7 @@ def _map_outcome(attack_result: AttackResult) -> str:
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
+
 
 def run_simulate(
     spec_path: str,
@@ -212,8 +215,7 @@ def run_simulate(
 
         for payload in scenario.payloads:
             print(
-                "[Simulate] Scenario: %s | Payload: %.60s..."
-                % (scenario.id, payload)
+                "[Simulate] Scenario: %s | Payload: %.60s..." % (scenario.id, payload)
             )
 
             attack_result = execute_single_attack(

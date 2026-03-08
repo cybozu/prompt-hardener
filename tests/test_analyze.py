@@ -7,7 +7,6 @@ import sys
 from unittest.mock import patch
 
 import jsonschema
-import pytest
 
 from prompt_hardener.agent_spec import dict_to_agent_spec, load_yaml
 from prompt_hardener.analyze.engine import run_analyze
@@ -231,24 +230,60 @@ class TestScoring:
 
     def test_compute_layer_score_with_findings(self):
         findings = [
-            Finding(id="f1", rule_id="X", title="", severity="high",
-                    layer="prompt", description=""),
-            Finding(id="f2", rule_id="Y", title="", severity="medium",
-                    layer="prompt", description=""),
+            Finding(
+                id="f1",
+                rule_id="X",
+                title="",
+                severity="high",
+                layer="prompt",
+                description="",
+            ),
+            Finding(
+                id="f2",
+                rule_id="Y",
+                title="",
+                severity="medium",
+                layer="prompt",
+                description="",
+            ),
         ]
         # 10.0 - 2.0 (high) - 1.0 (medium) = 7.0
         assert compute_layer_score(findings) == 7.0
 
     def test_compute_layer_score_floor_zero(self):
         findings = [
-            Finding(id="f1", rule_id="X", title="", severity="critical",
-                    layer="prompt", description=""),
-            Finding(id="f2", rule_id="Y", title="", severity="critical",
-                    layer="prompt", description=""),
-            Finding(id="f3", rule_id="Z", title="", severity="critical",
-                    layer="prompt", description=""),
-            Finding(id="f4", rule_id="W", title="", severity="critical",
-                    layer="prompt", description=""),
+            Finding(
+                id="f1",
+                rule_id="X",
+                title="",
+                severity="critical",
+                layer="prompt",
+                description="",
+            ),
+            Finding(
+                id="f2",
+                rule_id="Y",
+                title="",
+                severity="critical",
+                layer="prompt",
+                description="",
+            ),
+            Finding(
+                id="f3",
+                rule_id="Z",
+                title="",
+                severity="critical",
+                layer="prompt",
+                description="",
+            ),
+            Finding(
+                id="f4",
+                rule_id="W",
+                title="",
+                severity="critical",
+                layer="prompt",
+                description="",
+            ),
         ]
         # 10.0 - 12.0 = clamped to 0.0
         assert compute_layer_score(findings) == 0.0
@@ -265,8 +300,14 @@ class TestScoring:
 
     def test_compute_scores_chatbot(self):
         findings = [
-            Finding(id="f1", rule_id="PROMPT-002", title="", severity="medium",
-                    layer="prompt", description=""),
+            Finding(
+                id="f1",
+                rule_id="PROMPT-002",
+                title="",
+                severity="medium",
+                layer="prompt",
+                description="",
+            ),
         ]
         scores_by_layer, overall, risk = compute_scores(findings, "chatbot")
         assert "prompt" in scores_by_layer
@@ -277,12 +318,30 @@ class TestScoring:
 
     def test_compute_scores_agent(self):
         findings = [
-            Finding(id="f1", rule_id="PROMPT-001", title="", severity="high",
-                    layer="prompt", description=""),
-            Finding(id="f2", rule_id="TOOL-001", title="", severity="high",
-                    layer="tool", description=""),
-            Finding(id="f3", rule_id="ARCH-001", title="", severity="high",
-                    layer="architecture", description=""),
+            Finding(
+                id="f1",
+                rule_id="PROMPT-001",
+                title="",
+                severity="high",
+                layer="prompt",
+                description="",
+            ),
+            Finding(
+                id="f2",
+                rule_id="TOOL-001",
+                title="",
+                severity="high",
+                layer="tool",
+                description="",
+            ),
+            Finding(
+                id="f3",
+                rule_id="ARCH-001",
+                title="",
+                severity="high",
+                layer="architecture",
+                description="",
+            ),
         ]
         scores_by_layer, overall, risk = compute_scores(findings, "agent")
         assert scores_by_layer["prompt"] == 8.0
@@ -313,7 +372,13 @@ class TestReportSerialization:
                 risk_level="high",
                 overall_score=4.5,
                 scores_by_layer={"prompt": 6.0, "architecture": 3.0},
-                finding_counts={"critical": 0, "high": 2, "medium": 1, "low": 0, "total": 3},
+                finding_counts={
+                    "critical": 0,
+                    "high": 2,
+                    "medium": 1,
+                    "low": 0,
+                    "total": 3,
+                },
             ),
             findings=[
                 Finding(
@@ -439,7 +504,9 @@ class TestEngineIntegration:
 
 class TestExampleAnalysis:
     def test_rag_internal_assistant(self):
-        spec_path = os.path.join(EXAMPLES_DIR, "rag-internal-assistant", "agent_spec.yaml")
+        spec_path = os.path.join(
+            EXAMPLES_DIR, "rag-internal-assistant", "agent_spec.yaml"
+        )
         report = run_analyze(spec_path)
         rule_ids = [f.rule_id for f in report.findings]
         # Has untrusted employee_uploads → PROMPT-001 expected
@@ -557,8 +624,13 @@ class TestCLIIntegration:
         spec_path = os.path.join(FIXTURES_DIR, "rag_insecure_spec.yaml")
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "analyze", spec_path, "--format", "json",
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "analyze",
+                spec_path,
+                "--format",
+                "json",
             ],
             capture_output=True,
             text=True,
@@ -573,8 +645,13 @@ class TestCLIIntegration:
         spec_path = os.path.join(FIXTURES_DIR, "rag_insecure_spec.yaml")
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "analyze", spec_path, "--format", "markdown",
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "analyze",
+                spec_path,
+                "--format",
+                "markdown",
             ],
             capture_output=True,
             text=True,
@@ -587,8 +664,15 @@ class TestCLIIntegration:
         output = tmp_path / "report.json"
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "analyze", spec_path, "-o", str(output), "--format", "json",
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "analyze",
+                spec_path,
+                "-o",
+                str(output),
+                "--format",
+                "json",
             ],
             capture_output=True,
             text=True,
@@ -602,8 +686,15 @@ class TestCLIIntegration:
         spec_path = os.path.join(FIXTURES_DIR, "agent_insecure_spec.yaml")
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "analyze", spec_path, "--format", "json", "-l", "prompt",
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "analyze",
+                spec_path,
+                "--format",
+                "json",
+                "-l",
+                "prompt",
             ],
             capture_output=True,
             text=True,
@@ -619,8 +710,11 @@ class TestCLIIntegration:
         )
         result = subprocess.run(
             [
-                sys.executable, "-m", "prompt_hardener.main",
-                "analyze", invalid_path,
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "analyze",
+                invalid_path,
             ],
             capture_output=True,
             text=True,

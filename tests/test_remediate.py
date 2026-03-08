@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import jsonschema
 import pytest
@@ -35,6 +35,7 @@ SCHEMAS_DIR = os.path.join(os.path.dirname(__file__), "..", "schemas")
 # =========================================================================
 # Helper: Build AgentSpec for testing
 # =========================================================================
+
 
 def _make_spec(
     agent_type="agent",
@@ -123,11 +124,13 @@ class TestPromptRemediation:
 
 class TestRemediationReport:
     def test_empty_report(self):
-        report = RemediationReport(metadata={
-            "tool_version": "0.5.0",
-            "timestamp": "2025-01-01T00:00:00+00:00",
-            "agent_type": "chatbot",
-        })
+        report = RemediationReport(
+            metadata={
+                "tool_version": "0.5.0",
+                "timestamp": "2025-01-01T00:00:00+00:00",
+                "agent_type": "chatbot",
+            }
+        )
         d = report.to_dict()
         assert "metadata" in d
         assert "remediation" in d
@@ -136,8 +139,14 @@ class TestRemediationReport:
 
     def test_report_with_prompt_only(self):
         report = RemediationReport(
-            metadata={"tool_version": "0.5.0", "timestamp": "t", "agent_type": "chatbot"},
-            prompt=PromptRemediation(changes="improved", techniques_applied=["spotlighting"]),
+            metadata={
+                "tool_version": "0.5.0",
+                "timestamp": "t",
+                "agent_type": "chatbot",
+            },
+            prompt=PromptRemediation(
+                changes="improved", techniques_applied=["spotlighting"]
+            ),
         )
         d = report.to_dict()
         assert "prompt" in d["remediation"]
@@ -147,9 +156,13 @@ class TestRemediationReport:
     def test_report_with_all_layers(self):
         report = RemediationReport(
             metadata={"tool_version": "0.5.0", "timestamp": "t", "agent_type": "agent"},
-            prompt=PromptRemediation(changes="improved", techniques_applied=["spotlighting"]),
+            prompt=PromptRemediation(
+                changes="improved", techniques_applied=["spotlighting"]
+            ),
             tool=[Recommendation(severity="high", title="T1", description="D1")],
-            architecture=[Recommendation(severity="medium", title="T2", description="D2")],
+            architecture=[
+                Recommendation(severity="medium", title="T2", description="D2")
+            ],
         )
         d = report.to_dict()
         assert "prompt" in d["remediation"]
@@ -168,7 +181,11 @@ class TestRemediationReport:
 
     def test_summary_risk_level_low_when_no_recommendations(self):
         report = RemediationReport(
-            metadata={"tool_version": "0.5.0", "timestamp": "t", "agent_type": "chatbot"},
+            metadata={
+                "tool_version": "0.5.0",
+                "timestamp": "t",
+                "agent_type": "chatbot",
+            },
             prompt=PromptRemediation(changes="ok", techniques_applied=[]),
         )
         d = report.to_dict()
@@ -192,8 +209,11 @@ class TestToolLayer:
         )
         findings = [
             Finding(
-                id="f1", rule_id="TOOL-001", title="No policies",
-                severity="high", layer="tool",
+                id="f1",
+                rule_id="TOOL-001",
+                title="No policies",
+                severity="high",
+                layer="tool",
                 description="No tool usage policies defined",
                 recommendation="Add policies section",
             ),
@@ -236,13 +256,19 @@ class TestToolLayer:
         spec = _make_spec(tools=None, policies=None)
         findings = [
             Finding(
-                id="f1", rule_id="PROMPT-001", title="Prompt issue",
-                severity="high", layer="prompt",
+                id="f1",
+                rule_id="PROMPT-001",
+                title="Prompt issue",
+                severity="high",
+                layer="prompt",
                 description="Prompt problem",
             ),
             Finding(
-                id="f2", rule_id="ARCH-001", title="Arch issue",
-                severity="medium", layer="architecture",
+                id="f2",
+                rule_id="ARCH-001",
+                title="Arch issue",
+                severity="medium",
+                layer="architecture",
                 description="Arch problem",
             ),
         ]
@@ -279,9 +305,12 @@ class TestToolLayer:
 class TestArchLayer:
     def test_agent_without_escalation_gets_hitl_recommendation(self):
         """Agent without escalation rules should get HITL recommendation."""
-        spec = _make_spec(agent_type="agent", tools=[
-            ToolDef(name="tool1", description="d"),
-        ])
+        spec = _make_spec(
+            agent_type="agent",
+            tools=[
+                ToolDef(name="tool1", description="d"),
+            ],
+        )
         findings = []
         recs = remediate_architecture(spec, findings)
         hitl_recs = [r for r in recs if "human-in-the-loop" in r.title.lower()]
@@ -290,6 +319,7 @@ class TestArchLayer:
     def test_agent_with_escalation_no_hitl(self):
         """Agent with escalation rules should NOT get HITL recommendation."""
         from prompt_hardener.models import EscalationRule
+
         spec = _make_spec(
             agent_type="agent",
             tools=[ToolDef(name="tool1", description="d")],
@@ -345,7 +375,9 @@ class TestArchLayer:
         )
         findings = []
         recs = remediate_architecture(spec, findings)
-        mcp_recs = [r for r in recs if "mcp" in r.title.lower() or "sanitize" in r.title.lower()]
+        mcp_recs = [
+            r for r in recs if "mcp" in r.title.lower() or "sanitize" in r.title.lower()
+        ]
         assert len(mcp_recs) == 0
 
     def test_findings_converted(self):
@@ -353,8 +385,11 @@ class TestArchLayer:
         spec = _make_spec(agent_type="chatbot")
         findings = [
             Finding(
-                id="f1", rule_id="ARCH-001", title="Missing boundary",
-                severity="high", layer="architecture",
+                id="f1",
+                rule_id="ARCH-001",
+                title="Missing boundary",
+                severity="high",
+                layer="architecture",
                 description="No data boundaries",
                 recommendation="Add data boundaries",
             ),
@@ -665,6 +700,7 @@ class TestEngine:
 
             assert os.path.exists(output_path)
             import yaml
+
             with open(output_path, "r") as f:
                 data = yaml.safe_load(f)
             assert data["system_prompt"] == "New improved system prompt"
@@ -740,9 +776,13 @@ class TestCLIIntegration:
                 "prompt_hardener.main",
                 "remediate",
                 os.path.join(FIXTURES_DIR, "agent_insecure_spec.yaml"),
-                "--layers", "tool", "architecture",
-                "-ea", "openai",
-                "-em", "gpt-4o-mini",
+                "--layers",
+                "tool",
+                "architecture",
+                "-ea",
+                "openai",
+                "-em",
+                "gpt-4o-mini",
             ],
             capture_output=True,
             text=True,
@@ -834,12 +874,16 @@ class TestSchemaDriftGuard:
             schema = json.load(f)
 
         allowed_fields = set(
-            schema["properties"]["remediation"]["properties"]["prompt"]["properties"].keys()
+            schema["properties"]["remediation"]["properties"]["prompt"][
+                "properties"
+            ].keys()
         )
         pr = PromptRemediation(changes="test", techniques_applied=["x"])
         d = pr.to_dict()
         for key in d:
-            assert key in allowed_fields, "Unexpected field in prompt remediation: %s" % key
+            assert key in allowed_fields, (
+                "Unexpected field in prompt remediation: %s" % key
+            )
 
     def test_report_serializable_as_json(self):
         report = self._build_sample_report()
@@ -858,16 +902,19 @@ class TestAverageSatisfaction:
     def test_import_from_utils(self):
         """Verify average_satisfaction is importable from utils."""
         from prompt_hardener.utils import average_satisfaction
+
         assert callable(average_satisfaction)
 
     def test_import_from_main(self):
         """Verify main.py imports from utils (no local definition)."""
         import prompt_hardener.main as main_mod
+
         # average_satisfaction should be available as an imported name
         assert hasattr(main_mod, "average_satisfaction")
 
     def test_basic_calculation(self):
         from prompt_hardener.utils import average_satisfaction
+
         evaluation = {
             "Category1": {
                 "sub1": {"satisfaction": 8},
@@ -879,6 +926,7 @@ class TestAverageSatisfaction:
 
     def test_skips_critique_and_recommendation(self):
         from prompt_hardener.utils import average_satisfaction
+
         evaluation = {
             "Category1": {"sub1": {"satisfaction": 10}},
             "critique": {"text": "good"},
@@ -889,6 +937,7 @@ class TestAverageSatisfaction:
 
     def test_empty_returns_zero(self):
         from prompt_hardener.utils import average_satisfaction
+
         assert average_satisfaction({}) == 0.0
 
 
