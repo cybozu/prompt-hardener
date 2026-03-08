@@ -53,6 +53,37 @@ def parse_args() -> argparse.Namespace:
         help="Path to the agent_spec.yaml file to validate.",
     )
 
+    # --- analyze subcommand ---
+    analyze_parser = subparsers.add_parser(
+        "analyze", help="Run static security analysis on an agent_spec.yaml"
+    )
+    analyze_parser.add_argument(
+        "spec_path",
+        type=str,
+        help="Path to the agent_spec.yaml file to analyze.",
+    )
+    analyze_parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        default=None,
+        help="Output file path for the report. Defaults to stdout.",
+    )
+    analyze_parser.add_argument(
+        "--format",
+        choices=["json", "markdown", "both"],
+        default="json",
+        help="Output format. Default is 'json'.",
+    )
+    analyze_parser.add_argument(
+        "-l",
+        "--layers",
+        nargs="+",
+        choices=["prompt", "tool", "architecture"],
+        default=None,
+        help="Layers to analyze. Defaults to all applicable layers.",
+    )
+
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate a prompt")
 
     evaluate_parser.add_argument(
@@ -405,12 +436,60 @@ def run_validate(args: argparse.Namespace) -> None:
         print("  %d warning(s)" % len(result.warnings))
 
 
+def run_analyze_cmd(args: argparse.Namespace) -> None:
+    from prompt_hardener.analyze.engine import run_analyze
+    from prompt_hardener.analyze.markdown import render_markdown
+
+    try:
+        report = run_analyze(args.spec_path, layers=args.layers)
+    except ValueError as e:
+        print("\033[31m" + str(e) + "\033[0m")
+        raise SystemExit(1)
+
+    report_dict = report.to_dict()
+    fmt = getattr(args, "format", "json")
+
+    json_output = json.dumps(report_dict, indent=2, ensure_ascii=False)
+    md_output = render_markdown(report) if fmt in ("markdown", "both") else None
+
+    if args.output:
+        if fmt == "json":
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(json_output)
+            print("Analyze report written to %s" % args.output)
+        elif fmt == "markdown":
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(md_output)
+            print("Analyze report written to %s" % args.output)
+        elif fmt == "both":
+            # Write JSON
+            json_path = args.output
+            with open(json_path, "w", encoding="utf-8") as f:
+                f.write(json_output)
+            # Write Markdown alongside
+            md_path = args.output.rsplit(".", 1)[0] + ".md" if "." in args.output else args.output + ".md"
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(md_output)
+            print("Analyze reports written to %s and %s" % (json_path, md_path))
+    else:
+        if fmt == "json":
+            print(json_output)
+        elif fmt == "markdown":
+            print(md_output)
+        elif fmt == "both":
+            print(json_output)
+            print("\n---\n")
+            print(md_output)
+
+
 def main() -> None:
     args = parse_args()
     if args.command == "init":
         run_init(args)
     elif args.command == "validate":
         run_validate(args)
+    elif args.command == "analyze":
+        run_analyze_cmd(args)
     elif args.command == "webui":
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()

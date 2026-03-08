@@ -1,0 +1,53 @@
+version: "1.0"
+type: agent
+name: "Insecure Agent"
+description: "Intentionally weak agent spec for testing"
+
+system_prompt: |
+  Help users with their requests.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+tools:
+  - name: delete_account
+    description: "Delete a user account permanently"
+    parameters:
+      type: object
+      properties:
+        user_id:
+          type: string
+      required: [user_id]
+  - name: send_email
+    description: "Send an email to any address"
+    parameters:
+      type: object
+      properties:
+        to:
+          type: string
+        body:
+          type: string
+      required: [to, body]
+  - name: transfer_funds
+    description: "Transfer money between accounts"
+    parameters:
+      type: object
+      properties:
+        from_account:
+          type: string
+        to_account:
+          type: string
+        amount:
+          type: number
+      required: [from_account, to_account, amount]
+  - name: get_balance
+    description: "Get account balance"
+    parameters:
+      type: object
+      properties:
+        account_id:
+          type: string
+      required: [account_id]
+
+user_input_description: "User requests via chat"

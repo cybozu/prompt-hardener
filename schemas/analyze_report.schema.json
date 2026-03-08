@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cybozu/prompt-hardener/schemas/analyze_report.schema.json",
+  "title": "Prompt Hardener Analyze Report",
+  "description": "Schema for static analysis report output",
+  "type": "object",
+  "required": ["metadata", "summary", "findings"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["tool_version", "timestamp", "agent_name", "agent_type", "spec_digest", "rules_version", "rules_evaluated"],
+      "properties": {
+        "tool_version": {
+          "type": "string",
+          "description": "Prompt Hardener version"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Report generation time (ISO 8601)"
+        },
+        "agent_name": {
+          "type": "string",
+          "description": "Name of the agent from the spec"
+        },
+        "agent_type": {
+          "type": "string",
+          "enum": ["chatbot", "rag", "agent", "mcp-agent"]
+        },
+        "spec_digest": {
+          "type": "string",
+          "description": "SHA-256 hash of the input agent_spec.yaml"
+        },
+        "rules_version": {
+          "type": "string",
+          "description": "Version of the rule set used"
+        },
+        "rules_evaluated": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of rules evaluated"
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["risk_level", "overall_score", "scores_by_layer", "finding_counts"],
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "overall_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "scores_by_layer": {
+          "type": "object",
+          "patternProperties": {
+            "^(prompt|tool|architecture)$": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "additionalProperties": false
+        },
+        "finding_counts": {
+          "type": "object",
+          "required": ["critical", "high", "medium", "low", "total"],
+          "properties": {
+            "critical": { "type": "integer", "minimum": 0 },
+            "high": { "type": "integer", "minimum": 0 },
+            "medium": { "type": "integer", "minimum": 0 },
+            "low": { "type": "integer", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "attack_paths": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/attack_path" }
+    },
+    "recommended_fixes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/recommended_fix" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": ["id", "rule_id", "title", "severity", "layer", "description"],
+      "properties": {
+        "id": { "type": "string" },
+        "rule_id": { "type": "string" },
+        "title": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "layer": {
+          "type": "string",
+          "enum": ["prompt", "tool", "architecture"]
+        },
+        "description": { "type": "string" },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "spec_path": { "type": "string" },
+        "recommendation": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "attack_path": {
+      "type": "object",
+      "required": ["id", "name", "severity", "description"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "description": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "related_findings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "recommended_fix": {
+      "type": "object",
+      "required": ["id", "finding_id", "layer", "title", "description", "priority", "effort"],
+      "properties": {
+        "id": { "type": "string" },
+        "finding_id": { "type": "string" },
+        "layer": {
+          "type": "string",
+          "enum": ["prompt", "tool", "architecture"]
+        },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "effort": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
