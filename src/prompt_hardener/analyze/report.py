@@ -64,6 +64,8 @@ class AnalyzeReport:
     findings: List[Finding] = field(default_factory=list)
     attack_paths: List[AttackPath] = field(default_factory=list)
     recommended_fixes: List[RecommendedFix] = field(default_factory=list)
+    prompt_evaluation: Optional[Dict] = None
+    prompt_eval_score: Optional[float] = None
 
     def to_dict(self):
         # type: () -> dict

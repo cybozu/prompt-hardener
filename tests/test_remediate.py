@@ -394,8 +394,8 @@ class TestArchLayer:
 
 
 class TestPromptLayer:
-    @patch("prompt_hardener.remediate.prompt_layer.improve_prompt")
-    @patch("prompt_hardener.remediate.prompt_layer.evaluate_prompt")
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
     def test_iterative_loop(self, mock_eval, mock_improve):
         """Test that evaluate/improve loop runs correct number of iterations."""
         from prompt_hardener.remediate.prompt_layer import remediate_prompt
@@ -425,8 +425,8 @@ class TestPromptLayer:
         assert mock_eval.call_count >= 2
         assert mock_improve.call_count == 3
 
-    @patch("prompt_hardener.remediate.prompt_layer.improve_prompt")
-    @patch("prompt_hardener.remediate.prompt_layer.evaluate_prompt")
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
     def test_threshold_reached_early(self, mock_eval, mock_improve):
         """Test that loop stops when threshold is reached."""
         from prompt_hardener.remediate.prompt_layer import remediate_prompt
@@ -455,8 +455,8 @@ class TestPromptLayer:
         assert mock_improve.call_count == 1
         assert mock_eval.call_count == 2
 
-    @patch("prompt_hardener.remediate.prompt_layer.improve_prompt")
-    @patch("prompt_hardener.remediate.prompt_layer.evaluate_prompt")
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
     def test_system_prompt_extraction_openai(self, mock_eval, mock_improve):
         """Test system prompt extraction from OpenAI-format PromptInput."""
         from prompt_hardener.remediate.prompt_layer import remediate_prompt
@@ -481,8 +481,8 @@ class TestPromptLayer:
 
         assert improved == "New secure prompt"
 
-    @patch("prompt_hardener.remediate.prompt_layer.improve_prompt")
-    @patch("prompt_hardener.remediate.prompt_layer.evaluate_prompt")
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
     def test_system_prompt_extraction_claude(self, mock_eval, mock_improve):
         """Test system prompt extraction from Claude-format PromptInput."""
         from prompt_hardener.remediate.prompt_layer import remediate_prompt
@@ -512,8 +512,8 @@ class TestPromptLayer:
 
         assert improved == "New secure Claude prompt"
 
-    @patch("prompt_hardener.remediate.prompt_layer.improve_prompt")
-    @patch("prompt_hardener.remediate.prompt_layer.evaluate_prompt")
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
     def test_techniques_applied_in_remediation(self, mock_eval, mock_improve):
         """Test that specified techniques are recorded in remediation."""
         from prompt_hardener.remediate.prompt_layer import remediate_prompt

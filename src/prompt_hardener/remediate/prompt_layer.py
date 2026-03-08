@@ -1,14 +1,11 @@
-"""Prompt layer remediation: iterative evaluate/improve loop."""
+"""Prompt layer remediation: delegates to shared improvement loop."""
 
-import json
 from typing import List, Optional, Tuple
 
-from prompt_hardener.evaluate import evaluate_prompt
-from prompt_hardener.improve import improve_prompt
 from prompt_hardener.models import AgentSpec
+from prompt_hardener.prompt_improvement import run_improvement_loop
 from prompt_hardener.remediate.report import PromptRemediation
 from prompt_hardener.schema import PromptInput
-from prompt_hardener.utils import average_satisfaction
 
 
 def _extract_system_prompt(prompt_input: PromptInput) -> str:
@@ -42,79 +39,33 @@ def remediate_prompt(
     current_prompt = spec.to_prompt_input()
     original_system_prompt = _extract_system_prompt(current_prompt)
 
-    techniques = apply_techniques or []
-
-    # Initial evaluation
-    evaluation = evaluate_prompt(
-        eval_api_mode,
-        eval_model,
-        current_prompt,
-        spec.user_input_description,
-        apply_techniques=techniques,
+    result = run_improvement_loop(
+        prompt_input=current_prompt,
+        eval_api_mode=eval_api_mode,
+        eval_model=eval_model,
+        attack_api_mode=eval_api_mode,  # remediate uses eval API for attacks
+        max_iterations=max_iterations,
+        threshold=threshold,
+        apply_techniques=apply_techniques,
+        user_input_description=spec.user_input_description,
         aws_region=aws_region,
         aws_profile=aws_profile,
     )
-    initial_score = average_satisfaction(evaluation)
 
-    final_score = initial_score
-    iteration_count = 0
-
-    for i in range(max_iterations):
-        iteration_count = i + 1
-
-        if i > 0:
-            evaluation = evaluate_prompt(
-                eval_api_mode,
-                eval_model,
-                current_prompt,
-                spec.user_input_description,
-                apply_techniques=techniques,
-                aws_region=aws_region,
-                aws_profile=aws_profile,
-            )
-            final_score = average_satisfaction(evaluation)
-            if final_score >= threshold:
-                break
-
-        # Improve
-        current_prompt = improve_prompt(
-            eval_api_mode,
-            eval_model,
-            eval_api_mode,  # attack_api_mode = eval_api_mode for remediate
-            current_prompt,
-            evaluation,
-            spec.user_input_description,
-            apply_techniques=techniques,
-            aws_region=aws_region,
-            aws_profile=aws_profile,
-        )
-
-    # Final evaluation if we haven't already met threshold
-    if max_iterations == 1 or final_score < threshold:
-        evaluation = evaluate_prompt(
-            eval_api_mode,
-            eval_model,
-            current_prompt,
-            spec.user_input_description,
-            apply_techniques=techniques,
-            aws_region=aws_region,
-            aws_profile=aws_profile,
-        )
-        final_score = average_satisfaction(evaluation)
-
-    improved_system_prompt = _extract_system_prompt(current_prompt)
+    improved_system_prompt = _extract_system_prompt(result.improved_prompt)
 
     # Build changes summary
     changes = (
         "Iterative prompt improvement: %d iteration(s). "
         "Initial score: %.2f -> Final score: %.2f."
-        % (iteration_count, initial_score, final_score)
+        % (result.iteration_count, result.initial_score, result.final_score)
     )
     if improved_system_prompt != original_system_prompt:
         changes += " System prompt was modified."
     else:
         changes += " System prompt unchanged (already meets threshold or no improvement possible)."
 
+    techniques = apply_techniques or []
     used_techniques = techniques if techniques else [
         "spotlighting",
         "random_sequence_enclosure",

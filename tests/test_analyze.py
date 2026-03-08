@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+from unittest.mock import patch
 
 import jsonschema
 import pytest
@@ -39,6 +40,7 @@ from prompt_hardener.analyze.scoring import (
     compute_risk_level,
     compute_scores,
 )
+from prompt_hardener.models import AgentSpec, ProviderConfig
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), "..", "examples")
@@ -460,7 +462,93 @@ class TestExampleAnalysis:
 
 
 # =========================================================================
-# Group 10: CLI Integration
+# Group 10: LLM Evaluation in Analyze
+# =========================================================================
+
+
+class TestLLMEvaluation:
+    @patch("prompt_hardener.evaluate.evaluate_prompt")
+    def test_run_analyze_with_eval_params(self, mock_eval):
+        """When eval_api_mode/eval_model are set, prompt_evaluation is populated."""
+        mock_eval.return_value = {
+            "Spotlighting": {"Tag user inputs": {"satisfaction": 7}},
+        }
+        spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
+        report = run_analyze(
+            spec_path,
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+        )
+        assert report.prompt_evaluation is not None
+        assert report.prompt_eval_score == 7.0
+        mock_eval.assert_called_once()
+
+    def test_run_analyze_without_eval_params(self):
+        """When eval_api_mode is None, prompt_evaluation remains None."""
+        spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
+        report = run_analyze(spec_path)
+        assert report.prompt_evaluation is None
+        assert report.prompt_eval_score is None
+
+    @patch("prompt_hardener.evaluate.evaluate_prompt")
+    def test_llm_eval_not_in_to_dict(self, mock_eval):
+        """LLM evaluation results should NOT appear in to_dict() for schema compat."""
+        mock_eval.return_value = {
+            "Spotlighting": {"Tag user inputs": {"satisfaction": 8}},
+        }
+        spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
+        report = run_analyze(
+            spec_path,
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+        )
+        d = report.to_dict()
+        assert "prompt_evaluation" not in d
+        assert "prompt_eval_score" not in d
+        # Validate against schema still passes
+        schema_path = os.path.join(SCHEMAS_DIR, "analyze_report.schema.json")
+        with open(schema_path, "r") as f:
+            schema = json.load(f)
+        jsonschema.validate(d, schema)
+
+    def test_run_analyze_with_agent_spec_object(self):
+        """run_analyze() accepts an AgentSpec object directly."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test Bot",
+            system_prompt="You are a helpful assistant.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+        )
+        report = run_analyze(spec, layers=["prompt"])
+        assert report.metadata.agent_name == "Test Bot"
+        assert report.metadata.spec_digest == "N/A"
+
+    @patch("prompt_hardener.evaluate.evaluate_prompt")
+    def test_run_analyze_agent_spec_with_eval(self, mock_eval):
+        """AgentSpec object + LLM evaluation works correctly."""
+        mock_eval.return_value = {
+            "Spotlighting": {"Tag user inputs": {"satisfaction": 6}},
+        }
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test Bot",
+            system_prompt="You are a helpful assistant.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+        )
+        report = run_analyze(
+            spec,
+            layers=["prompt"],
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+        )
+        assert report.prompt_evaluation is not None
+        assert report.prompt_eval_score == 6.0
+
+
+# =========================================================================
+# Group 11: CLI Integration
 # =========================================================================
 
 

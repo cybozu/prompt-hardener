@@ -2,8 +2,6 @@ from typing import Dict, Any, Optional
 import argparse
 import json
 import os
-from prompt_hardener.evaluate import evaluate_prompt
-from prompt_hardener.improve import improve_prompt
 from prompt_hardener.utils import average_satisfaction
 from prompt_hardener.attack import run_injection_test
 from prompt_hardener.gen_report import (
@@ -15,6 +13,7 @@ from prompt_hardener.prompt import (
     write_prompt_output,
     show_prompt,
 )
+from prompt_hardener.prompt_improvement import run_improvement_loop
 from prompt_hardener.webui import launch_webui
 
 
@@ -83,6 +82,49 @@ def parse_args() -> argparse.Namespace:
         choices=["prompt", "tool", "architecture"],
         default=None,
         help="Layers to analyze. Defaults to all applicable layers.",
+    )
+    analyze_parser.add_argument(
+        "-ea",
+        "--eval-api-mode",
+        type=str,
+        choices=["openai", "claude", "bedrock"],
+        default=None,
+        help="LLM API for prompt-layer evaluation. If not specified, only static analysis is performed.",
+    )
+    analyze_parser.add_argument(
+        "-em",
+        "--eval-model",
+        type=str,
+        default=None,
+        help="Model for prompt-layer evaluation.",
+    )
+    analyze_parser.add_argument(
+        "-a",
+        "--apply-techniques",
+        nargs="+",
+        choices=[
+            "spotlighting",
+            "random_sequence_enclosure",
+            "instruction_defense",
+            "role_consistency",
+            "secrets_exclusion",
+        ],
+        default=None,
+        help="Techniques for prompt evaluation.",
+    )
+    analyze_parser.add_argument(
+        "-ar",
+        "--aws-region",
+        type=str,
+        default="us-east-1",
+        help="AWS region for Bedrock API mode. Default is 'us-east-1'.",
+    )
+    analyze_parser.add_argument(
+        "-ap",
+        "--aws-profile",
+        type=str,
+        default=None,
+        help="AWS profile name for Bedrock API mode.",
     )
 
     # --- remediate subcommand ---
@@ -669,8 +711,22 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
     from prompt_hardener.analyze.engine import run_analyze
     from prompt_hardener.analyze.markdown import render_markdown
 
+    eval_api_mode = getattr(args, "eval_api_mode", None)
+    eval_model = getattr(args, "eval_model", None)
+    apply_techniques = getattr(args, "apply_techniques", None)
+    aws_region = getattr(args, "aws_region", None)
+    aws_profile = getattr(args, "aws_profile", None)
+
     try:
-        report = run_analyze(args.spec_path, layers=args.layers)
+        report = run_analyze(
+            args.spec_path,
+            layers=args.layers,
+            eval_api_mode=eval_api_mode,
+            eval_model=eval_model,
+            apply_techniques=apply_techniques,
+            aws_region=aws_region,
+            aws_profile=aws_profile,
+        )
     except ValueError as e:
         print("\033[31m" + str(e) + "\033[0m")
         raise SystemExit(1)
@@ -709,6 +765,20 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
             print(json_output)
             print("\n---\n")
             print(md_output)
+
+    # Print LLM evaluation results if available
+    if report.prompt_evaluation is not None:
+        print(
+            "\033[35m"
+            + "\n--- LLM Prompt Evaluation ---"
+            + "\033[0m"
+        )
+        print(json.dumps(report.prompt_evaluation, indent=2, ensure_ascii=False))
+        print(
+            "\033[33m"
+            + "Prompt Evaluation Score: %.2f" % report.prompt_eval_score
+            + "\033[0m"
+        )
 
 
 def run_remediate_cmd(args: argparse.Namespace) -> None:
@@ -764,6 +834,33 @@ def run_remediate_cmd(args: argparse.Namespace) -> None:
         print(json_output)
 
 
+def _prompt_input_to_agent_spec(prompt_input, args):
+    """Build a temporary AgentSpec from PromptInput + CLI args for analyze."""
+    from prompt_hardener.models import AgentSpec, ProviderConfig
+    from prompt_hardener.remediate.prompt_layer import _extract_system_prompt
+
+    system_prompt = _extract_system_prompt(prompt_input)
+    api_mode = args.eval_api_mode
+    model = args.eval_model
+
+    # Extract non-system messages
+    messages = None
+    if prompt_input.messages:
+        messages = [m for m in prompt_input.messages if m.get("role") != "system"]
+        if not messages:
+            messages = None
+
+    return AgentSpec(
+        version="1.0",
+        type="chatbot",
+        name="(from prompt file)",
+        system_prompt=system_prompt,
+        provider=ProviderConfig(api=api_mode, model=model),
+        messages=messages,
+        user_input_description=getattr(args, "user_input_description", None),
+    )
+
+
 def main() -> None:
     args = parse_args()
     if args.command == "init":
@@ -780,6 +877,8 @@ def main() -> None:
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()
     elif args.command == "evaluate":
+        from prompt_hardener.analyze.engine import run_analyze
+
         current_prompt = parse_prompt_input(
             args.target_prompt_path, args.input_mode, args.input_format
         )
@@ -791,17 +890,20 @@ def main() -> None:
         )
         print(show_prompt(current_prompt))
 
-        evaluation = evaluate_prompt(
-            args.eval_api_mode,
-            args.eval_model,
-            current_prompt,
-            args.user_input_description,
+        # Build temporary AgentSpec and run analyze with LLM evaluation
+        temp_spec = _prompt_input_to_agent_spec(current_prompt, args)
+        report = run_analyze(
+            temp_spec,
+            layers=["prompt"],
+            eval_api_mode=args.eval_api_mode,
+            eval_model=args.eval_model,
             apply_techniques=args.apply_techniques,
             aws_region=args.aws_region,
             aws_profile=args.aws_profile,
         )
 
-        avg_score = average_satisfaction(evaluation)
+        evaluation = report.prompt_evaluation
+        avg_score = report.prompt_eval_score
         print("\033[35m" + "\n🧪 Evaluation Result:" + "\033[0m")
         print(json.dumps(evaluation, indent=2, ensure_ascii=False))
         print(
@@ -863,19 +965,29 @@ def main() -> None:
         if args.judge_model is None:
             args.judge_model = args.eval_model
 
-        initial_prompt = current_prompt
         apply_techniques = args.apply_techniques or []
 
-        initial_evaluation = evaluate_prompt(
-            args.eval_api_mode,
-            args.eval_model,
-            initial_prompt,
-            args.user_input_description,
+        # Use shared improvement loop
+        result = run_improvement_loop(
+            prompt_input=current_prompt,
+            eval_api_mode=args.eval_api_mode,
+            eval_model=args.eval_model,
+            attack_api_mode=args.attack_api_mode,
+            max_iterations=args.max_iterations,
+            threshold=args.threshold,
             apply_techniques=apply_techniques,
+            user_input_description=args.user_input_description,
             aws_region=args.aws_region,
             aws_profile=args.aws_profile,
         )
-        initial_avg_score = average_satisfaction(initial_evaluation)
+
+        initial_prompt = result.initial_prompt
+        initial_evaluation = result.initial_evaluation
+        initial_avg_score = result.initial_score
+        improved_prompt = result.improved_prompt
+        evaluation_result = result.final_evaluation
+        final_avg_score = result.final_score
+
         print("\033[35m" + "\n🧪 Initial Evaluation Result:" + "\033[0m")
         print(json.dumps(initial_evaluation, indent=2, ensure_ascii=False))
         print(
@@ -883,70 +995,13 @@ def main() -> None:
             + f"\n📊 Initial Average Satisfaction Score: {initial_avg_score:.2f}"
             + "\033[0m"
         )
-
-        evaluation_result = initial_evaluation
-        final_avg_score = initial_avg_score
-
-        for i in range(args.max_iterations):
-            print("\033[36m" + f"\n{'=' * 20} Iteration {i + 1} {'=' * 20}" + "\033[0m")
-            if i > 0:
-                evaluation_result = evaluate_prompt(
-                    args.eval_api_mode,
-                    args.eval_model,
-                    current_prompt,
-                    args.user_input_description,
-                    apply_techniques=apply_techniques,
-                    aws_region=args.aws_region,
-                    aws_profile=args.aws_profile,
-                )
-                print("\033[35m" + "🔍 Evaluation Result:" + "\033[0m")
-                print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
-
-                final_avg_score = average_satisfaction(evaluation_result)
-                print(
-                    "\033[33m"
-                    + f"📊 Average Satisfaction Score: {final_avg_score:.2f}"
-                    + "\033[0m"
-                )
-
-                if final_avg_score >= args.threshold:
-                    print(
-                        "\033[32m"
-                        + "✅ Prompt meets the required security threshold. Stopping refinement."
-                        + "\033[0m"
-                    )
-                    break
-
-            current_prompt = improve_prompt(
-                args.eval_api_mode,
-                args.eval_model,
-                args.attack_api_mode,
-                current_prompt,
-                evaluation_result,
-                args.user_input_description,
-                apply_techniques=apply_techniques,
-                aws_region=args.aws_region,
-                aws_profile=args.aws_profile,
-            )
-            print("\033[32m" + "\n✅ Improved Prompt:" + "\033[0m")
-            print(show_prompt(current_prompt))
-
-        if args.max_iterations == 1 or final_avg_score < args.threshold:
-            evaluation_result = evaluate_prompt(
-                args.eval_api_mode,
-                args.eval_model,
-                current_prompt,
-                args.user_input_description,
-                apply_techniques=apply_techniques,
-                aws_region=args.aws_region,
-                aws_profile=args.aws_profile,
-            )
-            final_avg_score = average_satisfaction(evaluation_result)
-            print("\033[35m" + "\n🎯 Final Evaluation Result:" + "\033[0m")
-            print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
-            print(
-                "\033[33m" + f"\n📈 Final Avg Score: {final_avg_score:.2f}" + "\033[0m"
-            )
+        print("\033[35m" + "\n🎯 Final Evaluation Result:" + "\033[0m")
+        print(json.dumps(evaluation_result, indent=2, ensure_ascii=False))
+        print(
+            "\033[33m" + f"\n📈 Final Avg Score: {final_avg_score:.2f}" + "\033[0m"
+        )
+        print("\033[32m" + "\n✅ Improved Prompt:" + "\033[0m")
+        print(show_prompt(improved_prompt))
 
         # Write the improved prompt to output file
         if args.output_path:
@@ -958,7 +1013,7 @@ def main() -> None:
             try:
                 write_prompt_output(
                     args.output_path,
-                    current_prompt,
+                    improved_prompt,
                     args.input_mode,
                     args.input_format,
                 )
@@ -982,7 +1037,7 @@ def main() -> None:
                 + "\033[0m"
             )
             attack_results = run_injection_test(
-                current_prompt,
+                improved_prompt,
                 args.attack_api_mode,
                 args.attack_model,
                 args.judge_api_mode,
@@ -1004,7 +1059,7 @@ def main() -> None:
             generate_improvement_report(
                 initial_prompt,
                 initial_evaluation,
-                current_prompt,
+                improved_prompt,
                 evaluation_result,
                 attack_results,
                 report_dir_path,

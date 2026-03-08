@@ -2,7 +2,7 @@
 
 import hashlib
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from prompt_hardener.agent_spec import load_and_validate
 from prompt_hardener.analyze.report import (
@@ -135,26 +135,48 @@ def _compute_finding_counts(findings):
     return counts
 
 
-def run_analyze(spec_path, layers=None):
-    # type: (str, Optional[List[str]]) -> AnalyzeReport
-    """Run static analysis on an agent spec file.
+def run_analyze(
+    spec_path_or_spec,
+    layers=None,
+    eval_api_mode=None,
+    eval_model=None,
+    apply_techniques=None,
+    aws_region=None,
+    aws_profile=None,
+):
+    # type: (Union[str, AgentSpec], Optional[List[str]], Optional[str], Optional[str], Optional[List[str]], Optional[str], Optional[str]) -> AnalyzeReport
+    """Run static analysis on an agent spec file, with optional LLM evaluation.
 
     Args:
-        spec_path: Path to the agent_spec.yaml file.
+        spec_path_or_spec: Path to the agent_spec.yaml file, or an AgentSpec object.
         layers: Optional list of layers to analyze (e.g., ["prompt", "tool"]).
+        eval_api_mode: LLM API for prompt-layer evaluation (optional).
+            If not specified, only static analysis is performed.
+        eval_model: Model for prompt-layer evaluation (optional).
+        apply_techniques: Techniques for prompt evaluation (optional).
+        aws_region: AWS region for Bedrock (optional).
+        aws_profile: AWS profile for Bedrock (optional).
 
     Returns:
-        AnalyzeReport with findings, scores, attack paths, and fixes.
+        AnalyzeReport with findings, scores, attack paths, fixes,
+        and optionally prompt_evaluation/prompt_eval_score.
 
     Raises:
         ValueError: If the spec file cannot be loaded.
         SystemExit: If the spec has validation errors.
     """
     # Load and validate
-    spec, result = load_and_validate(spec_path)
-    if not result.is_valid:
-        error_msgs = "; ".join(str(e) for e in result.errors)
-        raise SystemExit("Spec validation failed: %s" % error_msgs)
+    if isinstance(spec_path_or_spec, AgentSpec):
+        spec = spec_path_or_spec
+        spec_path = None
+        spec_digest = "N/A"
+    else:
+        spec_path = spec_path_or_spec
+        spec, result = load_and_validate(spec_path)
+        if not result.is_valid:
+            error_msgs = "; ".join(str(e) for e in result.errors)
+            raise SystemExit("Spec validation failed: %s" % error_msgs)
+        spec_digest = _compute_spec_digest(spec_path)
 
     # Ensure rule modules are loaded
     _ensure_rules_loaded()
@@ -186,7 +208,7 @@ def run_analyze(spec_path, layers=None):
         timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         agent_name=spec.name,
         agent_type=spec.type,
-        spec_digest=_compute_spec_digest(spec_path),
+        spec_digest=spec_digest,
         rules_version=RULES_VERSION,
         rules_evaluated=len(rules),
     )
@@ -199,10 +221,31 @@ def run_analyze(spec_path, layers=None):
         finding_counts=_compute_finding_counts(all_findings),
     )
 
+    # Optional LLM evaluation
+    prompt_evaluation = None
+    prompt_eval_score = None
+    if eval_api_mode is not None and eval_model is not None:
+        from prompt_hardener.evaluate import evaluate_prompt
+        from prompt_hardener.utils import average_satisfaction
+
+        prompt_input = spec.to_prompt_input()
+        prompt_evaluation = evaluate_prompt(
+            eval_api_mode,
+            eval_model,
+            prompt_input,
+            spec.user_input_description,
+            apply_techniques=apply_techniques,
+            aws_region=aws_region,
+            aws_profile=aws_profile,
+        )
+        prompt_eval_score = average_satisfaction(prompt_evaluation)
+
     return AnalyzeReport(
         metadata=metadata,
         summary=summary,
         findings=all_findings,
         attack_paths=attack_paths,
         recommended_fixes=fixes,
+        prompt_evaluation=prompt_evaluation,
+        prompt_eval_score=prompt_eval_score,
     )
