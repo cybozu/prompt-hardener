@@ -1,6 +1,6 @@
 """Prompt layer remediation: delegates to shared improvement loop."""
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from prompt_hardener.models import AgentSpec
 from prompt_hardener.prompt_improvement import run_improvement_loop
@@ -31,6 +31,7 @@ def remediate_prompt(
     findings: Optional[List[Any]] = None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
+    on_progress: Optional[Callable[[str], None]] = None,
 ) -> Tuple[PromptRemediation, str]:
     """Run iterative evaluate/improve loop on the spec's system prompt.
 
@@ -54,6 +55,7 @@ def remediate_prompt(
         agent_context=agent_context,
         aws_region=aws_region,
         aws_profile=aws_profile,
+        on_progress=on_progress,
     )
 
     improved_system_prompt = _extract_system_prompt(result.improved_prompt)

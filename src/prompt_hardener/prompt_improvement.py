@@ -4,7 +4,7 @@ Used by both the `improve` CLI command and `remediate` prompt layer.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from prompt_hardener.evaluate import evaluate_prompt
 from prompt_hardener.improve import improve_prompt
@@ -41,6 +41,7 @@ def run_improvement_loop(
     agent_context=None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
+    on_progress: Optional[Callable[[str], None]] = None,
 ) -> ImprovementResult:
     """Run the iterative evaluate/improve loop.
 
@@ -66,6 +67,8 @@ def run_improvement_loop(
     current_prompt = prompt_input
 
     # Initial evaluation
+    if on_progress is not None:
+        on_progress("Evaluating prompt (initial)...")
     initial_evaluation = evaluate_prompt(
         eval_api_mode,
         eval_model,
@@ -87,6 +90,11 @@ def run_improvement_loop(
         iteration_count = i + 1
 
         if i > 0:
+            if on_progress is not None:
+                on_progress(
+                    "Iteration %d/%d: evaluating (score: %.1f)..."
+                    % (iteration_count, max_iterations, final_score)
+                )
             evaluation_result = evaluate_prompt(
                 eval_api_mode,
                 eval_model,
@@ -103,6 +111,11 @@ def run_improvement_loop(
                 break
 
         # Improve
+        if on_progress is not None:
+            on_progress(
+                "Iteration %d/%d: improving..."
+                % (iteration_count, max_iterations)
+            )
         current_prompt = improve_prompt(
             eval_api_mode,
             eval_model,
@@ -119,6 +132,8 @@ def run_improvement_loop(
 
     # Final evaluation if we haven't already met threshold
     if max_iterations == 1 or final_score < threshold:
+        if on_progress is not None:
+            on_progress("Final evaluation...")
         evaluation_result = evaluate_prompt(
             eval_api_mode,
             eval_model,

@@ -3,7 +3,7 @@
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from prompt_hardener.agent_spec import load_and_validate
 from prompt_hardener.attack import AttackResult, execute_single_attack
@@ -150,6 +150,7 @@ def run_simulate(
     separator: Optional[str] = None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
+    on_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> SimulationReport:
     """Run attack simulation against an agent spec.
 
@@ -204,6 +205,8 @@ def run_simulate(
         ]
 
     # --- Execute attacks ---
+    total_payloads = sum(len(s.payloads) for s in runnable)
+    payload_idx = 0
     scenario_results = []  # type: List[ScenarioResult]
     for scenario in runnable:
         # Build success_criteria string from scenario
@@ -214,9 +217,9 @@ def run_simulate(
             )
 
         for payload in scenario.payloads:
-            print(
-                "[Simulate] Scenario: %s | Payload: %.60s..." % (scenario.id, payload)
-            )
+            payload_idx += 1
+            if on_progress is not None:
+                on_progress(payload_idx, total_payloads, scenario.id)
 
             attack_result = execute_single_attack(
                 prompt=prompt_input,

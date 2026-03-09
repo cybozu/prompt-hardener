@@ -699,6 +699,7 @@ def run_validate(args: argparse.Namespace) -> None:
 
 
 def run_simulate_cmd(args: argparse.Namespace) -> None:
+    from prompt_hardener.progress import ProgressBar
     from prompt_hardener.simulate import run_simulate
 
     # Resolve fallback parameters
@@ -715,6 +716,18 @@ def run_simulate_cmd(args: argparse.Namespace) -> None:
         [layer.strip() for layer in args.layers.split(",")] if args.layers else None
     )
 
+    # We need a mutable reference so the callback can call advance()
+    pb_holder = [None]  # type: list
+
+    def _on_progress(current: int, total: int, scenario_id: str) -> None:
+        pb = pb_holder[0]
+        if pb is None:
+            # Lazily create ProgressBar on first call (total is now known)
+            pb_holder[0] = ProgressBar(total=total, message="Simulating")
+            pb_holder[0].__enter__()
+            pb = pb_holder[0]
+        pb.advance(scenario_id)
+
     try:
         report = run_simulate(
             spec_path=args.spec_path,
@@ -728,10 +741,14 @@ def run_simulate_cmd(args: argparse.Namespace) -> None:
             separator=args.separator,
             aws_region=args.aws_region,
             aws_profile=args.aws_profile,
+            on_progress=_on_progress,
         )
     except ValueError as e:
         print("\033[31m" + str(e) + "\033[0m")
         raise SystemExit(1)
+    finally:
+        if pb_holder[0] is not None:
+            pb_holder[0].__exit__(None, None, None)
 
     report_dict = report.to_dict()
     json_output = json.dumps(report_dict, indent=2, ensure_ascii=False)
@@ -758,6 +775,7 @@ def run_simulate_cmd(args: argparse.Namespace) -> None:
 def run_analyze_cmd(args: argparse.Namespace) -> None:
     from prompt_hardener.analyze.engine import run_analyze
     from prompt_hardener.analyze.markdown import render_markdown
+    from prompt_hardener.progress import Spinner
 
     eval_api_mode = getattr(args, "eval_api_mode", None)
     eval_model = getattr(args, "eval_model", None)
@@ -765,16 +783,22 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
     aws_region = getattr(args, "aws_region", None)
     aws_profile = getattr(args, "aws_profile", None)
 
+    if eval_api_mode:
+        spinner_msg = "Analyzing (static rules + LLM evaluation)..."
+    else:
+        spinner_msg = "Analyzing (static rules)..."
+
     try:
-        report = run_analyze(
-            args.spec_path,
-            layers=args.layers,
-            eval_api_mode=eval_api_mode,
-            eval_model=eval_model,
-            apply_techniques=apply_techniques,
-            aws_region=aws_region,
-            aws_profile=aws_profile,
-        )
+        with Spinner(spinner_msg):
+            report = run_analyze(
+                args.spec_path,
+                layers=args.layers,
+                eval_api_mode=eval_api_mode,
+                eval_model=eval_model,
+                apply_techniques=apply_techniques,
+                aws_region=aws_region,
+                aws_profile=aws_profile,
+            )
     except ValueError as e:
         print("\033[31m" + str(e) + "\033[0m")
         raise SystemExit(1)
@@ -830,21 +854,29 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
 
 
 def run_remediate_cmd(args: argparse.Namespace) -> None:
+    from prompt_hardener.progress import Spinner
     from prompt_hardener.remediate.engine import run_remediate
 
+    spinner = Spinner("Remediating...")
+
+    def _on_progress(message: str) -> None:
+        spinner.update(message)
+
     try:
-        report = run_remediate(
-            spec_path=args.spec_path,
-            eval_api_mode=args.eval_api_mode,
-            eval_model=args.eval_model,
-            layers=args.layers,
-            max_iterations=args.max_iterations,
-            threshold=args.threshold,
-            apply_techniques=args.apply_techniques,
-            output_path=args.output_path,
-            aws_region=args.aws_region,
-            aws_profile=args.aws_profile,
-        )
+        with spinner:
+            report = run_remediate(
+                spec_path=args.spec_path,
+                eval_api_mode=args.eval_api_mode,
+                eval_model=args.eval_model,
+                layers=args.layers,
+                max_iterations=args.max_iterations,
+                threshold=args.threshold,
+                apply_techniques=args.apply_techniques,
+                output_path=args.output_path,
+                aws_region=args.aws_region,
+                aws_profile=args.aws_profile,
+                on_progress=_on_progress,
+            )
     except (ValueError, SystemExit) as e:
         print("\033[31m" + str(e) + "\033[0m")
         raise SystemExit(1)

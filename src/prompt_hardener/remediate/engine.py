@@ -2,7 +2,7 @@
 
 import hashlib
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from prompt_hardener.agent_spec import load_and_validate, write_updated_spec
 from prompt_hardener.analyze.engine import run_analyze
@@ -65,6 +65,7 @@ def run_remediate(
     output_path: Optional[str] = None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
+    on_progress: Optional[Callable[[str], None]] = None,
 ) -> RemediationReport:
     """Run remediation on an agent spec.
 
@@ -129,6 +130,8 @@ def run_remediate(
     arch_recommendations = None
 
     if "prompt" in active_layers:
+        if on_progress is not None:
+            on_progress("Remediating prompt layer...")
         prompt_findings = [f for f in all_findings if f.layer == "prompt"]
         prompt_remediation, improved_system_prompt = remediate_prompt(
             spec=spec,
@@ -140,12 +143,17 @@ def run_remediate(
             findings=prompt_findings or None,
             aws_region=aws_region,
             aws_profile=aws_profile,
+            on_progress=on_progress,
         )
 
     if "tool" in active_layers:
+        if on_progress is not None:
+            on_progress("Remediating tool layer...")
         tool_recommendations = remediate_tool(spec, all_findings)
 
     if "architecture" in active_layers:
+        if on_progress is not None:
+            on_progress("Remediating architecture layer...")
         arch_recommendations = remediate_architecture(spec, all_findings)
 
     # Compute safe spec patches (tool/arch auto-apply)
