@@ -96,6 +96,11 @@
             "techniques_applied": {
               "type": "array",
               "items": { "type": "string" }
+            },
+            "findings_addressed": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Rule IDs of static analysis findings addressed during prompt remediation"
             }
           },
           "additionalProperties": false

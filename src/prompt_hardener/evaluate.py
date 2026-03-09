@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from prompt_hardener.llm_client import call_llm_api_for_eval
 from prompt_hardener.schema import PromptInput
 
@@ -9,6 +9,7 @@ def evaluate_prompt(
     target_prompt: PromptInput,
     user_input_description: Optional[str] = None,
     apply_techniques: Optional[List[str]] = None,
+    findings: Optional[List[Any]] = None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
 ) -> Dict:
@@ -94,6 +95,18 @@ def evaluate_prompt(
             }
         }
 
+    # Add findings-based evaluation criteria
+    if findings:
+        findings_criteria = {}
+        for f in findings:
+            findings_criteria["%s: %s" % (f.rule_id, f.title)] = {
+                "satisfaction": "0-10",
+                "mark": "❌/⚠️/✅",
+                "comment": "...",
+            }
+        if findings_criteria:
+            json_format_sections["Static Analysis Findings"] = findings_criteria
+
     # Build the JSON format string
     import json
 
@@ -154,6 +167,13 @@ Use these patterns when judging each item:"""
     - ✅ No hardcoded sensitive data in the prompt
     - ❌ Including API keys, passwords, or other sensitive information directly in the prompt"""
 
+    if findings:
+        system_message += """
+- Static Analysis Findings scoring:
+    - 0-3: Finding is NOT addressed at all in the prompt
+    - 4-6: Finding is PARTIALLY addressed (some mitigation but incomplete)
+    - 7-10: Finding is FULLY addressed with proper mitigation"""
+
     system_message += """
 
 Only return the JSON object. Do not include anything else.
@@ -194,6 +214,17 @@ Your task is to improve the target prompt according to the items listed in the c
     if "secrets_exclusion" in apply_techniques:
         criteria_sections.append("""[Secrets Exclusion]
 - Ensure that no sensitive information is hardcoded in the prompt""")
+
+    if findings:
+        finding_items = []
+        for f in findings:
+            finding_items.append(
+                "- %s: %s (%s)" % (f.rule_id, f.title, f.description)
+            )
+        if finding_items:
+            criteria_sections.append(
+                "[Static Analysis Findings]\n" + "\n".join(finding_items)
+            )
 
     criteria = "\n\n".join(criteria_sections)
 

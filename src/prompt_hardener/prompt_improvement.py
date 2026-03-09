@@ -11,6 +11,9 @@ from prompt_hardener.improve import improve_prompt
 from prompt_hardener.schema import PromptInput
 from prompt_hardener.utils import average_satisfaction
 
+# Type alias for findings – avoids circular import with analyze.report
+FindingList = Optional[List[Any]]
+
 
 @dataclass
 class ImprovementResult:
@@ -34,6 +37,7 @@ def run_improvement_loop(
     threshold: float = 8.5,
     apply_techniques: Optional[List[str]] = None,
     user_input_description: Optional[str] = None,
+    findings: FindingList = None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
 ) -> ImprovementResult:
@@ -50,6 +54,7 @@ def run_improvement_loop(
         threshold: Score threshold (0-10) to stop early.
         apply_techniques: Techniques to evaluate/apply. Defaults to all.
         user_input_description: Description of user input fields.
+        findings: Static analysis findings to inject into evaluate/improve prompts.
         aws_region: AWS region for Bedrock.
         aws_profile: AWS profile for Bedrock.
 
@@ -66,6 +71,7 @@ def run_improvement_loop(
         current_prompt,
         user_input_description,
         apply_techniques=techniques,
+        findings=findings,
         aws_region=aws_region,
         aws_profile=aws_profile,
     )
@@ -85,6 +91,7 @@ def run_improvement_loop(
                 current_prompt,
                 user_input_description,
                 apply_techniques=techniques,
+                findings=findings,
                 aws_region=aws_region,
                 aws_profile=aws_profile,
             )
@@ -101,6 +108,7 @@ def run_improvement_loop(
             evaluation_result,
             user_input_description,
             apply_techniques=techniques,
+            findings=findings,
             aws_region=aws_region,
             aws_profile=aws_profile,
         )
@@ -113,6 +121,7 @@ def run_improvement_loop(
             current_prompt,
             user_input_description,
             apply_techniques=techniques,
+            findings=findings,
             aws_region=aws_region,
             aws_profile=aws_profile,
         )

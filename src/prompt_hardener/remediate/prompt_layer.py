@@ -1,6 +1,6 @@
 """Prompt layer remediation: delegates to shared improvement loop."""
 
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from prompt_hardener.models import AgentSpec
 from prompt_hardener.prompt_improvement import run_improvement_loop
@@ -28,6 +28,7 @@ def remediate_prompt(
     max_iterations: int = 3,
     threshold: float = 8.5,
     apply_techniques: Optional[List[str]] = None,
+    findings: Optional[List[Any]] = None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
 ) -> Tuple[PromptRemediation, str]:
@@ -48,6 +49,7 @@ def remediate_prompt(
         threshold=threshold,
         apply_techniques=apply_techniques,
         user_input_description=spec.user_input_description,
+        findings=findings,
         aws_region=aws_region,
         aws_profile=aws_profile,
     )
@@ -60,6 +62,8 @@ def remediate_prompt(
         "Initial score: %.2f -> Final score: %.2f."
         % (result.iteration_count, result.initial_score, result.final_score)
     )
+    if findings:
+        changes += " %d static analysis finding(s) injected." % len(findings)
     if improved_system_prompt != original_system_prompt:
         changes += " System prompt was modified."
     else:
@@ -78,9 +82,12 @@ def remediate_prompt(
         ]
     )
 
+    findings_addressed = [f.rule_id for f in findings] if findings else []
+
     remediation = PromptRemediation(
         changes=changes,
         techniques_applied=list(used_techniques),
+        findings_addressed=findings_addressed,
     )
 
     return remediation, improved_system_prompt

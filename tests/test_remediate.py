@@ -115,11 +115,26 @@ class TestPromptRemediation:
         d = pr.to_dict()
         assert d["changes"] == "No changes"
         assert d["techniques_applied"] == ["instruction_defense"]
+        assert d["findings_addressed"] == []
 
     def test_default_empty_techniques(self):
         pr = PromptRemediation(changes="test")
         assert pr.techniques_applied == []
         assert pr.to_dict()["techniques_applied"] == []
+
+    def test_default_empty_findings_addressed(self):
+        pr = PromptRemediation(changes="test")
+        assert pr.findings_addressed == []
+        assert pr.to_dict()["findings_addressed"] == []
+
+    def test_findings_addressed_in_to_dict(self):
+        pr = PromptRemediation(
+            changes="test",
+            techniques_applied=["spotlighting"],
+            findings_addressed=["PROMPT-001", "PROMPT-002"],
+        )
+        d = pr.to_dict()
+        assert d["findings_addressed"] == ["PROMPT-001", "PROMPT-002"]
 
 
 class TestRemediationReport:
@@ -549,6 +564,80 @@ class TestPromptLayer:
 
     @patch("prompt_hardener.prompt_improvement.improve_prompt")
     @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
+    def test_findings_passed_to_improvement_loop(self, mock_eval, mock_improve):
+        """Test that findings are forwarded to run_improvement_loop."""
+        from prompt_hardener.remediate.prompt_layer import remediate_prompt
+
+        mock_eval.return_value = {
+            "Spotlighting": {"sub": {"satisfaction": 9}},
+        }
+        mock_improve.return_value = PromptInput(
+            mode="chat",
+            messages=[{"role": "system", "content": "Improved prompt"}],
+            messages_format="openai",
+        )
+
+        findings = [
+            Finding(
+                id="f1",
+                rule_id="PROMPT-001",
+                title="Missing boundary",
+                severity="high",
+                layer="prompt",
+                description="No instruction-data boundary",
+                recommendation="Add boundary markers",
+            ),
+        ]
+
+        spec = _make_spec(agent_type="chatbot")
+        remediation, _ = remediate_prompt(
+            spec=spec,
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+            max_iterations=1,
+            findings=findings,
+        )
+
+        # findings should be forwarded to both evaluate and improve
+        eval_kwargs = mock_eval.call_args[1]
+        assert eval_kwargs["findings"] == findings
+        improve_kwargs = mock_improve.call_args[1]
+        assert improve_kwargs["findings"] == findings
+
+        # findings_addressed should contain the rule_id
+        assert remediation.findings_addressed == ["PROMPT-001"]
+
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
+    def test_findings_none_backward_compat(self, mock_eval, mock_improve):
+        """Test that findings=None works (backward compatibility)."""
+        from prompt_hardener.remediate.prompt_layer import remediate_prompt
+
+        mock_eval.return_value = {
+            "Spotlighting": {"sub": {"satisfaction": 9}},
+        }
+        mock_improve.return_value = PromptInput(
+            mode="chat",
+            messages=[{"role": "system", "content": "Improved prompt"}],
+            messages_format="openai",
+        )
+
+        spec = _make_spec(agent_type="chatbot")
+        remediation, _ = remediate_prompt(
+            spec=spec,
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+            max_iterations=1,
+            findings=None,
+        )
+
+        assert remediation.findings_addressed == []
+        # findings=None should be passed through
+        eval_kwargs = mock_eval.call_args[1]
+        assert eval_kwargs["findings"] is None
+
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
     def test_techniques_applied_in_remediation(self, mock_eval, mock_improve):
         """Test that specified techniques are recorded in remediation."""
         from prompt_hardener.remediate.prompt_layer import remediate_prompt
@@ -600,6 +689,34 @@ class TestEngine:
         assert report.prompt is not None
         assert report.tool is not None
         assert report.architecture is not None
+
+    @patch("prompt_hardener.remediate.engine.remediate_prompt")
+    def test_run_remediate_passes_prompt_findings(self, mock_prompt):
+        """Test that prompt-layer findings are filtered and passed to remediate_prompt."""
+        from prompt_hardener.remediate.engine import run_remediate
+
+        mock_prompt.return_value = (
+            PromptRemediation(
+                changes="improved",
+                techniques_applied=["spotlighting"],
+                findings_addressed=["PROMPT-001"],
+            ),
+            "New prompt",
+        )
+
+        run_remediate(
+            spec_path=os.path.join(FIXTURES_DIR, "agent_insecure_spec.yaml"),
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+            layers=["prompt"],
+        )
+
+        call_kwargs = mock_prompt.call_args[1]
+        # findings should be a list of prompt-layer Finding objects (or None if empty)
+        findings_arg = call_kwargs.get("findings")
+        if findings_arg is not None:
+            for f in findings_arg:
+                assert f.layer == "prompt"
 
     def test_run_remediate_tool_only(self):
         """Test remediation with only tool layer (no LLM needed)."""
@@ -812,6 +929,7 @@ class TestSchemaDriftGuard:
             prompt=PromptRemediation(
                 changes="Improved in 2 iterations. Score: 5.0 -> 9.0.",
                 techniques_applied=["spotlighting", "instruction_defense"],
+                findings_addressed=["PROMPT-001", "PROMPT-003"],
             ),
             tool=[
                 Recommendation(

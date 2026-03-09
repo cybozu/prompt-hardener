@@ -1,10 +1,27 @@
 """Tests for the shared prompt improvement loop."""
 
+from dataclasses import dataclass, field
+from typing import List
 from unittest.mock import patch
 
 
 from prompt_hardener.prompt_improvement import ImprovementResult, run_improvement_loop
 from prompt_hardener.schema import PromptInput
+
+
+@dataclass
+class _FakeFinding:
+    """Minimal Finding-like object for testing without importing analyze.report."""
+
+    id: str = "f1"
+    rule_id: str = "PROMPT-001"
+    title: str = "Test finding"
+    severity: str = "high"
+    layer: str = "prompt"
+    description: str = "Test description"
+    evidence: List[str] = field(default_factory=list)
+    spec_path: str = ""
+    recommendation: str = "Fix it"
 
 
 # =========================================================================
@@ -283,3 +300,53 @@ class TestParameterForwarding:
         improve_kwargs = mock_improve.call_args[1]
         assert improve_kwargs["aws_region"] == "us-west-2"
         assert improve_kwargs["aws_profile"] == "myprofile"
+
+
+# =========================================================================
+# Group 5: findings forwarding
+# =========================================================================
+
+
+class TestFindingsForwarding:
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
+    def test_findings_forwarded_to_evaluate_and_improve(self, mock_eval, mock_improve):
+        """Test that findings are passed to both evaluate_prompt and improve_prompt."""
+        mock_eval.return_value = {"Cat": {"sub": {"satisfaction": 9}}}
+        mock_improve.return_value = _make_prompt("Improved")
+
+        findings = [_FakeFinding()]
+
+        run_improvement_loop(
+            prompt_input=_make_prompt("Original"),
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+            attack_api_mode="openai",
+            findings=findings,
+            max_iterations=1,
+        )
+
+        eval_kwargs = mock_eval.call_args[1]
+        assert eval_kwargs["findings"] == findings
+        improve_kwargs = mock_improve.call_args[1]
+        assert improve_kwargs["findings"] == findings
+
+    @patch("prompt_hardener.prompt_improvement.improve_prompt")
+    @patch("prompt_hardener.prompt_improvement.evaluate_prompt")
+    def test_findings_none_backward_compat(self, mock_eval, mock_improve):
+        """Test that findings=None works (backward compatibility)."""
+        mock_eval.return_value = {"Cat": {"sub": {"satisfaction": 9}}}
+        mock_improve.return_value = _make_prompt("Improved")
+
+        run_improvement_loop(
+            prompt_input=_make_prompt("Original"),
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+            attack_api_mode="openai",
+            max_iterations=1,
+        )
+
+        eval_kwargs = mock_eval.call_args[1]
+        assert eval_kwargs["findings"] is None
+        improve_kwargs = mock_improve.call_args[1]
+        assert improve_kwargs["findings"] is None

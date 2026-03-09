@@ -27,12 +27,14 @@ class Recommendation:
 class PromptRemediation:
     changes: str  # text summary of changes
     techniques_applied: List[str] = field(default_factory=list)
+    findings_addressed: List[str] = field(default_factory=list)  # rule_ids
 
     def to_dict(self):
         # type: () -> Dict
         return {
             "changes": self.changes,
             "techniques_applied": list(self.techniques_applied),
+            "findings_addressed": list(self.findings_addressed),
         }
 
 

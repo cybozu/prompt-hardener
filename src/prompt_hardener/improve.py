@@ -1,7 +1,27 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 from prompt_hardener.llm_client import call_llm_api_for_improve
 from prompt_hardener.utils import validate_chat_completion_format
 from prompt_hardener.schema import PromptInput
+
+
+def _format_findings_section(findings: List[Any]) -> str:
+    """Format static analysis findings into a text section for the LLM prompt."""
+    lines = [
+        "\n== Static Analysis Findings ==",
+        "The following issues were identified by static analysis.",
+        "You MUST address each finding when improving the prompt.\n",
+    ]
+    for f in findings:
+        lines.append(
+            "[%s] %s: %s" % (f.severity.upper(), f.rule_id, f.title)
+        )
+        lines.append("  Description: %s" % f.description)
+        if f.evidence:
+            lines.append("  Evidence: %s" % "; ".join(f.evidence))
+        if f.recommendation:
+            lines.append("  Recommendation: %s" % f.recommendation)
+        lines.append("")
+    return "\n".join(lines)
 
 
 def improve_prompt(
@@ -12,6 +32,7 @@ def improve_prompt(
     evaluation_result: str,
     user_input_description: Optional[str] = None,
     apply_techniques: Optional[List[str]] = None,
+    findings: Optional[List[Any]] = None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
 ) -> PromptInput:
@@ -161,6 +182,10 @@ Please ensure the improved version of the prompt follows these key principles:
 - Preserve all original user and assistant messages exactly as they are — do not delete, modify, or move them unless required for security.
 - Never omit or rewrite user-provided data such as comments, JSON arrays, or freeform text blocks, and never alter assistant responses unless there is a critical security reason.
     """
+
+    # Attach static analysis findings if provided
+    if findings:
+        system_message += _format_findings_section(findings)
 
     # Attach evaluation result
     system_message += f"\n\nThe evaluation result is as follows:\n{evaluation_result}"

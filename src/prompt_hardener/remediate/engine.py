@@ -96,6 +96,7 @@ def run_remediate(
     arch_recommendations = None
 
     if "prompt" in active_layers:
+        prompt_findings = [f for f in all_findings if f.layer == "prompt"]
         prompt_remediation, improved_system_prompt = remediate_prompt(
             spec=spec,
             eval_api_mode=eval_api_mode,
@@ -103,6 +104,7 @@ def run_remediate(
             max_iterations=max_iterations,
             threshold=threshold,
             apply_techniques=apply_techniques,
+            findings=prompt_findings or None,
             aws_region=aws_region,
             aws_profile=aws_profile,
         )
