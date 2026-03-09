@@ -17,7 +17,7 @@ Prompt Hardener helps developers and security engineers understand **how prompt 
 | Agent Specification | Unified YAML format for chatbot, RAG, agent, and MCP-agent types |
 | Layered Analysis | Static rules + LLM evaluation across prompt, tool, and architecture layers |
 | Iterative Remediation | Three-layer remediation with LLM-driven prompt improvement |
-| Attack Simulation | Scenario-based adversarial testing from a built-in catalog (8 categories) |
+| Attack Simulation | Scenario-based adversarial testing from a built-in catalog |
 | Hardening Techniques | Spotlighting, Random Sequence Enclosure, Instruction Defense, and more |
 | Multi-format Reports | Markdown, HTML, and JSON reports for CI/CD integration |
 | Web UI | Gradio-based interface for interactive experimentation |
@@ -180,32 +180,11 @@ See [docs/agent-spec.md](./docs/agent-spec.md) for field requirements, detailed 
 
 ## Attack Simulation
 
-### Built-in Catalog
+Run adversarial attack scenarios against your agent spec to validate prompt injection defenses. The built-in catalog covers 13 categories across three layers (prompt, tool, architecture), including persona switching, prompt leaking, function call hijacking, data source poisoning, and more.
 
-Prompt Hardener includes a built-in catalog of attack scenarios organized by category:
+You can also create custom scenarios using YAML files.
 
-| Category | Description | Target Layer |
-|----------|-------------|--------------|
-| Persona Switching | Attempts to override the agent's role and persona | prompt |
-| Output Attack | Tries to manipulate the agent's output format or behavior | prompt |
-| Prompt Leaking | Attempts to extract the system prompt | prompt |
-| Chain-of-Thought Escape | Exploits reasoning to bypass instructions | prompt |
-| Function Call Hijacking | Tricks the agent into calling unintended tools | tool |
-| Ignoring RAG Instructions | Attempts to ignore or override retrieved context | prompt |
-| Privilege Escalation | Tries to gain unauthorized access or capabilities | architecture |
-| Tool Definition Leaking | Attempts to extract tool definitions and schemas | tool |
-
-Each scenario specifies payloads, success criteria, and applicable agent types.
-
-### Custom Scenarios
-
-Point to a directory of custom YAML scenario files:
-
-```bash
-prompt-hardener simulate agent_spec.yaml \
-  -ea openai -em gpt-4o-mini \
-  --scenarios ./my_scenarios/
-```
+See [docs/attack-simulation.md](./docs/attack-simulation.md) for the full catalog, how simulation works, and how to write custom scenarios.
 
 ## Hardening Techniques
 
