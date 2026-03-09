@@ -125,10 +125,11 @@ The table below shows which rules apply to each agent type.
 
 ## LLM Evaluation
 
-When enabled with `-ea`/`-em`, the LLM evaluation layer scores **the system prompt only** (tool definitions and architecture configuration are not passed to the LLM) against two categories of criteria:
+When enabled with `-ea`/`-em`, the LLM evaluation layer scores **the system prompt** against three categories of criteria:
 
 1. **Technique-based criteria** -- 5 hardening techniques
 2. **Findings-based criteria** -- dynamic criteria generated from static rule findings
+3. **Agent Configuration Alignment** -- dynamic criteria generated from the agent's tool, policy, data source, and MCP server configuration
 
 ### Technique Criteria
 
@@ -153,6 +154,28 @@ Static rule findings are passed to the LLM as additional evaluation criteria. Fo
 | 0-3 | Finding NOT addressed at all |
 | 4-6 | Finding PARTIALLY addressed (some mitigation but incomplete) |
 | 7-10 | Finding FULLY addressed with proper mitigation |
+
+### Agent Configuration Alignment
+
+When the agent spec includes tools, policies, data sources, or MCP servers, the LLM evaluates whether the system prompt aligns with these configuration elements. Criteria are generated dynamically based on the spec contents:
+
+| Context | Criteria | What is evaluated |
+|---------|----------|-------------------|
+| Sensitive tools | Usage constraints or confirmation requirements | Whether the prompt requires approval before executing destructive/sensitive tools |
+| Tool results | Untrusted result handling | Whether the prompt instructs the model to verify tool results before acting |
+| Denied actions | Prohibition in prompt | Whether denied actions from policies are explicitly forbidden in the prompt |
+| Data boundaries | Boundary references | Whether data boundary restrictions are mentioned in the prompt |
+| Escalation rules | Rule references | Whether escalation rules for high-risk actions are referenced in the prompt |
+| Untrusted data sources | Boundary/sanitization instructions | Whether the prompt includes handling instructions for untrusted data sources |
+| Untrusted MCP servers | Caution instructions | Whether the prompt treats untrusted MCP servers with appropriate caution |
+
+This category is only included when the agent spec contains relevant configuration (e.g., it is not generated for `chatbot` specs with no tools or data sources). Scoring follows the same 0-10 scale:
+
+| Score Range | Meaning |
+|-------------|---------|
+| 0-3 | Configuration concern NOT addressed at all |
+| 4-6 | Configuration concern PARTIALLY addressed |
+| 7-10 | Configuration concern FULLY addressed with explicit instructions |
 
 ## Scoring
 

@@ -69,6 +69,17 @@ class McpServer:
 
 
 @dataclass
+class AgentContext:
+    """Subset of agent configuration relevant to prompt evaluation."""
+
+    agent_type: str  # "chatbot" | "rag" | "agent" | "mcp-agent"
+    tools: Optional[List[ToolDef]] = None
+    policies: Optional[Policies] = None
+    data_sources: Optional[List[DataSource]] = None
+    mcp_servers: Optional[List[McpServer]] = None
+
+
+@dataclass
 class AgentSpec:
     version: str
     type: str  # "chatbot" | "rag" | "agent" | "mcp-agent"
@@ -82,6 +93,16 @@ class AgentSpec:
     data_sources: Optional[List[DataSource]] = None
     mcp_servers: Optional[List[McpServer]] = None
     user_input_description: Optional[str] = None
+
+    def to_agent_context(self):
+        # type: () -> AgentContext
+        return AgentContext(
+            agent_type=self.type,
+            tools=self.tools,
+            policies=self.policies,
+            data_sources=self.data_sources,
+            mcp_servers=self.mcp_servers,
+        )
 
     def to_prompt_input(self):
         # type: () -> PromptInput

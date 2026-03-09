@@ -39,6 +39,7 @@ def remediate_prompt(
     """
     current_prompt = spec.to_prompt_input()
     original_system_prompt = _extract_system_prompt(current_prompt)
+    agent_context = spec.to_agent_context()
 
     result = run_improvement_loop(
         prompt_input=current_prompt,
@@ -50,6 +51,7 @@ def remediate_prompt(
         apply_techniques=apply_techniques,
         user_input_description=spec.user_input_description,
         findings=findings,
+        agent_context=agent_context,
         aws_region=aws_region,
         aws_profile=aws_profile,
     )

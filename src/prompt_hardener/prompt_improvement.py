@@ -38,6 +38,7 @@ def run_improvement_loop(
     apply_techniques: Optional[List[str]] = None,
     user_input_description: Optional[str] = None,
     findings: FindingList = None,
+    agent_context=None,
     aws_region: Optional[str] = None,
     aws_profile: Optional[str] = None,
 ) -> ImprovementResult:
@@ -72,6 +73,7 @@ def run_improvement_loop(
         user_input_description,
         apply_techniques=techniques,
         findings=findings,
+        agent_context=agent_context,
         aws_region=aws_region,
         aws_profile=aws_profile,
     )
@@ -92,6 +94,7 @@ def run_improvement_loop(
                 user_input_description,
                 apply_techniques=techniques,
                 findings=findings,
+                agent_context=agent_context,
                 aws_region=aws_region,
                 aws_profile=aws_profile,
             )
@@ -109,6 +112,7 @@ def run_improvement_loop(
             user_input_description,
             apply_techniques=techniques,
             findings=findings,
+            agent_context=agent_context,
             aws_region=aws_region,
             aws_profile=aws_profile,
         )
@@ -122,6 +126,7 @@ def run_improvement_loop(
             user_input_description,
             apply_techniques=techniques,
             findings=findings,
+            agent_context=agent_context,
             aws_region=aws_region,
             aws_profile=aws_profile,
         )

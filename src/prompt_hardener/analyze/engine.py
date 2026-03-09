@@ -235,12 +235,15 @@ def run_analyze(
         from prompt_hardener.utils import average_satisfaction
 
         prompt_input = spec.to_prompt_input()
+        agent_context = spec.to_agent_context()
         prompt_evaluation = evaluate_prompt(
             eval_api_mode,
             eval_model,
             prompt_input,
             spec.user_input_description,
             apply_techniques=apply_techniques,
+            findings=all_findings or None,
+            agent_context=agent_context,
             aws_region=aws_region,
             aws_profile=aws_profile,
         )
