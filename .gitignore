@@ -5,3 +5,4 @@ src/*.egg-info
 .DS_Store
 .devcontainer
 .env
+.claude/
