@@ -113,6 +113,8 @@ prompt-hardener analyze agent_spec.yaml \
 
 Use `--layers prompt tool architecture` to filter which layers to analyze. See `prompt-hardener analyze --help` for all options.
 
+See [docs/analysis-rules.md](./docs/analysis-rules.md) for the full rule catalog, LLM evaluation criteria, and scoring details.
+
 ### 4. remediate
 
 Generate actionable remediations across three layers. The prompt layer uses LLM-driven iterative improvement; tool and architecture layers produce recommendations.
