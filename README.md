@@ -1,13 +1,14 @@
 # Prompt Hardener
 
-Prompt Hardener is an open-source tool that **evaluates and strengthens system prompts** used in LLM-based applications. It helps developers proactively defend against **prompt injection attacks** through automated analysis, layered remediation, and attack simulation.
+Prompt Hardener analyzes **prompt-injection-originated risk in LLM-based agents and applications**.
 
-Define your agent in a unified specification (`agent_spec.yaml`), then run a security pipeline that covers **prompt**, **tool**, and **architecture** layers.
+Define your system in a unified specification (`agent_spec.yaml`), then run a multi-layer security pipeline that:
 
-> Designed for:
-> - LLM application developers
-> - Security engineers working on AI pipelines
-> - Prompt engineers and red teamers
+- analyzes structural risks across prompts, context sources, and tools  
+- validates behavior with adversarial attack scenarios  
+- proposes mitigations across **prompt, policy, and architecture layers**
+
+Prompt Hardener helps developers and security engineers understand **how prompt injection could affect their system and how to reduce that risk**.
 
 ## Features
 
@@ -166,9 +167,7 @@ prompt-hardener diff before.yaml after.yaml -f markdown
 
 ## Agent Specification (agent_spec.yaml)
 
-The agent specification is a YAML file that describes the agent under test. It is the single input for all vnext commands.
-
-### Agent Types
+The agent specification is a YAML file that describes the agent under test. It is the single input for all vnext commands. Four agent types are supported:
 
 | Type | Description | Analyzed Layers |
 |------|-------------|-----------------|
@@ -177,107 +176,7 @@ The agent specification is a YAML file that describes the agent under test. It i
 | `agent` | Tool-calling agents | prompt, tool, architecture |
 | `mcp-agent` | MCP server-connected agents | prompt, tool, architecture |
 
-### Field Requirements
-
-| Field | chatbot | rag | agent | mcp-agent |
-|-------|---------|-----|-------|-----------|
-| `version` | required | required | required | required |
-| `type` | required | required | required | required |
-| `name` | required | required | required | required |
-| `system_prompt` | required | required | required | required |
-| `provider` | required | required | required | required |
-| `description` | optional | optional | optional | optional |
-| `messages` | optional | optional | optional | optional |
-| `tools` | - | - | required | required |
-| `policies` | optional | optional | recommended | recommended |
-| `data_sources` | - | recommended | optional | optional |
-| `mcp_servers` | - | - | - | required |
-| `user_input_description` | optional | optional | optional | optional |
-
-### Examples
-
-**Minimal chatbot** (`examples/chatbot-minimal/agent_spec.yaml`):
-
-```yaml
-version: "1.0"
-type: chatbot
-name: "FAQ Bot"
-description: "Simple FAQ chatbot for product questions"
-
-system_prompt: |
-  You are a friendly FAQ assistant for Acme Corp.
-  Answer questions about our products based on your training data.
-  If you don't know the answer, say "I'm not sure about that, please contact support."
-  Do not make up information or provide advice outside your knowledge.
-
-provider:
-  api: openai
-  model: gpt-4o-mini
-
-user_input_description: "Customer questions submitted through web chat widget"
-```
-
-**RAG assistant** (`examples/rag-internal-assistant/agent_spec.yaml`):
-
-```yaml
-version: "1.0"
-type: rag
-name: "Internal Documentation Assistant"
-
-system_prompt: |
-  You are an internal documentation assistant for Acme Corp employees.
-  Answer questions strictly based on the retrieved documents provided to you.
-  If the documents don't contain the answer, say "I couldn't find this in the documentation."
-  Never fabricate information. Always cite which document your answer comes from.
-
-provider:
-  api: openai
-  model: gpt-4o-mini
-
-data_sources:
-  - name: confluence_docs
-    type: vector_store
-    trust_level: trusted
-  - name: employee_uploads
-    type: file_input
-    trust_level: untrusted
-```
-
-**Agent with tools** (`examples/agent-basic/agent_spec.yaml`):
-
-```yaml
-version: "1.0"
-type: agent
-name: "Customer Support Agent"
-
-system_prompt: |
-  You are a customer support agent for Acme Corp.
-  Help customers with their inquiries using the available tools.
-  Always verify the customer's identity before accessing account information.
-
-provider:
-  api: openai
-  model: gpt-4o-mini
-
-tools:
-  - name: get_order_status
-    description: "Retrieve the current status of a customer order"
-    parameters:
-      type: object
-      properties:
-        order_id:
-          type: string
-      required: [order_id]
-
-policies:
-  allowed_actions: [get_order_status, search_knowledge_base]
-  denied_actions: [delete_account, modify_billing]
-  escalation_rules:
-    - condition: "Customer requests account deletion"
-      action: "Escalate to human agent"
-```
-
-See the `examples/` directory for complete examples.
+See [docs/agent-spec.md](./docs/agent-spec.md) for field requirements, detailed field descriptions, and full examples for each agent type.
 
 ## Attack Simulation
 
@@ -310,17 +209,9 @@ prompt-hardener simulate agent_spec.yaml \
 
 ## Hardening Techniques
 
-Prompt Hardener includes multiple defense strategies:
+Prompt Hardener applies five defense techniques during remediation: **Spotlighting**, **Random Sequence Enclosure**, **Instruction Defense**, **Role Consistency**, and **Secrets Exclusion**. All are applied by default; use `-a` to select specific techniques.
 
-| Technique | Description |
-|-----------|-------------|
-| **Spotlighting** | Explicitly marks and isolates all user-controlled input using tags and special characters to prevent injection. |
-| **Random Sequence Enclosure** | Encloses trusted system instructions in unpredictable tags, ensuring only those are followed and not leaked. |
-| **Instruction Defense** | Instructs the model to ignore new instructions, persona switching, or attempts to reveal/modify system prompts. |
-| **Role Consistency** | Ensures each message role (system, user, assistant) is preserved and not mixed, preventing role confusion attacks. |
-| **Secrets Exclusion** | Ensure that no sensitive information is hardcoded in the prompt. |
-
-See [docs/techniques.md](./docs/techniques.md) for details on each technique.
+See [docs/techniques.md](./docs/techniques.md) for how each technique works, evaluation criteria, and examples.
 
 ## Layered Remediation
 
@@ -348,6 +239,25 @@ Reports include:
 - Findings with severity levels and recommended fixes
 - Layer-by-layer scores
 - Attack simulation results (blocked/succeeded stats)
+
+## Web UI (Gradio)
+
+```bash
+prompt-hardener webui
+```
+
+Then visit http://localhost:7860 to use Prompt Hardener interactively:
+- Paste prompts
+- Choose models & settings
+- Download hardened prompt and reports
+
+<img width="1544" alt="webui" src="https://github.com/user-attachments/assets/406afba7-9c90-4342-a2ec-c730031c3cd9" />
+
+## Tutorials
+
+Step-by-step walkthroughs for hardening a chatbot and a tool-calling agent:
+
+[docs/tutorials.md](./docs/tutorials.md)
 
 ## Legacy Commands (v0.4.0 Compatible)
 
@@ -427,22 +337,3 @@ prompt-hardener improve \
 ```
 
 </details>
-
-## Web UI (Gradio)
-
-```bash
-prompt-hardener webui
-```
-
-Then visit http://localhost:7860 to use Prompt Hardener interactively:
-- Paste prompts
-- Choose models & settings
-- Download hardened prompt and reports
-
-<img width="1544" alt="webui" src="https://github.com/user-attachments/assets/406afba7-9c90-4342-a2ec-c730031c3cd9" />
-
-## Tutorials
-
-See examples of using Prompt Hardener to improve and test system prompts:
-
-[docs/tutorials.md](./docs/tutorials.md)
