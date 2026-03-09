@@ -124,6 +124,11 @@
             }
           },
           "additionalProperties": false
+        },
+        "applied_patches": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Descriptions of deterministic spec patches auto-applied during remediation"
         }
       },
       "additionalProperties": false

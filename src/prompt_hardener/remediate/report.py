@@ -44,6 +44,7 @@ class RemediationReport:
     prompt: Optional[PromptRemediation] = None
     tool: Optional[List[Recommendation]] = None
     architecture: Optional[List[Recommendation]] = None
+    applied_patches: Optional[List[str]] = None
 
     def to_dict(self):
         # type: () -> Dict
@@ -62,6 +63,8 @@ class RemediationReport:
             d["remediation"]["architecture"] = {
                 "recommendations": [r.to_dict() for r in self.architecture],
             }
+        if self.applied_patches:
+            d["remediation"]["applied_patches"] = list(self.applied_patches)
         return d
 
     def _build_summary(self):
@@ -89,6 +92,10 @@ class RemediationReport:
                 findings.append(
                     "%d critical/high architecture recommendations" % (critical + high)
                 )
+        if self.applied_patches:
+            findings.append(
+                "%d auto-applied spec patch(es)" % len(self.applied_patches)
+            )
 
         # Risk level based on highest severity recommendation
         risk_level = "low"

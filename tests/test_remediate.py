@@ -1003,6 +1003,23 @@ class TestSchemaDriftGuard:
                 "Unexpected field in prompt remediation: %s" % key
             )
 
+    def test_report_with_applied_patches_validates(self):
+        report = self._build_sample_report()
+        report.applied_patches = ["Initialized policies.allowed_actions from tool names: tool1"]
+        report_dict = report.to_dict()
+
+        schema_path = os.path.join(SCHEMAS_DIR, "report.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+
+        validator = jsonschema.Draft202012Validator(schema)
+        errors = list(validator.iter_errors(report_dict))
+        assert not errors, "Report with applied_patches should validate: %s" % errors
+
+        assert report_dict["remediation"]["applied_patches"] == [
+            "Initialized policies.allowed_actions from tool names: tool1"
+        ]
+
     def test_report_serializable_as_json(self):
         report = self._build_sample_report()
         json_str = json.dumps(report.to_dict(), ensure_ascii=False)
@@ -1075,8 +1092,8 @@ class TestWriteUpdatedSpec:
         try:
             write_updated_spec(
                 os.path.join(FIXTURES_DIR, "chatbot_spec.yaml"),
-                "Brand new system prompt.",
                 output_path,
+                improved_system_prompt="Brand new system prompt.",
             )
             with open(output_path, "r") as f:
                 data = yaml.safe_load(f)
@@ -1097,8 +1114,8 @@ class TestWriteUpdatedSpec:
         try:
             write_updated_spec(
                 os.path.join(FIXTURES_DIR, "agent_spec.yaml"),
-                "Updated prompt",
                 output_path,
+                improved_system_prompt="Updated prompt",
             )
             with open(output_path, "r") as f:
                 data = yaml.safe_load(f)
@@ -1108,3 +1125,201 @@ class TestWriteUpdatedSpec:
             assert "policies" in data
         finally:
             os.unlink(output_path)
+
+
+# =========================================================================
+# Group 10: _deep_merge
+# =========================================================================
+
+
+class TestDeepMerge:
+    def test_simple_merge(self):
+        from prompt_hardener.agent_spec import _deep_merge
+
+        base = {"a": 1, "b": 2}
+        _deep_merge(base, {"b": 3, "c": 4})
+        assert base == {"a": 1, "b": 3, "c": 4}
+
+    def test_nested_merge(self):
+        from prompt_hardener.agent_spec import _deep_merge
+
+        base = {"policies": {"denied_actions": ["x"]}}
+        _deep_merge(base, {"policies": {"allowed_actions": ["a", "b"]}})
+        assert base == {
+            "policies": {"denied_actions": ["x"], "allowed_actions": ["a", "b"]}
+        }
+
+    def test_new_key(self):
+        from prompt_hardener.agent_spec import _deep_merge
+
+        base = {"version": "1.0"}
+        _deep_merge(base, {"policies": {"allowed_actions": ["t1"]}})
+        assert base["policies"] == {"allowed_actions": ["t1"]}
+
+
+# =========================================================================
+# Group 11: write_updated_spec with patches
+# =========================================================================
+
+
+class TestWriteUpdatedSpecWithPatches:
+    def test_patches_only(self):
+        from prompt_hardener.agent_spec import write_updated_spec
+        import yaml
+
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
+            output_path = f.name
+
+        try:
+            write_updated_spec(
+                os.path.join(FIXTURES_DIR, "agent_insecure_spec.yaml"),
+                output_path,
+                spec_patches={"policies": {"allowed_actions": ["get_balance"]}},
+            )
+            with open(output_path, "r") as f:
+                data = yaml.safe_load(f)
+            # system_prompt should be unchanged
+            assert "Help users" in data["system_prompt"]
+            assert data["policies"]["allowed_actions"] == ["get_balance"]
+        finally:
+            os.unlink(output_path)
+
+    def test_prompt_and_patches(self):
+        from prompt_hardener.agent_spec import write_updated_spec
+        import yaml
+
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
+            output_path = f.name
+
+        try:
+            write_updated_spec(
+                os.path.join(FIXTURES_DIR, "agent_insecure_spec.yaml"),
+                output_path,
+                improved_system_prompt="Hardened prompt.",
+                spec_patches={"policies": {"allowed_actions": ["get_balance"]}},
+            )
+            with open(output_path, "r") as f:
+                data = yaml.safe_load(f)
+            assert data["system_prompt"] == "Hardened prompt."
+            assert data["policies"]["allowed_actions"] == ["get_balance"]
+        finally:
+            os.unlink(output_path)
+
+
+# =========================================================================
+# Group 12: _compute_safe_spec_patches
+# =========================================================================
+
+
+class TestSafeSpecPatches:
+    def test_no_tools_no_patches(self):
+        from prompt_hardener.remediate.engine import _compute_safe_spec_patches
+
+        spec = _make_spec(agent_type="chatbot", tools=None)
+        patches, descs = _compute_safe_spec_patches(spec)
+        assert patches == {}
+        assert descs == []
+
+    def test_tools_no_policies_creates_patches(self):
+        from prompt_hardener.remediate.engine import _compute_safe_spec_patches
+
+        spec = _make_spec(
+            tools=[
+                ToolDef(name="search", description="Search"),
+                ToolDef(name="read", description="Read"),
+            ],
+            policies=None,
+        )
+        patches, descs = _compute_safe_spec_patches(spec)
+        assert patches == {"policies": {"allowed_actions": ["search", "read"]}}
+        assert len(descs) == 1
+        assert "Initialized" in descs[0]
+
+    def test_tools_policies_no_allowed_creates_patches(self):
+        from prompt_hardener.remediate.engine import _compute_safe_spec_patches
+
+        spec = _make_spec(
+            tools=[ToolDef(name="tool1", description="d")],
+            policies=Policies(denied_actions=["bad_tool"]),
+        )
+        patches, descs = _compute_safe_spec_patches(spec)
+        assert patches == {"policies": {"allowed_actions": ["tool1"]}}
+        assert len(descs) == 1
+        assert "Added" in descs[0]
+
+    def test_tools_with_allowed_no_patches(self):
+        from prompt_hardener.remediate.engine import _compute_safe_spec_patches
+
+        spec = _make_spec(
+            tools=[ToolDef(name="tool1", description="d")],
+            policies=Policies(allowed_actions=["tool1"]),
+        )
+        patches, descs = _compute_safe_spec_patches(spec)
+        assert patches == {}
+        assert descs == []
+
+
+# =========================================================================
+# Group 13: Engine auto-apply patches integration
+# =========================================================================
+
+
+class TestEngineAutoApplyPatches:
+    def test_output_path_applies_patches(self):
+        """With output_path, insecure spec gets policies.allowed_actions written."""
+        from prompt_hardener.remediate.engine import run_remediate
+        import yaml
+
+        with tempfile.NamedTemporaryFile(suffix=".yaml", delete=False) as f:
+            output_path = f.name
+
+        try:
+            report = run_remediate(
+                spec_path=os.path.join(FIXTURES_DIR, "agent_insecure_spec.yaml"),
+                eval_api_mode="openai",
+                eval_model="gpt-4o-mini",
+                layers=["tool"],
+                output_path=output_path,
+            )
+
+            assert report.applied_patches is not None
+            assert len(report.applied_patches) == 1
+
+            with open(output_path, "r") as f:
+                data = yaml.safe_load(f)
+            assert "policies" in data
+            assert set(data["policies"]["allowed_actions"]) == {
+                "delete_account",
+                "send_email",
+                "transfer_funds",
+                "get_balance",
+            }
+        finally:
+            os.unlink(output_path)
+
+    def test_no_output_path_report_only(self):
+        """Without output_path, patches appear in report but nothing is written."""
+        from prompt_hardener.remediate.engine import run_remediate
+
+        report = run_remediate(
+            spec_path=os.path.join(FIXTURES_DIR, "agent_insecure_spec.yaml"),
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+            layers=["tool"],
+        )
+
+        assert report.applied_patches is not None
+        assert len(report.applied_patches) == 1
+
+    def test_secure_spec_no_patches(self):
+        """Spec with tools + full policies should have no auto-patches."""
+        from prompt_hardener.remediate.engine import run_remediate
+
+        report = run_remediate(
+            spec_path=os.path.join(FIXTURES_DIR, "agent_spec.yaml"),
+            eval_api_mode="openai",
+            eval_model="gpt-4o-mini",
+            layers=["tool"],
+        )
+
+        assert report.applied_patches is None

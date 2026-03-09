@@ -864,6 +864,10 @@ def run_remediate_cmd(args: argparse.Namespace) -> None:
         print("Architecture: %d recommendation(s)" % len(report.architecture))
         for r in report.architecture:
             print("  [%s] %s" % (r.severity.upper(), r.title))
+    if report.applied_patches:
+        print("Auto-applied patches:")
+        for desc in report.applied_patches:
+            print("  - %s" % desc)
 
     if args.output_path:
         print("Updated agent spec written to %s" % args.output_path)

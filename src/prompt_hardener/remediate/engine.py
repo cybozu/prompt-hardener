@@ -15,6 +15,39 @@ from prompt_hardener.remediate.tool_layer import remediate_tool
 TOOL_VERSION = "0.5.0"
 
 
+def _compute_safe_spec_patches(spec):
+    """Compute deterministic, safe patches for the agent spec.
+
+    Returns (patches_dict, descriptions_list) where patches_dict can be
+    deep-merged into the YAML data, and descriptions_list describes each
+    change applied.
+
+    Current rules:
+    - tools present + no policies -> initialize policies.allowed_actions
+    - tools present + policies but no allowed_actions -> add allowed_actions
+    """
+    if not spec.tools:
+        return {}, []
+    tool_names = [t.name for t in spec.tools]
+    if spec.policies is None:
+        return (
+            {"policies": {"allowed_actions": tool_names}},
+            [
+                "Initialized policies.allowed_actions from tool names: %s"
+                % ", ".join(tool_names)
+            ],
+        )
+    elif spec.policies.allowed_actions is None:
+        return (
+            {"policies": {"allowed_actions": tool_names}},
+            [
+                "Added policies.allowed_actions from tool names: %s"
+                % ", ".join(tool_names)
+            ],
+        )
+    return {}, []
+
+
 def _compute_spec_digest(spec_path):
     # type: (str) -> str
     with open(spec_path, "rb") as f:
@@ -115,13 +148,22 @@ def run_remediate(
     if "architecture" in active_layers:
         arch_recommendations = remediate_architecture(spec, all_findings)
 
-    # Write updated spec if requested and prompt was improved
-    if output_path and improved_system_prompt is not None:
-        write_updated_spec(spec_path, improved_system_prompt, output_path)
+    # Compute safe spec patches (tool/arch auto-apply)
+    spec_patches, patch_descriptions = _compute_safe_spec_patches(spec)
+
+    # Write updated spec if requested and there are changes to apply
+    if output_path and (improved_system_prompt is not None or spec_patches):
+        write_updated_spec(
+            spec_path,
+            output_path,
+            improved_system_prompt=improved_system_prompt,
+            spec_patches=spec_patches,
+        )
 
     return RemediationReport(
         metadata=metadata,
         prompt=prompt_remediation,
         tool=tool_recommendations,
         architecture=arch_recommendations,
+        applied_patches=patch_descriptions or None,
     )

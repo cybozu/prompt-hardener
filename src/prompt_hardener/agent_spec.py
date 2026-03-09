@@ -325,16 +325,31 @@ def load_and_validate(path):
     return spec, result
 
 
-def write_updated_spec(original_path, improved_system_prompt, output_path):
-    # type: (str, str, str) -> None
-    """Write a copy of the agent spec with an updated system_prompt.
+def _deep_merge(base, overrides):
+    # type: (dict, dict) -> dict
+    """Recursively merge *overrides* into *base* (mutates *base*)."""
+    for key, value in overrides.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            _deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
 
-    Loads the original YAML, replaces the system_prompt field, and writes
+
+def write_updated_spec(original_path, output_path, improved_system_prompt=None, spec_patches=None):
+    # type: (str, str, ..., ...) -> None
+    """Write a copy of the agent spec with optional prompt update and patches.
+
+    Loads the original YAML, optionally replaces the system_prompt field,
+    optionally deep-merges *spec_patches* into the data, and writes
     to *output_path* using yaml.dump(). Note: comments and formatting
     from the original file are not preserved.
     """
     data = load_yaml(original_path)
-    data["system_prompt"] = improved_system_prompt
+    if improved_system_prompt is not None:
+        data["system_prompt"] = improved_system_prompt
+    if spec_patches:
+        _deep_merge(data, spec_patches)
     with open(output_path, "w", encoding="utf-8") as f:
         yaml.dump(
             data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
