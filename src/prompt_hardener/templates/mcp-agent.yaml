@@ -31,6 +31,9 @@ tools:
           type: string
           description: "File path"
       required: [path]
+    # effect: read          # read | write | delete | external_send | unknown
+    # impact: low           # low | medium | high | unknown
+    # execution_identity: user  # user | service | mixed | unknown
 
 # MCP server definitions (required for mcp-agent type):
 mcp_servers:

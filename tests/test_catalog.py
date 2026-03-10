@@ -30,9 +30,9 @@ class TestBuiltinCatalogBasics:
     def test_builtin_catalog_dir_exists(self):
         assert get_builtin_catalog_dir().is_dir()
 
-    def test_builtin_catalog_has_13_yaml_files(self):
+    def test_builtin_catalog_has_17_yaml_files(self):
         yaml_files = list(get_builtin_catalog_dir().glob("*.yaml"))
-        assert len(yaml_files) == 13
+        assert len(yaml_files) == 17
 
     def test_catalog_version_is_string(self):
         assert isinstance(CATALOG_VERSION, str)
@@ -129,9 +129,9 @@ class TestLoadScenario:
 
 
 class TestLoadCatalog:
-    def test_builtin_loads_13_scenarios(self):
+    def test_builtin_loads_17_scenarios(self):
         scenarios = load_catalog()
-        assert len(scenarios) == 13
+        assert len(scenarios) == 17
 
     def test_builtin_ids_are_unique(self):
         scenarios = load_catalog()
@@ -207,39 +207,43 @@ class TestFilterScenarios:
 
     def test_filter_by_chatbot(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, agent_type="chatbot")
-        # prompt-layer universal (6) = 6; excludes rag-only, tool-only, arch-only
-        assert len(filtered) == 6
+        # prompt-layer universal (6) + memory_poisoning = 7
+        assert len(filtered) == 7
         for s in filtered:
             assert "chatbot" in s.applicability
 
     def test_filter_by_rag(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, agent_type="rag")
-        # prompt-layer universal (6) + ignoring_rag + data_source_poisoning = 8
-        assert len(filtered) == 8
+        # chatbot (7) + ignoring_rag + data_source_poisoning + rag_context_injection = 10
+        assert len(filtered) == 10
         ids = {s.id for s in filtered}
         assert "ignoring_rag" in ids
         assert "data_source_poisoning" in ids
+        assert "rag_context_injection" in ids
         assert "function_call_hijacking" not in ids
 
     def test_filter_by_agent(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, agent_type="agent")
-        # prompt-layer universal (6) + 3 tool-layer + 1 arch (cross_agent) = 10; excludes rag-only, mcp-only
-        assert len(filtered) == 10
+        # chatbot (7) + 4 tool + cross_agent + rag_context_injection = 13
+        assert len(filtered) == 13
         ids = {s.id for s in filtered}
         assert "ignoring_rag" not in ids
         assert "function_call_hijacking" in ids
         assert "cross_agent_escalation" in ids
+        assert "tool_result_injection" in ids
+        assert "rag_context_injection" in ids
 
     def test_filter_by_mcp_agent(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, agent_type="mcp-agent")
-        # prompt-layer universal (6) + 3 tool-layer + 2 arch (cross_agent + mcp_server) = 11; excludes rag-only
-        assert len(filtered) == 11
+        # agent (13) + mcp_server_poisoning + mcp_response_injection = 15
+        assert len(filtered) == 15
         ids = {s.id for s in filtered}
         assert "ignoring_rag" not in ids
         assert "function_call_hijacking" in ids
         assert "tool_definition_leakage" in ids
         assert "mcp_server_poisoning" in ids
         assert "cross_agent_escalation" in ids
+        assert "mcp_response_injection" in ids
 
     def test_filter_by_prompt_layer(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, layers=["prompt"])
@@ -250,9 +254,9 @@ class TestFilterScenarios:
 
     def test_filter_by_tool_layer(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, layers=["tool"])
-        assert len(filtered) == 3
+        assert len(filtered) == 4
         ids = {s.id for s in filtered}
-        assert ids == {"function_call_hijacking", "tool_definition_leakage", "tool_schema_manipulation"}
+        assert ids == {"function_call_hijacking", "tool_definition_leakage", "tool_schema_manipulation", "tool_result_injection"}
 
     def test_filter_by_category(self, all_scenarios):
         filtered = filter_scenarios(
@@ -262,7 +266,7 @@ class TestFilterScenarios:
 
     def test_filter_by_injection_method(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, injection_methods=["user_message"])
-        assert len(filtered) == 13  # all scenarios use user_message
+        assert len(filtered) == 14  # 14 scenarios use user_message
 
     def test_filter_combined_agent_type_and_layer(self, all_scenarios):
         filtered = filter_scenarios(
@@ -272,10 +276,10 @@ class TestFilterScenarios:
 
     def test_filter_combined_agent_and_tool_layer(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, agent_type="agent", layers=["tool"])
-        assert len(filtered) == 3
+        assert len(filtered) == 4
 
     def test_filter_no_match(self, all_scenarios):
-        filtered = filter_scenarios(all_scenarios, injection_methods=["mcp_response"])
+        filtered = filter_scenarios(all_scenarios, injection_methods=["nonexistent_method"])
         assert len(filtered) == 0
 
     def test_filter_no_criteria_returns_all(self, all_scenarios):
@@ -284,7 +288,7 @@ class TestFilterScenarios:
 
     def test_filter_multiple_layers(self, all_scenarios):
         filtered = filter_scenarios(all_scenarios, layers=["prompt", "tool"])
-        assert len(filtered) == 10  # 7 prompt + 3 tool
+        assert len(filtered) == 11  # 7 prompt + 4 tool
 
 
 # =========================================================================
@@ -366,8 +370,18 @@ class TestPayloadFidelity:
     def test_total_payload_count(self):
         scenarios = load_catalog()
         total = sum(len(s.payloads) for s in scenarios)
+        # 39 original payloads + 3 (memory_poisoning) + 3 (tool_result_injection)
+        # + 3 (rag_context_injection) + 3 (mcp_response_injection) = 51
+        assert total == 51
+
+    def test_original_payload_count(self):
+        """Original 13 scenarios have 39 payloads matching attack.py."""
+        scenarios = load_catalog()
+        original_total = sum(
+            len(s.payloads) for s in scenarios if s.id in self.ATTACK_PY_PAYLOADS
+        )
         expected = sum(len(v) for v in self.ATTACK_PY_PAYLOADS.values())
-        assert total == expected == 39
+        assert original_total == expected == 39
 
     @pytest.mark.parametrize("scenario_id", sorted(ATTACK_PY_PAYLOADS.keys()))
     def test_payloads_match_attack_py(self, scenario_id):
@@ -485,9 +499,10 @@ class TestScenarioContent:
         rag_scenario = next(s for s in scenarios if s.id == "ignoring_rag")
         assert rag_scenario.applicability == ["rag"]
 
-    def test_all_injection_methods_are_user_message(self):
-        """All v0.4.0 migrated scenarios use user_message injection."""
+    def test_all_injection_methods_are_supported(self):
+        """All scenarios use a supported injection method."""
+        supported = {"user_message", "tool_result", "mcp_response", "rag_context"}
         for s in load_catalog():
-            assert s.injection_method == "user_message", (
-                "%s has unexpected injection_method: %s" % (s.id, s.injection_method)
+            assert s.injection_method in supported, (
+                "%s has unsupported injection_method: %s" % (s.id, s.injection_method)
             )

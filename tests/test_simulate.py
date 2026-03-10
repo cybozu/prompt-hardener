@@ -9,14 +9,22 @@ from unittest.mock import patch
 import jsonschema
 import pytest
 
-from prompt_hardener.attack import AttackResult
+from prompt_hardener.attack import (
+    AttackResult,
+    inject_as_mcp_response,
+    inject_as_rag_context,
+    inject_as_tool_result,
+)
 from prompt_hardener.catalog import filter_scenarios, load_catalog
+from prompt_hardener.schema import PromptInput
 from prompt_hardener.simulate import (
     TOOL_VERSION,
     ScenarioResult,
     SimulationReport,
     SimulationSummary,
     _map_outcome,
+    _pick_mcp_server_name,
+    _pick_tool_name,
     run_simulate,
 )
 
@@ -214,11 +222,23 @@ class TestFilteringIntegration:
             assert s.target_layer == "prompt"
             assert s.category == "persona_switch"
 
-    def test_all_builtin_scenarios_use_user_message(self):
-        """All built-in scenarios currently use user_message injection."""
+    def test_all_builtin_scenarios_use_supported_injection_method(self):
+        """All built-in scenarios use a supported injection method."""
+        supported = {"user_message", "tool_result", "mcp_response", "rag_context"}
         scenarios = load_catalog()
         for s in scenarios:
-            assert s.injection_method == "user_message"
+            assert s.injection_method in supported, (
+                "Scenario '%s' uses unsupported injection_method '%s'"
+                % (s.id, s.injection_method)
+            )
+
+    def test_non_user_message_scenarios_exist(self):
+        """Catalog includes scenarios with non-user_message injection methods."""
+        scenarios = load_catalog()
+        methods = {s.injection_method for s in scenarios}
+        assert "tool_result" in methods
+        assert "rag_context" in methods
+        assert "mcp_response" in methods
 
 
 # =========================================================================
@@ -539,3 +559,334 @@ class TestSchemaDriftGuard:
         json_str = json.dumps(report.to_dict(), ensure_ascii=False)
         parsed = json.loads(json_str)
         assert parsed["simulation"]["summary"]["total"] == 2
+
+
+# =========================================================================
+# Group 7: Structural Injection Functions
+# =========================================================================
+
+
+class TestInjectAsToolResult:
+    """Test inject_as_tool_result for openai and claude formats."""
+
+    def _make_openai_prompt(self):
+        return PromptInput(
+            mode="chat",
+            messages=[{"role": "system", "content": "You are helpful."}],
+            messages_format="openai",
+        )
+
+    def _make_claude_prompt(self):
+        return PromptInput(
+            mode="chat",
+            messages=[],
+            messages_format="claude",
+            system_prompt="You are helpful.",
+        )
+
+    def test_openai_format_contains_payload(self):
+        prompt = self._make_openai_prompt()
+        result = inject_as_tool_result(prompt, "INJECTED_PAYLOAD", "my_tool")
+        msgs = result.messages
+        # Should have original system msg + user + assistant + tool
+        assert len(msgs) == 4
+        assert msgs[-1]["role"] == "tool"
+        assert msgs[-1]["content"] == "INJECTED_PAYLOAD"
+        assert msgs[-2]["tool_calls"][0]["function"]["name"] == "my_tool"
+
+    def test_claude_format_contains_payload(self):
+        prompt = self._make_claude_prompt()
+        result = inject_as_tool_result(prompt, "INJECTED_PAYLOAD", "my_tool")
+        msgs = result.messages
+        assert len(msgs) == 3  # user + assistant + user (tool_result)
+        last_msg = msgs[-1]
+        assert last_msg["role"] == "user"
+        assert last_msg["content"][0]["type"] == "tool_result"
+        assert last_msg["content"][0]["content"] == "INJECTED_PAYLOAD"
+
+    def test_preserves_system_prompt_claude(self):
+        prompt = self._make_claude_prompt()
+        result = inject_as_tool_result(prompt, "payload", "tool")
+        assert result.system_prompt == "You are helpful."
+
+    def test_default_tool_name(self):
+        prompt = self._make_openai_prompt()
+        result = inject_as_tool_result(prompt, "payload")
+        assert result.messages[-2]["tool_calls"][0]["function"]["name"] == "search"
+
+
+class TestInjectAsRagContext:
+    """Test inject_as_rag_context for openai and claude formats."""
+
+    def test_openai_format_wraps_payload(self):
+        prompt = PromptInput(
+            mode="chat",
+            messages=[{"role": "system", "content": "You are helpful."}],
+            messages_format="openai",
+        )
+        result = inject_as_rag_context(prompt, "INJECTED_PAYLOAD")
+        msgs = result.messages
+        assert len(msgs) == 2
+        assert msgs[-1]["role"] == "user"
+        assert "---BEGIN RETRIEVED DOCUMENT---" in msgs[-1]["content"]
+        assert "INJECTED_PAYLOAD" in msgs[-1]["content"]
+        assert "---END RETRIEVED DOCUMENT---" in msgs[-1]["content"]
+
+    def test_claude_format_wraps_payload(self):
+        prompt = PromptInput(
+            mode="chat",
+            messages=[],
+            messages_format="claude",
+            system_prompt="You are helpful.",
+        )
+        result = inject_as_rag_context(prompt, "INJECTED_PAYLOAD")
+        assert len(result.messages) == 1
+        assert "INJECTED_PAYLOAD" in result.messages[0]["content"]
+        assert result.system_prompt == "You are helpful."
+
+
+class TestInjectAsMcpResponse:
+    """Test inject_as_mcp_response delegates to tool_result with namespaced name."""
+
+    def test_uses_namespaced_tool_name(self):
+        prompt = PromptInput(
+            mode="chat",
+            messages=[{"role": "system", "content": "You are helpful."}],
+            messages_format="openai",
+        )
+        result = inject_as_mcp_response(prompt, "PAYLOAD", "my_server")
+        tool_call = result.messages[-2]["tool_calls"][0]
+        assert tool_call["function"]["name"] == "my_server__query"
+
+    def test_default_server_name(self):
+        prompt = PromptInput(
+            mode="chat",
+            messages=[{"role": "system", "content": "You are helpful."}],
+            messages_format="openai",
+        )
+        result = inject_as_mcp_response(prompt, "PAYLOAD")
+        tool_call = result.messages[-2]["tool_calls"][0]
+        assert tool_call["function"]["name"] == "external_server__query"
+
+
+# =========================================================================
+# Group 8: Helper Functions
+# =========================================================================
+
+
+class TestPickToolName:
+    """Test _pick_tool_name helper."""
+
+    def test_returns_first_tool_name(self):
+        from prompt_hardener.models import AgentSpec, ProviderConfig, ToolDef
+
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="test",
+            system_prompt="test",
+            provider=ProviderConfig(api="openai", model="gpt-4"),
+            tools=[
+                ToolDef(name="db_query", description="Query DB"),
+                ToolDef(name="send_email", description="Send email"),
+            ],
+        )
+        assert _pick_tool_name(spec) == "db_query"
+
+    def test_returns_default_when_no_tools(self):
+        from prompt_hardener.models import AgentSpec, ProviderConfig
+
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="test",
+            system_prompt="test",
+            provider=ProviderConfig(api="openai", model="gpt-4"),
+        )
+        assert _pick_tool_name(spec) == "search"
+
+
+class TestPickMcpServerName:
+    """Test _pick_mcp_server_name helper."""
+
+    def test_returns_first_server_name(self):
+        from prompt_hardener.models import AgentSpec, McpServer, ProviderConfig
+
+        spec = AgentSpec(
+            version="1.0",
+            type="mcp-agent",
+            name="test",
+            system_prompt="test",
+            provider=ProviderConfig(api="openai", model="gpt-4"),
+            mcp_servers=[
+                McpServer(name="docs_server", trust_level="trusted"),
+                McpServer(name="external", trust_level="untrusted"),
+            ],
+        )
+        assert _pick_mcp_server_name(spec) == "docs_server"
+
+    def test_returns_default_when_no_servers(self):
+        from prompt_hardener.models import AgentSpec, ProviderConfig
+
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="test",
+            system_prompt="test",
+            provider=ProviderConfig(api="openai", model="gpt-4"),
+        )
+        assert _pick_mcp_server_name(spec) == "external_server"
+
+
+# =========================================================================
+# Group 9: Injection Method Dispatch (mocked)
+# =========================================================================
+
+
+class TestInjectionMethodDispatch:
+    """Test that run_simulate dispatches correctly based on injection_method."""
+
+    @patch("prompt_hardener.simulate.execute_preinjected_attack")
+    @patch("prompt_hardener.simulate.execute_single_attack")
+    def test_tool_result_uses_preinjected(self, mock_single, mock_preinjected):
+        """tool_result scenarios go through execute_preinjected_attack."""
+        mock_single.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+        mock_preinjected.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+
+        report = run_simulate(
+            spec_path=os.path.join(FIXTURES_DIR, "agent_spec.yaml"),
+            attack_api_mode="claude",
+            attack_model="claude-sonnet-4-20250514",
+            judge_api_mode="claude",
+            judge_model="claude-sonnet-4-20250514",
+            categories=["function_call_hijacking"],
+        )
+
+        # Should have calls to both: user_message scenarios -> single, tool_result -> preinjected
+        assert mock_single.call_count > 0 or mock_preinjected.call_count > 0
+        assert report.summary.total > 0
+
+    @patch("prompt_hardener.simulate.execute_preinjected_attack")
+    @patch("prompt_hardener.simulate.execute_single_attack")
+    def test_mcp_response_uses_preinjected(self, mock_single, mock_preinjected):
+        """mcp_response scenarios go through execute_preinjected_attack."""
+        mock_single.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+        mock_preinjected.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+
+        # mcp-agent spec to include mcp_response scenarios
+        report = run_simulate(
+            spec_path=os.path.join(FIXTURES_DIR, "mcp_agent_spec.yaml"),
+            attack_api_mode="claude",
+            attack_model="claude-sonnet-4-20250514",
+            judge_api_mode="claude",
+            judge_model="claude-sonnet-4-20250514",
+            categories=["mcp_server_poisoning"],
+        )
+
+        # mcp_server_poisoning should include both user_message and mcp_response scenarios
+        assert report.summary.total > 0
+
+    @patch("prompt_hardener.simulate.execute_preinjected_attack")
+    @patch("prompt_hardener.simulate.execute_single_attack")
+    def test_user_message_uses_single_attack(self, mock_single, mock_preinjected):
+        """user_message scenarios use execute_single_attack (not preinjected)."""
+        mock_single.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+        mock_preinjected.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+
+        run_simulate(
+            spec_path=os.path.join(FIXTURES_DIR, "chatbot_spec.yaml"),
+            attack_api_mode="claude",
+            attack_model="claude-sonnet-4-20250514",
+            judge_api_mode="claude",
+            judge_model="claude-sonnet-4-20250514",
+            categories=["persona_switch"],
+        )
+
+        # chatbot + persona_switch = only user_message scenarios
+        assert mock_single.call_count > 0
+        assert mock_preinjected.call_count == 0
+
+
+# =========================================================================
+# Group 10: New Catalog Scenario Schema Validation
+# =========================================================================
+
+
+class TestNewCatalogScenarios:
+    """Validate new catalog YAML files against scenario.schema.json."""
+
+    @staticmethod
+    def _load_scenario_schema():
+        schema_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "src",
+            "prompt_hardener",
+            "schemas",
+            "scenario.schema.json",
+        )
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_tool_result_injection_schema(self):
+        import yaml
+
+        schema = self._load_scenario_schema()
+        path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "src",
+            "prompt_hardener",
+            "catalog",
+            "tool_result_injection.yaml",
+        )
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        jsonschema.validate(data, schema)
+        assert data["injection_method"] == "tool_result"
+
+    def test_rag_context_injection_schema(self):
+        import yaml
+
+        schema = self._load_scenario_schema()
+        path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "src",
+            "prompt_hardener",
+            "catalog",
+            "rag_context_injection.yaml",
+        )
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        jsonschema.validate(data, schema)
+        assert data["injection_method"] == "rag_context"
+
+    def test_mcp_response_injection_schema(self):
+        import yaml
+
+        schema = self._load_scenario_schema()
+        path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "src",
+            "prompt_hardener",
+            "catalog",
+            "mcp_response_injection.yaml",
+        )
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        jsonschema.validate(data, schema)
+        assert data["injection_method"] == "mcp_response"

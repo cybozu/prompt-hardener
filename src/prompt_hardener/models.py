@@ -36,6 +36,9 @@ class ToolDef:
     name: str
     description: str
     parameters: Optional[Dict] = None
+    effect: Optional[str] = None  # "read"|"write"|"delete"|"external_send"|"unknown"
+    impact: Optional[str] = None  # "low"|"medium"|"high"|"unknown"
+    execution_identity: Optional[str] = None  # "user"|"service"|"mixed"|"unknown"
 
 
 @dataclass
@@ -56,8 +59,9 @@ class Policies:
 class DataSource:
     name: str
     type: str
-    trust_level: str  # "trusted" | "untrusted"
+    trust_level: str  # "trusted" | "untrusted" | "unknown"
     description: Optional[str] = None
+    sensitivity: Optional[str] = None  # "public"|"internal"|"confidential"|"unknown"
 
 
 @dataclass
@@ -93,6 +97,8 @@ class AgentSpec:
     data_sources: Optional[List[DataSource]] = None
     mcp_servers: Optional[List[McpServer]] = None
     user_input_description: Optional[str] = None
+    has_persistent_memory: Optional[str] = None  # "true"|"false"|"unknown"
+    scope: Optional[str] = None  # "single_user"|"shared_workspace"|"multi_tenant"|"unknown"
 
     def to_agent_context(self):
         # type: () -> AgentContext

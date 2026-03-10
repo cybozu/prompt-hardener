@@ -39,8 +39,15 @@ def _derive_attack_paths(findings, spec):
 
     # Group findings by rule for combined attack paths
     untrusted_data_findings = [f for f in findings if f.rule_id == "PROMPT-001"]
-    tool_findings = [f for f in findings if f.rule_id in ("TOOL-001", "ARCH-001")]
+    tool_findings = [
+        f for f in findings
+        if f.rule_id in ("TOOL-001", "TOOL-003", "TOOL-004", "ARCH-001")
+    ]
     mcp_findings = [f for f in findings if f.rule_id == "ARCH-002"]
+    unknown_trust_findings = [f for f in findings if f.rule_id == "ARCH-004"]
+    memory_findings = [f for f in findings if f.rule_id == "ARCH-005"]
+    scope_findings = [f for f in findings if f.rule_id == "ARCH-006"]
+    confidential_exfil_findings = [f for f in findings if f.rule_id == "TOOL-006"]
 
     if untrusted_data_findings:
         counter += 1
@@ -104,6 +111,116 @@ def _derive_attack_paths(findings, spec):
                     "Attacker gains access to sensitive operations through the MCP server",
                 ],
                 related_findings=[f.id for f in mcp_findings],
+            )
+        )
+
+    if unknown_trust_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Unassessed trust level leading to unexpected exposure",
+                severity="medium",
+                description=(
+                    "Data sources or MCP servers with unknown trust levels have "
+                    "not been properly assessed, creating blind spots in the "
+                    "security posture."
+                ),
+                steps=[
+                    "Data source or MCP server with unknown trust level is deployed",
+                    "Attacker compromises the unassessed source",
+                    "Without proper trust classification, no defensive measures are in place",
+                ],
+                related_findings=[f.id for f in unknown_trust_findings],
+            )
+        )
+
+    # Check for external_send tools (from spec, not just findings)
+    has_external_send = False
+    if spec.tools:
+        has_external_send = any(
+            getattr(t, "effect", None) == "external_send" for t in spec.tools
+        )
+    if has_external_send and tool_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Sensitive data exfiltration via external_send tool",
+                severity="high",
+                description=(
+                    "An external_send tool could be exploited via prompt injection "
+                    "to exfiltrate sensitive data to an attacker-controlled endpoint."
+                ),
+                steps=[
+                    "Attacker crafts prompt injection to trigger external_send tool",
+                    "Injected instructions include attacker-controlled destination",
+                    "Sensitive data is sent to the attacker's endpoint",
+                ],
+                related_findings=[f.id for f in tool_findings],
+            )
+        )
+
+    if memory_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Memory poisoning leading to persistent compromise",
+                severity="high",
+                description=(
+                    "An agent with persistent memory and no poisoning protection "
+                    "can be compromised by injecting malicious state that persists "
+                    "across sessions."
+                ),
+                steps=[
+                    "Attacker crafts a message that instructs the agent to store malicious state",
+                    "Agent stores the injected data in persistent memory",
+                    "In subsequent sessions, the agent uses the poisoned state",
+                    "Attacker gains persistent control over agent behavior",
+                ],
+                related_findings=[f.id for f in memory_findings],
+            )
+        )
+
+    if scope_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Cross-tenant data exposure",
+                severity="high",
+                description=(
+                    "A multi-tenant agent with sensitive tools may allow "
+                    "cross-tenant data access through prompt injection."
+                ),
+                steps=[
+                    "Attacker operates within one tenant of the multi-tenant system",
+                    "Prompt injection triggers sensitive tool with cross-tenant scope",
+                    "Data from other tenants is exposed to the attacker",
+                ],
+                related_findings=[f.id for f in scope_findings],
+            )
+        )
+
+    if confidential_exfil_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Confidential data exfiltration",
+                severity="critical",
+                description=(
+                    "The combination of confidential data sources and external_send "
+                    "tools creates a direct path for data exfiltration via prompt "
+                    "injection."
+                ),
+                steps=[
+                    "Attacker crafts prompt injection targeting the external_send tool",
+                    "Injected instructions reference confidential data sources",
+                    "Tool sends confidential data to attacker-controlled destination",
+                ],
+                related_findings=[f.id for f in confidential_exfil_findings],
             )
         )
 

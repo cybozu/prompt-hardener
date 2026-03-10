@@ -246,6 +246,9 @@ def dict_to_agent_spec(data):
                 name=t["name"],
                 description=t["description"],
                 parameters=t.get("parameters"),
+                effect=t.get("effect"),
+                impact=t.get("impact"),
+                execution_identity=t.get("execution_identity"),
             )
             for t in data["tools"]
         ]
@@ -274,6 +277,7 @@ def dict_to_agent_spec(data):
                 type=ds["type"],
                 trust_level=ds["trust_level"],
                 description=ds.get("description"),
+                sensitivity=ds.get("sensitivity"),
             )
             for ds in data["data_sources"]
         ]
@@ -303,6 +307,8 @@ def dict_to_agent_spec(data):
         data_sources=data_sources,
         mcp_servers=mcp_servers,
         user_input_description=data.get("user_input_description"),
+        has_persistent_memory=data.get("has_persistent_memory"),
+        scope=data.get("scope"),
     )
 
 

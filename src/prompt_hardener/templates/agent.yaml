@@ -31,6 +31,9 @@ tools:
           type: string
           description: "Input parameter"
       required: [query]
+    # effect: read          # read | write | delete | external_send | unknown
+    # impact: low           # low | medium | high | unknown
+    # execution_identity: user  # user | service | mixed | unknown
 
 # Security policies (recommended):
 # policies:

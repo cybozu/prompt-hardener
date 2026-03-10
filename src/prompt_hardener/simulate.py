@@ -6,15 +6,27 @@ from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional
 
 from prompt_hardener.agent_spec import load_and_validate
-from prompt_hardener.attack import AttackResult, execute_single_attack
+import random
+import string
+
+from prompt_hardener.attack import (
+    AttackResult,
+    execute_preinjected_attack,
+    execute_single_attack,
+    inject_as_mcp_response,
+    inject_as_rag_context,
+    inject_as_tool_result,
+    normalize_salted_tags_in_prompt,
+)
 from prompt_hardener.catalog import (
     CATALOG_VERSION,
     filter_scenarios,
     load_catalog,
 )
+from prompt_hardener.models import AgentSpec
 
 # Supported injection methods in the current implementation.
-_SUPPORTED_INJECTION_METHODS = {"user_message"}
+_SUPPORTED_INJECTION_METHODS = {"user_message", "tool_result", "mcp_response", "rag_context"}
 
 TOOL_VERSION = "0.5.0"
 
@@ -134,6 +146,27 @@ def _map_outcome(attack_result: AttackResult) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Helpers for injection method dispatch
+# ---------------------------------------------------------------------------
+
+
+def _pick_tool_name(spec):
+    # type: (AgentSpec) -> str
+    """Pick a tool name from the spec for tool_result injection."""
+    if spec.tools:
+        return spec.tools[0].name
+    return "search"
+
+
+def _pick_mcp_server_name(spec):
+    # type: (AgentSpec) -> str
+    """Pick an MCP server name from the spec for mcp_response injection."""
+    if spec.mcp_servers:
+        return spec.mcp_servers[0].name
+    return "external_server"
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 
@@ -221,19 +254,60 @@ def run_simulate(
             if on_progress is not None:
                 on_progress(payload_idx, total_payloads, scenario.id)
 
-            attack_result = execute_single_attack(
-                prompt=prompt_input,
-                payload=payload,
-                attack_api_mode=attack_api_mode,
-                attack_model=attack_model,
-                judge_api_mode=judge_api_mode,
-                judge_model=judge_model,
-                separator=separator,
-                tools=tools_for_attack,
-                aws_region=aws_region,
-                aws_profile=aws_profile,
-                success_criteria=criteria_str,
-            )
+            if scenario.injection_method == "user_message":
+                # Existing flow: LLM-based injection via insert_attack_into_prompt
+                attack_result = execute_single_attack(
+                    prompt=prompt_input,
+                    payload=payload,
+                    attack_api_mode=attack_api_mode,
+                    attack_model=attack_model,
+                    judge_api_mode=judge_api_mode,
+                    judge_model=judge_model,
+                    separator=separator,
+                    tools=tools_for_attack,
+                    aws_region=aws_region,
+                    aws_profile=aws_profile,
+                    success_criteria=criteria_str,
+                )
+            else:
+                # Structural injection: build the prompt directly
+                random_tag = "".join(
+                    random.choices(string.ascii_letters + string.digits, k=10)
+                )
+                normalized_prompt = normalize_salted_tags_in_prompt(
+                    prompt_input, random_tag
+                )
+
+                if scenario.injection_method == "tool_result":
+                    tool_name = _pick_tool_name(spec)
+                    final_prompt = inject_as_tool_result(
+                        normalized_prompt, payload, tool_name
+                    )
+                elif scenario.injection_method == "rag_context":
+                    final_prompt = inject_as_rag_context(
+                        normalized_prompt, payload
+                    )
+                elif scenario.injection_method == "mcp_response":
+                    server_name = _pick_mcp_server_name(spec)
+                    final_prompt = inject_as_mcp_response(
+                        normalized_prompt, payload, server_name
+                    )
+                else:
+                    # Should not reach here due to _SUPPORTED_INJECTION_METHODS filter
+                    continue
+
+                attack_result = execute_preinjected_attack(
+                    prompt=final_prompt,
+                    payload=payload,
+                    attack_api_mode=attack_api_mode,
+                    attack_model=attack_model,
+                    judge_api_mode=judge_api_mode,
+                    judge_model=judge_model,
+                    tools=tools_for_attack,
+                    aws_region=aws_region,
+                    aws_profile=aws_profile,
+                    success_criteria=criteria_str,
+                )
 
             outcome = _map_outcome(attack_result)
             scenario_results.append(

@@ -101,6 +101,21 @@
                 "items": { "type": "string" }
               }
             }
+          },
+          "effect": {
+            "type": "string",
+            "enum": ["read", "write", "delete", "external_send", "unknown"],
+            "description": "Side-effect classification of this tool"
+          },
+          "impact": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "unknown"],
+            "description": "Blast radius if this tool is misused"
+          },
+          "execution_identity": {
+            "type": "string",
+            "enum": ["user", "service", "mixed", "unknown"],
+            "description": "Identity under which this tool executes"
           }
         }
       }
@@ -162,11 +177,16 @@
           },
           "trust_level": {
             "type": "string",
-            "enum": ["trusted", "untrusted"],
+            "enum": ["trusted", "untrusted", "unknown"],
             "description": "Whether this source content is trusted"
           },
           "description": {
             "type": "string"
+          },
+          "sensitivity": {
+            "type": "string",
+            "enum": ["public", "internal", "confidential", "unknown"],
+            "description": "Data sensitivity classification"
           }
         },
         "additionalProperties": false
@@ -185,7 +205,7 @@
           },
           "trust_level": {
             "type": "string",
-            "enum": ["trusted", "untrusted"],
+            "enum": ["trusted", "untrusted", "unknown"],
             "description": "Trust level for this server"
           },
           "allowed_tools": {
@@ -205,6 +225,16 @@
     "user_input_description": {
       "type": "string",
       "description": "Description of how users provide input to this agent"
+    },
+    "has_persistent_memory": {
+      "type": "string",
+      "enum": ["true", "false", "unknown"],
+      "description": "Whether the agent stores state across sessions"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["single_user", "shared_workspace", "multi_tenant", "unknown"],
+      "description": "Isolation scope of this agent's operations"
     }
   },
   "additionalProperties": false,

@@ -135,4 +135,92 @@ def remediate_tool(spec: AgentSpec, findings: List[Finding]) -> List[Recommendat
                 )
             )
 
+    # Proactive recommendations based on effect/impact/execution_identity
+    if spec.tools:
+        _add_effect_based_recommendations(spec, recommendations)
+
     return recommendations
+
+
+def _add_effect_based_recommendations(
+    spec: AgentSpec, recommendations: List[Recommendation]
+) -> None:
+    """Add recommendations based on tool effect/impact/execution_identity annotations."""
+    unannotated = [t for t in spec.tools if t.effect is None and t.impact is None]
+    if unannotated and len(unannotated) < len(spec.tools):
+        # Some tools are annotated, others aren't — recommend completing annotations
+        recommendations.append(
+            Recommendation(
+                severity="low",
+                title="Complete tool effect/impact annotations",
+                description=(
+                    "Some tools have effect/impact annotations but %d tool(s) do not: %s. "
+                    "Annotating all tools enables more accurate security analysis."
+                    % (
+                        len(unannotated),
+                        ", ".join(t.name for t in unannotated),
+                    )
+                ),
+                suggested_change=(
+                    "tools:\n"
+                    "  - name: <tool_name>\n"
+                    "    effect: read|write|delete|external_send\n"
+                    "    impact: low|medium|high"
+                ),
+            )
+        )
+
+    # Recommend HITL for external_send tools
+    external_send_tools = [t for t in spec.tools if t.effect == "external_send"]
+    if external_send_tools:
+        has_escalation = (
+            spec.policies is not None
+            and spec.policies.escalation_rules is not None
+            and len(spec.policies.escalation_rules) > 0
+        )
+        if not has_escalation:
+            recommendations.append(
+                Recommendation(
+                    severity="high",
+                    title="Add escalation rules for external_send tools",
+                    description=(
+                        "Tools with effect 'external_send' (%s) can send data to "
+                        "external systems. Without escalation rules requiring human "
+                        "approval, a prompt injection could exfiltrate data."
+                        % ", ".join(t.name for t in external_send_tools)
+                    ),
+                    suggested_change=(
+                        "policies:\n"
+                        "  escalation_rules:\n"
+                        '    - condition: "External send operation requested"\n'
+                        '      action: "Require human approval"'
+                    ),
+                )
+            )
+
+    # Recommend restrictions for service-identity tools
+    service_tools = [t for t in spec.tools if t.execution_identity == "service"]
+    if service_tools:
+        has_restrictions = (
+            spec.policies is not None
+            and (spec.policies.denied_actions or spec.policies.escalation_rules)
+        )
+        if not has_restrictions:
+            recommendations.append(
+                Recommendation(
+                    severity="medium",
+                    title="Add restrictions for service-identity tools",
+                    description=(
+                        "Tools with execution_identity 'service' (%s) run with "
+                        "elevated privileges. Add denied_actions or escalation_rules "
+                        "to limit their scope."
+                        % ", ".join(t.name for t in service_tools)
+                    ),
+                    suggested_change=(
+                        "policies:\n"
+                        "  escalation_rules:\n"
+                        '    - condition: "Service-level tool invocation"\n'
+                        '      action: "Require human approval"'
+                    ),
+                )
+            )

@@ -35,7 +35,8 @@
         "tool_schema_manipulation",
         "multi_turn_state_attack",
         "cross_agent_escalation",
-        "data_source_poisoning"
+        "data_source_poisoning",
+        "memory_poisoning"
       ]
     },
     "target_layer": {
