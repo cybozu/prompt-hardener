@@ -249,6 +249,9 @@ def dict_to_agent_spec(data):
                 effect=t.get("effect"),
                 impact=t.get("impact"),
                 execution_identity=t.get("execution_identity"),
+                source=t.get("source"),
+                version=t.get("version"),
+                content_hash=t.get("content_hash"),
             )
             for t in data["tools"]
         ]
@@ -267,6 +270,10 @@ def dict_to_agent_spec(data):
             denied_actions=p.get("denied_actions"),
             data_boundaries=p.get("data_boundaries"),
             escalation_rules=escalation_rules,
+            max_tool_calls=p.get("max_tool_calls"),
+            max_steps=p.get("max_steps"),
+            rate_limits=p.get("rate_limits"),
+            cost_budget=p.get("cost_budget"),
         )
 
     data_sources = None
@@ -290,6 +297,9 @@ def dict_to_agent_spec(data):
                 trust_level=ms["trust_level"],
                 allowed_tools=ms.get("allowed_tools"),
                 data_access=ms.get("data_access"),
+                source=ms.get("source"),
+                version=ms.get("version"),
+                content_hash=ms.get("content_hash"),
             )
             for ms in data["mcp_servers"]
         ]

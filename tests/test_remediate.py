@@ -1042,7 +1042,6 @@ class TestAverageSatisfaction:
 
     def test_import_from_engine(self):
         """Verify average_satisfaction is used in analyze engine."""
-        import prompt_hardener.analyze.engine as engine_mod
 
         # average_satisfaction is imported lazily inside run_analyze,
         # so verify the utils module is the canonical source.

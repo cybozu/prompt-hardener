@@ -67,9 +67,11 @@ mcp_servers:
     trust_level: trusted
     allowed_tools: [read_file, list_directory]
     data_access: [project_files]
+    source: first_party
   - name: web_search
     trust_level: untrusted
     allowed_tools: [search_web]
     data_access: [public_web]
+    source: first_party
 
 user_input_description: "Developer queries and coding requests via IDE chat panel"

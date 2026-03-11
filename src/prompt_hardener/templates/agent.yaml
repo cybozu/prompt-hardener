@@ -34,6 +34,9 @@ tools:
     # effect: read          # read | write | delete | external_send | unknown
     # impact: low           # low | medium | high | unknown
     # execution_identity: user  # user | service | mixed | unknown
+    # source: local         # local | third_party | mcp | unknown
+    # version: "1.0.0"     # version pinning for third-party tools
+    # content_hash: "sha256:..."  # integrity hash
 
 # Security policies (recommended):
 # policies:
@@ -46,6 +49,10 @@ tools:
 #   escalation_rules:
 #     - condition: "User requests destructive action"
 #       action: "Ask for explicit confirmation"
+#   max_tool_calls: 20      # execution budget
+#   # max_steps: 10
+#   # rate_limits: ["10 calls/minute"]
+#   # cost_budget: "$1.00/session"
 
 # Data sources (optional):
 # data_sources:

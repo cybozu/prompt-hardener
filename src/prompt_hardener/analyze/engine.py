@@ -16,7 +16,7 @@ from prompt_hardener.analyze.scoring import compute_scores
 from prompt_hardener.models import AgentSpec
 
 TOOL_VERSION = "0.5.0"
-RULES_VERSION = "1.0"
+RULES_VERSION = "2.0"
 
 
 def _compute_spec_digest(spec_path):
@@ -41,13 +41,16 @@ def _derive_attack_paths(findings, spec):
     untrusted_data_findings = [f for f in findings if f.rule_id == "PROMPT-001"]
     tool_findings = [
         f for f in findings
-        if f.rule_id in ("TOOL-001", "TOOL-003", "TOOL-004", "ARCH-001")
+        if f.rule_id in ("TOOL-001", "TOOL-003", "TOOL-004")
     ]
     mcp_findings = [f for f in findings if f.rule_id == "ARCH-002"]
     unknown_trust_findings = [f for f in findings if f.rule_id == "ARCH-004"]
     memory_findings = [f for f in findings if f.rule_id == "ARCH-005"]
     scope_findings = [f for f in findings if f.rule_id == "ARCH-006"]
     confidential_exfil_findings = [f for f in findings if f.rule_id == "TOOL-006"]
+    unconstrained_param_findings = [f for f in findings if f.rule_id == "TOOL-007"]
+    tenant_isolation_findings = [f for f in findings if f.rule_id == "ARCH-007"]
+    provenance_findings = [f for f in findings if f.rule_id == "ARCH-009"]
 
     if untrusted_data_findings:
         counter += 1
@@ -221,6 +224,69 @@ def _derive_attack_paths(findings, spec):
                     "Tool sends confidential data to attacker-controlled destination",
                 ],
                 related_findings=[f.id for f in confidential_exfil_findings],
+            )
+        )
+
+    if unconstrained_param_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Arbitrary command/query execution via unconstrained tool parameters",
+                severity="high",
+                description=(
+                    "Dangerous tools with unconstrained free-form parameters allow "
+                    "an attacker to inject arbitrary commands or queries via prompt "
+                    "injection."
+                ),
+                steps=[
+                    "Attacker crafts prompt injection with malicious tool arguments",
+                    "Unconstrained parameters accept arbitrary input",
+                    "Dangerous tool executes attacker-controlled command or query",
+                ],
+                related_findings=[f.id for f in unconstrained_param_findings],
+            )
+        )
+
+    if tenant_isolation_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Cross-tenant data leakage via shared retrieval or memory",
+                severity="high",
+                description=(
+                    "A multi-tenant agent without tenant isolation may expose "
+                    "data from one tenant to another through shared retrieval "
+                    "or memory."
+                ),
+                steps=[
+                    "Attacker operates within one tenant",
+                    "Prompt injection or normal query accesses shared memory/retrieval",
+                    "Data from other tenants is returned to the attacker",
+                ],
+                related_findings=[f.id for f in tenant_isolation_findings],
+            )
+        )
+
+    if provenance_findings:
+        counter += 1
+        paths.append(
+            AttackPath(
+                id="path-%03d" % counter,
+                name="Supply chain compromise via unverified third-party tool",
+                severity="high",
+                description=(
+                    "Third-party tools or MCP servers without version pinning "
+                    "or content hash verification can be substituted with "
+                    "malicious versions."
+                ),
+                steps=[
+                    "Attacker compromises third-party tool registry or MCP server",
+                    "Unverified tool/server is replaced with malicious version",
+                    "Agent executes attacker-controlled tool logic",
+                ],
+                related_findings=[f.id for f in provenance_findings],
             )
         )
 

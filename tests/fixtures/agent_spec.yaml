@@ -67,5 +67,6 @@ policies:
       action: "Escalate to human agent"
     - condition: "Customer reports a security incident"
       action: "Escalate to human agent immediately"
+  max_tool_calls: 20
 
 user_input_description: "Customer messages via support chat interface"

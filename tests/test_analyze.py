@@ -22,26 +22,29 @@ from prompt_hardener.analyze.report import (
 from prompt_hardener.analyze.rules import _ensure_rules_loaded, get_rules
 from prompt_hardener.analyze.rules.arch_rules import (
     check_broad_scope_sensitive_tools,
-    check_hitl_missing,
     check_memory_poisoning,
+    check_multi_tenant_isolation,
+    check_third_party_provenance,
+    check_tool_budget,
     check_tool_result_boundary,
     check_unknown_trust_level,
     check_untrusted_mcp_broad_access,
 )
 from prompt_hardener.analyze.rules.prompt_rules import (
-    check_role_definition,
-    check_secrets_protection,
+    check_sensitive_material,
     check_untrusted_data_boundary,
     check_untrusted_input_instruction,
 )
 from prompt_hardener.analyze.rules.tool_rules import (
     _is_sensitive_tool,
+    check_ambiguous_tool_names,
     check_broad_tool_permissions,
     check_confidential_data_boundary,
     check_confidential_data_external_send,
     check_high_impact_tool_escalation,
     check_privileged_identity,
     check_sensitive_tool_approval,
+    check_unconstrained_dangerous_params,
 )
 from prompt_hardener.analyze.scoring import (
     compute_layer_score,
@@ -79,7 +82,7 @@ class TestRuleRegistry:
     def test_ensure_rules_loaded(self):
         _ensure_rules_loaded()
         rules = get_rules()
-        assert len(rules) >= 12  # 8 original + TOOL-003/004, PROMPT-004, ARCH-004
+        assert len(rules) >= 19  # 19 rules after v2.0 update
 
     def test_filter_by_agent_type_chatbot(self):
         _ensure_rules_loaded()
@@ -142,31 +145,61 @@ class TestPromptRules:
         findings = check_untrusted_data_boundary(spec)
         assert len(findings) == 0
 
-    def test_prompt002_fires_on_insecure_rag(self):
-        spec = _load_spec("rag_insecure_spec.yaml")
-        findings = check_secrets_protection(spec)
-        assert len(findings) == 1
-        assert findings[0].rule_id == "PROMPT-002"
+    def test_prompt002_fires_on_embedded_secret(self):
+        """PROMPT-002 detects API keys embedded in system prompt."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="You are a bot. Use api_key=sk-live-abcdef1234567890abcdef1234567890 to auth.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+        )
+        findings = check_sensitive_material(spec)
+        assert len(findings) >= 1
+        assert all(f.rule_id == "PROMPT-002" for f in findings)
+        assert all(f.severity == "high" for f in findings)
 
-    def test_prompt002_no_fire_with_protection(self):
-        """Agent-basic example has 'Do not reveal' in system prompt."""
-        path = os.path.join(EXAMPLES_DIR, "agent-basic", "agent_spec.yaml")
-        data = load_yaml(path)
-        spec = dict_to_agent_spec(data)
-        findings = check_secrets_protection(spec)
-        assert len(findings) == 0
-
-    def test_prompt003_fires_on_short_prompt(self):
-        spec = _load_spec("rag_insecure_spec.yaml")
-        findings = check_role_definition(spec)
-        # The insecure RAG has a very short prompt without clear role
-        assert len(findings) == 1
-        assert findings[0].rule_id == "PROMPT-003"
-
-    def test_prompt003_no_fire_on_good_prompt(self):
+    def test_prompt002_no_fire_on_clean_prompt(self):
+        """Clean prompt without secrets should not fire."""
         spec = _load_spec("chatbot_spec.yaml")
-        findings = check_role_definition(spec)
+        findings = check_sensitive_material(spec)
         assert len(findings) == 0
+
+    def test_prompt002_no_fire_on_placeholder(self):
+        """Placeholder patterns should be excluded."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="Use api_key=YOUR_API_KEY_HERE to authenticate.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+        )
+        findings = check_sensitive_material(spec)
+        assert len(findings) == 0
+
+    def test_prompt002_fires_on_private_key(self):
+        """PROMPT-002 detects private key material."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="-----BEGIN PRIVATE KEY-----\nMIIBVAIBADANBg...\n-----END PRIVATE KEY-----",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+        )
+        findings = check_sensitive_material(spec)
+        assert len(findings) >= 1
+
+    def test_prompt002_fires_on_internal_url(self):
+        """PROMPT-002 detects internal URLs."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="Call https://api.internal.corp:8080/v1/data for results.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+        )
+        findings = check_sensitive_material(spec)
+        assert len(findings) >= 1
 
     def test_prompt004_fires_on_insecure_agent(self):
         """Insecure agent lacks untrusted input instruction."""
@@ -318,17 +351,6 @@ class TestToolRules:
 
 
 class TestArchRules:
-    def test_arch001_fires_on_insecure_agent(self):
-        spec = _load_spec("agent_insecure_spec.yaml")
-        findings = check_hitl_missing(spec)
-        assert len(findings) == 1
-        assert findings[0].rule_id == "ARCH-001"
-
-    def test_arch001_no_fire_with_escalation(self):
-        spec = _load_spec("agent_spec.yaml")
-        findings = check_hitl_missing(spec)
-        assert len(findings) == 0
-
     def test_arch002_no_fire_on_restricted_mcp(self):
         spec = _load_spec("mcp_agent_spec.yaml")
         findings = check_untrusted_mcp_broad_access(spec)
@@ -471,6 +493,175 @@ class TestArchRules:
         findings = check_broad_scope_sensitive_tools(spec)
         assert len(findings) == 0
 
+    def test_arch005_no_fire_with_data_boundary_protection(self):
+        """ARCH-005 should not fire when data_boundaries contain memory protection."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="You are a bot.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            has_persistent_memory="true",
+            policies=Policies(
+                data_boundaries=["Validate stored data from previous sessions before use"],
+            ),
+        )
+        findings = check_memory_poisoning(spec)
+        assert len(findings) == 0
+
+    def test_arch007_fires_on_multi_tenant_memory_no_isolation(self):
+        """ARCH-007 detects multi-tenant agent with memory and no isolation."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            scope="multi_tenant",
+            has_persistent_memory="true",
+        )
+        findings = check_multi_tenant_isolation(spec)
+        assert len(findings) == 1
+        assert findings[0].rule_id == "ARCH-007"
+
+    def test_arch007_no_fire_with_isolation(self):
+        """ARCH-007 should not fire when tenant isolation is declared."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="You are a helper. All data is per-tenant isolated.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            scope="multi_tenant",
+            has_persistent_memory="true",
+        )
+        findings = check_multi_tenant_isolation(spec)
+        assert len(findings) == 0
+
+    def test_arch007_no_fire_on_single_user(self):
+        """ARCH-007 should not fire on non-multi-tenant scope."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            scope="single_user",
+            has_persistent_memory="true",
+        )
+        findings = check_multi_tenant_isolation(spec)
+        assert len(findings) == 0
+
+    def test_arch008_fires_on_no_budget(self):
+        """ARCH-008 detects tools without any execution budget."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[ToolDef(name="search", description="Search")],
+        )
+        findings = check_tool_budget(spec)
+        assert len(findings) == 1
+        assert findings[0].rule_id == "ARCH-008"
+
+    def test_arch008_no_fire_with_max_tool_calls(self):
+        """ARCH-008 should not fire when max_tool_calls is set."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[ToolDef(name="search", description="Search")],
+            policies=Policies(max_tool_calls=10),
+        )
+        findings = check_tool_budget(spec)
+        assert len(findings) == 0
+
+    def test_arch008_no_fire_without_tools(self):
+        """ARCH-008 should not fire when no tools are defined."""
+        spec = AgentSpec(
+            version="1.0",
+            type="chatbot",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+        )
+        findings = check_tool_budget(spec)
+        assert len(findings) == 0
+
+    def test_arch009_fires_on_third_party_no_hash(self):
+        """ARCH-009 detects third-party tool without provenance."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(name="ext_tool", description="External", source="third_party"),
+            ],
+        )
+        findings = check_third_party_provenance(spec)
+        assert len(findings) == 1
+        assert findings[0].rule_id == "ARCH-009"
+
+    def test_arch009_no_fire_with_provenance(self):
+        """ARCH-009 should not fire when version and hash are present."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(
+                    name="ext_tool", description="External",
+                    source="third_party", version="1.2.3",
+                    content_hash="sha256:abcdef",
+                ),
+            ],
+        )
+        findings = check_third_party_provenance(spec)
+        assert len(findings) == 0
+
+    def test_arch009_fires_on_mcp_no_source(self):
+        """ARCH-009 detects MCP server without first_party source or provenance."""
+        spec = AgentSpec(
+            version="1.0",
+            type="mcp-agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[ToolDef(name="t", description="t")],
+            mcp_servers=[
+                McpServer(name="ext_server", trust_level="trusted"),
+            ],
+        )
+        findings = check_third_party_provenance(spec)
+        assert len(findings) == 1
+        assert findings[0].rule_id == "ARCH-009"
+
+    def test_arch009_no_fire_on_first_party_mcp(self):
+        """ARCH-009 should not fire on first_party MCP servers."""
+        spec = AgentSpec(
+            version="1.0",
+            type="mcp-agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[ToolDef(name="t", description="t")],
+            mcp_servers=[
+                McpServer(
+                    name="our_server", trust_level="trusted", source="first_party",
+                ),
+            ],
+        )
+        findings = check_third_party_provenance(spec)
+        assert len(findings) == 0
+
     def test_tool005_fires_on_confidential_without_boundary(self):
         spec = AgentSpec(
             version="1.0",
@@ -546,6 +737,158 @@ class TestArchRules:
             ],
         )
         findings = check_confidential_data_external_send(spec)
+        assert len(findings) == 0
+
+    def test_tool006_fires_on_egress_name_pattern(self):
+        """TOOL-006 detects egress-capable tools by name pattern (no effect annotation)."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(name="upload_document", description="Upload a document"),
+            ],
+            data_sources=[
+                DataSource(
+                    name="pii_db", type="api", trust_level="trusted",
+                    sensitivity="confidential",
+                ),
+            ],
+        )
+        findings = check_confidential_data_external_send(spec)
+        assert len(findings) == 1
+        assert findings[0].rule_id == "TOOL-006"
+
+    def test_tool007_fires_on_unconstrained_command(self):
+        """TOOL-007 detects dangerous tool with unconstrained command param."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(
+                    name="execute_command",
+                    description="Execute a shell command",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "command": {"type": "string", "description": "Shell command"},
+                        },
+                        "required": ["command"],
+                    },
+                ),
+            ],
+        )
+        findings = check_unconstrained_dangerous_params(spec)
+        assert len(findings) == 1
+        assert findings[0].rule_id == "TOOL-007"
+        assert "command" in findings[0].title
+
+    def test_tool007_no_fire_on_constrained_params(self):
+        """TOOL-007 should not fire when dangerous params have constraints."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(
+                    name="run_query",
+                    description="Run a query",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "enum": ["status", "health", "version"],
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                ),
+            ],
+        )
+        findings = check_unconstrained_dangerous_params(spec)
+        assert len(findings) == 0
+
+    def test_tool007_no_fire_on_safe_tool(self):
+        """TOOL-007 should not fire on non-dangerous tools."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(
+                    name="get_weather",
+                    description="Get weather info",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "city": {"type": "string"},
+                        },
+                    },
+                ),
+            ],
+        )
+        findings = check_unconstrained_dangerous_params(spec)
+        assert len(findings) == 0
+
+    def test_tool008_fires_on_duplicate_names(self):
+        """TOOL-008 detects duplicate tool names across tools and MCP servers."""
+        spec = AgentSpec(
+            version="1.0",
+            type="mcp-agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(name="read_file", description="Read a file"),
+            ],
+            mcp_servers=[
+                McpServer(name="fs", trust_level="trusted", allowed_tools=["read_file"]),
+            ],
+        )
+        findings = check_ambiguous_tool_names(spec)
+        assert any(f.rule_id == "TOOL-008" for f in findings)
+        assert any("Duplicate" in f.title for f in findings)
+
+    def test_tool008_fires_on_generic_name(self):
+        """TOOL-008 detects overly generic tool names."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(name="run", description="Run something"),
+            ],
+        )
+        findings = check_ambiguous_tool_names(spec)
+        assert any(f.rule_id == "TOOL-008" for f in findings)
+        assert any("generic" in f.title.lower() for f in findings)
+
+    def test_tool008_no_fire_on_unique_descriptive(self):
+        """TOOL-008 should not fire on unique, descriptive tool names."""
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="Test",
+            system_prompt="You are a helper.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            tools=[
+                ToolDef(name="search_knowledge_base", description="Search KB"),
+                ToolDef(name="get_order_status", description="Get order status"),
+            ],
+        )
+        findings = check_ambiguous_tool_names(spec)
         assert len(findings) == 0
 
 
@@ -666,7 +1009,7 @@ class TestScoring:
             ),
             Finding(
                 id="f3",
-                rule_id="ARCH-001",
+                rule_id="ARCH-003",
                 title="",
                 severity="high",
                 layer="architecture",
@@ -803,7 +1146,7 @@ class TestEngineIntegration:
         assert report.metadata.agent_type == "agent"
         assert report.summary.finding_counts["total"] >= 3
         rule_ids = [f.rule_id for f in report.findings]
-        assert "TOOL-001" in rule_ids or "ARCH-001" in rule_ids
+        assert "TOOL-001" in rule_ids
 
     def test_run_analyze_output_validates_schema(self):
         spec_path = os.path.join(FIXTURES_DIR, "rag_insecure_spec.yaml")

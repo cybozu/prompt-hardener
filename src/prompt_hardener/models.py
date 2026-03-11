@@ -39,6 +39,9 @@ class ToolDef:
     effect: Optional[str] = None  # "read"|"write"|"delete"|"external_send"|"unknown"
     impact: Optional[str] = None  # "low"|"medium"|"high"|"unknown"
     execution_identity: Optional[str] = None  # "user"|"service"|"mixed"|"unknown"
+    source: Optional[str] = None  # "local"|"third_party"|"mcp"|"unknown"
+    version: Optional[str] = None
+    content_hash: Optional[str] = None  # e.g. "sha256:..."
 
 
 @dataclass
@@ -53,6 +56,10 @@ class Policies:
     denied_actions: Optional[List[str]] = None
     data_boundaries: Optional[List[str]] = None
     escalation_rules: Optional[List[EscalationRule]] = None
+    max_tool_calls: Optional[int] = None
+    max_steps: Optional[int] = None
+    rate_limits: Optional[List[str]] = None
+    cost_budget: Optional[str] = None
 
 
 @dataclass
@@ -70,6 +77,9 @@ class McpServer:
     trust_level: str  # "trusted" | "untrusted"
     allowed_tools: Optional[List[str]] = None
     data_access: Optional[List[str]] = None
+    source: Optional[str] = None  # "first_party"|"third_party"|"unknown"
+    version: Optional[str] = None
+    content_hash: Optional[str] = None  # e.g. "sha256:..."
 
 
 @dataclass

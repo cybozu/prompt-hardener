@@ -116,6 +116,19 @@
             "type": "string",
             "enum": ["user", "service", "mixed", "unknown"],
             "description": "Identity under which this tool executes"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["local", "third_party", "mcp", "unknown"],
+            "description": "Provenance of this tool"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version identifier for pinning"
+          },
+          "content_hash": {
+            "type": "string",
+            "description": "Content hash for integrity verification (e.g. sha256:...)"
           }
         }
       }
@@ -157,6 +170,25 @@
             "additionalProperties": false
           },
           "description": "Rules for escalation to human or other system"
+        },
+        "max_tool_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of tool calls per session or task"
+        },
+        "max_steps": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of autonomous steps"
+        },
+        "rate_limits": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Rate limit specifications (e.g. '10 calls/minute')"
+        },
+        "cost_budget": {
+          "type": "string",
+          "description": "Cost budget limit (e.g. '$1.00/session')"
         }
       },
       "additionalProperties": false
@@ -217,6 +249,19 @@
             "type": "array",
             "items": { "type": "string" },
             "description": "Data sources this server can access"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["first_party", "third_party", "unknown"],
+            "description": "Provenance of this MCP server"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version identifier for pinning"
+          },
+          "content_hash": {
+            "type": "string",
+            "description": "Content hash for integrity verification (e.g. sha256:...)"
           }
         },
         "additionalProperties": false

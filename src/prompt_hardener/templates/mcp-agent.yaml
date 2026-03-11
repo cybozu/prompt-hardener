@@ -34,6 +34,9 @@ tools:
     # effect: read          # read | write | delete | external_send | unknown
     # impact: low           # low | medium | high | unknown
     # execution_identity: user  # user | service | mixed | unknown
+    # source: local         # local | third_party | mcp | unknown
+    # version: "1.0.0"     # version pinning for third-party tools
+    # content_hash: "sha256:..."  # integrity hash
 
 # MCP server definitions (required for mcp-agent type):
 mcp_servers:
@@ -41,6 +44,7 @@ mcp_servers:
     trust_level: trusted
     allowed_tools: [read_file]
     data_access: [project_files]
+    # source: first_party   # first_party | third_party | unknown
   # Add untrusted servers as needed:
   # - name: web_search
   #   trust_level: untrusted

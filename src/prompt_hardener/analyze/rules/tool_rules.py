@@ -295,8 +295,9 @@ def check_privileged_identity(spec):
                 ],
                 spec_path="tools[%d]" % i,
                 recommendation=(
-                    "Add '%s' to denied_actions or create an escalation rule "
-                    "requiring human approval for this service-identity tool."
+                    "Add '%s' to denied_actions or create an escalation rule. "
+                    "Prefer short-lived, task-scoped credentials over long-lived "
+                    "shared service identities wherever possible."
                     % tool.name
                 ),
             )
@@ -363,13 +364,61 @@ def check_confidential_data_boundary(spec):
     return findings
 
 
+# Patterns for detecting egress-capable tools by name
+_EGRESS_NAME_PATTERNS = [
+    r"send",
+    r"email",
+    r"webhook",
+    r"upload",
+    r"post(?:_|$)",
+    r"deliver",
+    r"notify",
+    r"forward",
+    r"publish",
+    r"broadcast",
+    r"dispatch",
+    r"transmit",
+]
+
+# Patterns for detecting egress-capable tools by description
+_EGRESS_DESC_PATTERNS = [
+    r"send\s+to",
+    r"upload\s+to",
+    r"webhook",
+    r"outbound",
+    r"external\s+(?:api|endpoint|service)",
+    r"deliver\s+(?:to|via)",
+    r"post\s+(?:to|data)",
+    r"notify\s+(?:via|through)",
+]
+
+
+def _is_egress_capable_tool(tool):
+    # type: (ToolDef) -> bool
+    """Check if a tool can transmit data outside the trust boundary."""
+    if getattr(tool, "effect", None) == "external_send":
+        return True
+
+    lower_name = tool.name.lower()
+    for pattern in _EGRESS_NAME_PATTERNS:
+        if re.search(pattern, lower_name):
+            return True
+
+    lower_desc = tool.description.lower()
+    for pattern in _EGRESS_DESC_PATTERNS:
+        if re.search(pattern, lower_desc):
+            return True
+
+    return False
+
+
 @rule(
     id="TOOL-006",
-    name="Confidential data with external_send tool",
+    name="Confidential data with egress-capable tool",
     layer="tool",
     severity="critical",
     types=["agent", "mcp-agent"],
-    description="Agent has confidential data sources and tools with external_send effect, risking data exfiltration.",
+    description="Agent has confidential data sources and egress-capable tools, risking data exfiltration.",
 )
 def check_confidential_data_external_send(spec):
     # type: (AgentSpec) -> List[Finding]
@@ -382,18 +431,18 @@ def check_confidential_data_external_send(spec):
     if not has_confidential:
         return findings
 
-    external_send_tools = [
+    egress_tools = [
         (i, t) for i, t in enumerate(spec.tools or [])
-        if getattr(t, "effect", None) == "external_send"
+        if _is_egress_capable_tool(t)
     ]
-    if not external_send_tools:
+    if not egress_tools:
         return findings
 
     confidential_names = [
         ds.name for ds in (spec.data_sources or [])
         if getattr(ds, "sensitivity", None) == "confidential"
     ]
-    for i, tool in external_send_tools:
+    for i, tool in egress_tools:
         findings.append(
             Finding(
                 id="",
@@ -404,22 +453,241 @@ def check_confidential_data_external_send(spec):
                 severity="critical",
                 layer="tool",
                 description=(
-                    "Tool '%s' has effect: external_send and the agent accesses "
+                    "Tool '%s' is egress-capable and the agent accesses "
                     "confidential data sources (%s). A prompt injection could "
                     "exfiltrate confidential data through this tool."
                     % (tool.name, ", ".join(confidential_names))
                 ),
                 evidence=[
-                    "tools[%d].effect = 'external_send'" % i,
+                    "tools[%d] ('%s') is egress-capable" % (i, tool.name),
                     "Confidential data sources: %s" % ", ".join(confidential_names),
                 ],
                 spec_path="tools[%d]" % i,
                 recommendation=(
                     "Add strict controls around '%s' when confidential data is "
-                    "present. Use escalation rules, content filtering, or remove "
-                    "the external_send capability." % tool.name
+                    "present. Use escalation rules, destination allowlists, "
+                    "content filtering/DLP, and per-action review, or remove "
+                    "the egress capability." % tool.name
                 ),
             )
         )
+
+    return findings
+
+
+# ---- TOOL-007 helpers ----
+
+# Tool names/effects that indicate dangerous capability
+_DANGEROUS_TOOL_PATTERNS = [
+    r"exec(?:ute)?",
+    r"run",
+    r"shell",
+    r"command",
+    r"sql",
+    r"query",
+    r"eval",
+    r"script",
+    r"write_file",
+    r"delete_file",
+    r"http",
+    r"curl",
+    r"fetch",
+    r"request",
+]
+
+# Parameter names that are dangerous when unconstrained
+_DANGEROUS_PARAM_NAMES = {
+    "command", "cmd", "sql", "query", "code", "script", "path", "file_path",
+    "filepath", "url", "uri", "endpoint", "body", "payload", "recipient",
+    "to", "headers", "shell", "expression", "exec", "input",
+}
+
+
+def _is_dangerous_tool(tool):
+    # type: (ToolDef) -> bool
+    """Check if tool indicates command/query execution, filesystem, or network access."""
+    if getattr(tool, "effect", None) in ("write", "delete", "external_send"):
+        return True
+    lower = tool.name.lower()
+    for pattern in _DANGEROUS_TOOL_PATTERNS:
+        if re.search(pattern, lower):
+            return True
+    lower_desc = tool.description.lower()
+    for kw in ("execute", "run command", "run shell", "sql", "query", "file system",
+                "filesystem", "http request", "network"):
+        if kw in lower_desc:
+            return True
+    return False
+
+
+def _param_is_constrained(param_schema):
+    # type: (Dict) -> bool
+    """Check if a parameter schema has meaningful constraints."""
+    if not isinstance(param_schema, dict):
+        return False
+    for key in ("enum", "const", "pattern", "format", "maxLength"):
+        if key in param_schema:
+            return True
+    if param_schema.get("additionalProperties") is False:
+        return True
+    if param_schema.get("type") not in (None, "string", "object"):
+        # Non-string, non-object types (integer, boolean, array) are more constrained
+        return True
+    return False
+
+
+@rule(
+    id="TOOL-007",
+    name="Dangerous tool with unconstrained free-form parameters",
+    layer="tool",
+    severity="high",
+    types=["agent", "mcp-agent"],
+    description="A dangerous tool exposes free-form parameters without schema constraints.",
+)
+def check_unconstrained_dangerous_params(spec):
+    # type: (AgentSpec) -> List[Finding]
+    findings = []
+
+    if not spec.tools:
+        return findings
+
+    for i, tool in enumerate(spec.tools):
+        if not _is_dangerous_tool(tool):
+            continue
+
+        params = tool.parameters
+        if not params or not isinstance(params, dict):
+            continue
+
+        properties = params.get("properties", {})
+        if not isinstance(properties, dict):
+            continue
+
+        unconstrained = []
+        for pname, pschema in properties.items():
+            if pname.lower() in _DANGEROUS_PARAM_NAMES:
+                if not _param_is_constrained(pschema):
+                    unconstrained.append(pname)
+
+        if not unconstrained:
+            continue
+
+        findings.append(
+            Finding(
+                id="",
+                rule_id="TOOL-007",
+                title="Dangerous tool '%s' with unconstrained parameters: %s"
+                % (tool.name, ", ".join(unconstrained)),
+                severity="high",
+                layer="tool",
+                description=(
+                    "Tool '%s' can perform dangerous operations and exposes "
+                    "unconstrained free-form parameters (%s). An attacker could "
+                    "craft arbitrary inputs via prompt injection."
+                    % (tool.name, ", ".join(unconstrained))
+                ),
+                evidence=[
+                    "tools[%d].name = '%s' is a dangerous tool" % (i, tool.name),
+                    "Unconstrained parameters: %s" % ", ".join(unconstrained),
+                ],
+                spec_path="tools[%d]" % i,
+                recommendation=(
+                    "Replace open-ended parameters with task-specific structured "
+                    "parameters and enforce fail-closed schema validation before "
+                    "tool invocation."
+                ),
+            )
+        )
+
+    return findings
+
+
+# ---- TOOL-008 helpers ----
+
+_OVERLY_GENERIC_NAMES = {
+    "run", "do", "get", "set", "call", "exec", "action", "tool",
+    "execute", "invoke", "process", "handle", "perform",
+}
+
+
+@rule(
+    id="TOOL-008",
+    name="Ambiguous tool names or namespace collision",
+    layer="tool",
+    severity="medium",
+    types=["agent", "mcp-agent"],
+    description="Duplicate, confusingly similar, or overly generic tool names detected.",
+)
+def check_ambiguous_tool_names(spec):
+    # type: (AgentSpec) -> List[Finding]
+    findings = []
+
+    if not spec.tools:
+        return findings
+
+    # Collect all tool names from tools + mcp_servers.allowed_tools
+    all_names = []
+    for t in spec.tools:
+        all_names.append(t.name)
+    for ms in (spec.mcp_servers or []):
+        for tool_name in (ms.allowed_tools or []):
+            all_names.append(tool_name)
+
+    # Check for duplicates
+    seen = {}
+    for name in all_names:
+        lower = name.lower()
+        if lower in seen:
+            findings.append(
+                Finding(
+                    id="",
+                    rule_id="TOOL-008",
+                    title="Duplicate tool name: '%s'" % name,
+                    severity="medium",
+                    layer="tool",
+                    description=(
+                        "Tool name '%s' appears multiple times across tools and/or "
+                        "MCP server allowed_tools. This can cause mis-resolution."
+                        % name
+                    ),
+                    evidence=[
+                        "Tool name '%s' is duplicated" % name,
+                    ],
+                    spec_path="tools",
+                    recommendation=(
+                        "Use fully qualified tool names, explicit namespaces, "
+                        "version pinning, and fail-closed disambiguation when "
+                        "tool resolution is ambiguous."
+                    ),
+                )
+            )
+            break  # One finding for duplicates is enough
+        seen[lower] = name
+
+    # Check for overly generic names
+    for idx, tool in enumerate(spec.tools):
+        if tool.name.lower() in _OVERLY_GENERIC_NAMES:
+            findings.append(
+                Finding(
+                    id="",
+                    rule_id="TOOL-008",
+                    title="Overly generic tool name: '%s'" % tool.name,
+                    severity="medium",
+                    layer="tool",
+                    description=(
+                        "Tool '%s' has an overly generic name that can be confusing "
+                        "or mis-resolved, especially when multiple tools are available."
+                        % tool.name
+                    ),
+                    evidence=[
+                        "tools[%d].name = '%s' is overly generic" % (idx, tool.name),
+                    ],
+                    spec_path="tools[%d]" % idx,
+                    recommendation=(
+                        "Use descriptive, fully qualified tool names. Avoid "
+                        "generic names like 'run', 'get', 'call', 'exec'."
+                    ),
+                )
+            )
 
     return findings
