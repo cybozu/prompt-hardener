@@ -69,6 +69,9 @@ tools:
     effect: read             # read | write | delete | external_send | unknown
     impact: low              # low | medium | high | unknown
     execution_identity: user # user | service | mixed | unknown
+    source: local            # local | third_party | mcp | unknown
+    version: "1.0.0"         # version pinning for third-party tools
+    content_hash: "sha256:..." # integrity hash for provenance verification
     parameters:
       type: object
       properties:
@@ -85,10 +88,13 @@ Each tool supports optional security metadata:
 | `effect` | `read`, `write`, `delete`, `external_send`, `unknown` | Side-effect classification of this tool |
 | `impact` | `low`, `medium`, `high`, `unknown` | Blast radius if this tool is misused |
 | `execution_identity` | `user`, `service`, `mixed`, `unknown` | Identity under which this tool executes |
+| `source` | `local`, `third_party`, `mcp`, `unknown` | Provenance of this tool |
+| `version` | free-form string | Version identifier for pinning third-party tools |
+| `content_hash` | free-form string (e.g. `sha256:...`) | Integrity hash for provenance verification |
 
-These fields enable deeper analysis. For example, tools with `impact: high` trigger TOOL-003 if no escalation rule covers them, and tools with `execution_identity: service` trigger TOOL-004 if unrestricted.
+These fields enable deeper analysis. For example, tools with `impact: high` trigger TOOL-003 if no escalation rule covers them, tools with `execution_identity: service` trigger TOOL-004 if unrestricted, and tools with `source: third_party` without `version`/`content_hash` trigger ARCH-009.
 
-**`policies`** -- Security policies controlling tool access and escalation:
+**`policies`** -- Security policies controlling tool access, escalation, and execution budgets:
 
 ```yaml
 policies:
@@ -103,7 +109,14 @@ policies:
   escalation_rules:
     - condition: "Customer requests account deletion"
       action: "Escalate to human agent"
+  max_tool_calls: 20          # maximum tool calls per session
+  max_steps: 10               # maximum autonomous steps
+  rate_limits:
+    - "10 calls/minute"
+  cost_budget: "$1.00/session" # cost budget limit
 ```
+
+Execution budget fields (`max_tool_calls`, `max_steps`, `rate_limits`, `cost_budget`) are checked by ARCH-008. Agents with tools but no explicit budget or rate limit will be flagged.
 
 **`data_sources`** -- Data sources with trust levels (recommended for `rag`):
 
@@ -129,7 +142,7 @@ Each data source supports an optional `sensitivity` field:
 | `confidential` | Sensitive data requiring strict access controls |
 | `unknown` | Sensitivity not yet assessed |
 
-When `sensitivity: confidential` is set, TOOL-005 checks for matching `data_boundaries`, and TOOL-006 flags the combination of confidential data with `external_send` tools as an exfiltration risk.
+When `sensitivity: confidential` is set, TOOL-005 checks for matching `data_boundaries`, and TOOL-006 flags the combination of confidential data with egress-capable tools (detected via `effect: external_send` or tool name/description patterns) as an exfiltration risk.
 
 **`mcp_servers`** -- MCP server configurations (required for `mcp-agent`):
 
@@ -137,17 +150,35 @@ When `sensitivity: confidential` is set, TOOL-005 checks for matching `data_boun
 mcp_servers:
   - name: internal_tools
     trust_level: trusted
+    source: first_party        # first_party | third_party | unknown
     allowed_tools: [search, lookup]
     data_access: [internal_db]
+  - name: external_service
+    trust_level: untrusted
+    source: third_party
+    version: "2.1.0"
+    content_hash: "sha256:abc123..."
+    allowed_tools: [web_search]
+    data_access: [public_web]
 ```
 
-**`has_persistent_memory`** -- Whether the agent stores state across sessions. When set to `"true"`, ARCH-005 checks that the system prompt includes memory poisoning protections:
+Each MCP server supports optional provenance metadata:
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| `source` | `first_party`, `third_party`, `unknown` | Provenance of this MCP server |
+| `version` | free-form string | Version identifier for pinning |
+| `content_hash` | free-form string (e.g. `sha256:...`) | Integrity hash for provenance verification |
+
+MCP servers without `source: first_party` and missing `version`/`content_hash` are treated as unverified external components and flagged by ARCH-009.
+
+**`has_persistent_memory`** -- Whether the agent stores state across sessions. When set to `"true"`, ARCH-005 checks that the system prompt or `policies.data_boundaries` includes memory poisoning protections:
 
 ```yaml
 has_persistent_memory: "true"   # "true" | "false" | "unknown"
 ```
 
-**`scope`** -- Isolation scope of this agent's operations. When set to `"multi_tenant"` with sensitive tools present, ARCH-006 flags cross-tenant data exposure risks:
+**`scope`** -- Isolation scope of this agent's operations. When set to `"multi_tenant"` with sensitive tools present, ARCH-006 flags cross-tenant data exposure risks. Additionally, ARCH-007 checks for tenant isolation evidence when multi-tenant agents have persistent memory or confidential/internal data:
 
 ```yaml
 scope: multi_tenant             # single_user | shared_workspace | multi_tenant | unknown
@@ -289,6 +320,7 @@ tools:
     effect: read
     impact: medium
     execution_identity: service
+    source: local
     parameters:
       type: object
       properties:
@@ -301,18 +333,21 @@ tools:
     effect: write
     impact: high
     execution_identity: service
+    source: local
 
   - name: send_notification
     description: "Send email or Slack notification to a user"
     effect: external_send
     impact: high
     execution_identity: service
+    source: local
 
   - name: delete_record
     description: "Delete a record from the database"
     effect: delete
     impact: high
     execution_identity: service
+    source: local
 
 policies:
   allowed_actions:
@@ -328,6 +363,7 @@ policies:
       without explicit user authorization."
     - "Data from shared_drive is confidential — never expose outside the
       requesting user's tenant."
+    - "Per-tenant isolation: each user can only access data within their own tenant."
   escalation_rules:
     - condition: "User requests update_record or any write operation"
       action: "Require explicit confirmation from the user before executing."
@@ -337,6 +373,10 @@ policies:
       action: "Warn the user and require explicit approval."
     - condition: "query_database involves cross-tenant data or bulk export"
       action: "Deny the request and inform the user."
+  max_tool_calls: 30
+  max_steps: 15
+  rate_limits:
+    - "10 calls/minute"
 
 data_sources:
   - name: employee_db
@@ -355,9 +395,13 @@ data_sources:
 mcp_servers:
   - name: analytics_server
     trust_level: trusted
+    source: first_party
     allowed_tools: [query_database]
   - name: third_party_integrations
     trust_level: untrusted
+    source: third_party
+    version: "3.2.1"
+    content_hash: "sha256:e3b0c44298fc1c149afbf4c8996fb924..."
     allowed_tools: [query_database]
 
 has_persistent_memory: "true"
