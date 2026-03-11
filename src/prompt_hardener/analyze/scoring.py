@@ -37,13 +37,23 @@ def compute_risk_level(score):
         return "critical"
 
 
-def compute_scores(findings, agent_type):
-    # type: (List[Finding], str) -> Tuple[Dict[str, float], float, str]
+def compute_scores(findings, agent_type, layers=None):
+    # type: (List[Finding], str, Optional[List[str]]) -> Tuple[Dict[str, float], float, str]
     """Compute per-layer scores, overall score, and risk level.
+
+    Args:
+        findings: List of findings from rule evaluation.
+        agent_type: The agent type (e.g. "chatbot", "agent").
+        layers: If provided, only score these layers instead of all
+            layers for the agent type. Prevents score inflation when
+            analysis was restricted to a subset of layers.
 
     Returns (scores_by_layer, overall_score, risk_level).
     """
-    active_layers = TYPE_LAYERS.get(agent_type, ["prompt"])
+    if layers is not None:
+        active_layers = layers
+    else:
+        active_layers = TYPE_LAYERS.get(agent_type, ["prompt"])
 
     # Group findings by layer
     by_layer = {}  # type: Dict[str, List[Finding]]

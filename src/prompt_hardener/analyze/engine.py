@@ -319,7 +319,7 @@ def run_analyze(
     _assign_finding_ids(all_findings)
 
     # Compute scores
-    scores_by_layer, overall_score, risk_level = compute_scores(all_findings, spec.type)
+    scores_by_layer, overall_score, risk_level = compute_scores(all_findings, spec.type, layers=layers)
 
     # Derive attack paths and fixes
     attack_paths = _derive_attack_paths(all_findings, spec)

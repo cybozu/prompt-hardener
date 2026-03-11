@@ -23,7 +23,6 @@ from prompt_hardener.catalog import (
     filter_scenarios,
     load_catalog,
 )
-from prompt_hardener.models import AgentSpec
 
 # Supported injection methods in the current implementation.
 _SUPPORTED_INJECTION_METHODS = {"user_message", "tool_result", "mcp_response", "rag_context"}
@@ -101,6 +100,12 @@ class SimulationReport:
 
     def _build_top_summary(self):
         # type: () -> Dict
+        if self.summary.total == 0:
+            return {
+                "risk_level": "not_evaluated",
+                "key_findings": ["No scenarios matched the filter criteria"],
+            }
+
         rate = self.summary.block_rate
         if rate >= 0.9:
             risk_level = "low"

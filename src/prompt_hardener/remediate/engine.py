@@ -116,6 +116,7 @@ def run_remediate(
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "agent_type": spec.type,
         "agent_spec_digest": _compute_spec_digest(spec_path),
+        "layers": list(active_layers),
     }  # type: Dict
 
     if "prompt" in active_layers:
