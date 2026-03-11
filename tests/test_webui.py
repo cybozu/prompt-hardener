@@ -302,9 +302,7 @@ class TestRunAnalyzeWebui:
     def test_no_spec_file(self):
         from prompt_hardener.webui import run_analyze_webui
 
-        status, md, json_dl, html_dl = run_analyze_webui(
-            None, [], None, None, [], None, None
-        )
+        status, md, json_dl, html_dl = run_analyze_webui(None, [])
         assert "Error" in status
         assert json_dl is None
         assert html_dl is None
@@ -334,9 +332,7 @@ class TestRunAnalyzeWebui:
         )
 
         try:
-            status, md, json_dl, html_dl = run_analyze_webui(
-                spec_path, [], None, None, [], None, None
-            )
+            status, md, json_dl, html_dl = run_analyze_webui(spec_path, [])
             assert "Analysis Complete" in status
             assert "Analysis Report" in md
             assert json_dl is not None

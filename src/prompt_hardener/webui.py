@@ -278,10 +278,8 @@ def download_yaml(yaml_text):
     return tmp.name
 
 
-def run_analyze_webui(
-    spec_file, layers, eval_api_mode, eval_model, techniques, aws_region, aws_profile
-):
-    """Run static analysis (+ optional LLM eval) on an agent spec."""
+def run_analyze_webui(spec_file, layers):
+    """Run static analysis on an agent spec."""
     if spec_file is None:
         return "❌ Error: No spec file uploaded", "", None, None
 
@@ -294,11 +292,6 @@ def run_analyze_webui(
         report = run_analyze(
             spec_path,
             layers=layers or None,
-            eval_api_mode=eval_api_mode or None,
-            eval_model=eval_model or None,
-            apply_techniques=techniques or None,
-            aws_region=aws_region or None,
-            aws_profile=aws_profile or None,
         )
 
         report_dict = report.to_dict()
@@ -580,7 +573,7 @@ with gr.Blocks() as demo:
         # Tab 2: Analyze
         # ---------------------------------------------------------------
         with gr.TabItem("Analyze"):
-            gr.Markdown("## Static analysis + optional LLM evaluation")
+            gr.Markdown("## Static analysis")
 
             with gr.Row():
                 with gr.Column():
@@ -592,32 +585,6 @@ with gr.Blocks() as demo:
                         ["prompt", "tool", "architecture"],
                         label="Target Layers",
                         info="Leave empty to analyze all applicable layers.",
-                    )
-                    analyze_eval_api = gr.Radio(
-                        ["openai", "claude", "bedrock"],
-                        label="Eval API (optional, for LLM evaluation)",
-                    )
-                    analyze_eval_model = gr.Textbox(
-                        label="Eval Model (optional)",
-                        placeholder="e.g., gpt-4o",
-                    )
-                    analyze_techniques = gr.CheckboxGroup(
-                        [
-                            "spotlighting",
-                            "random_sequence_enclosure",
-                            "instruction_defense",
-                            "role_consistency",
-                            "secrets_exclusion",
-                        ],
-                        label="Techniques (optional)",
-                    )
-                    analyze_aws_region = gr.Textbox(
-                        label="AWS Region (optional)",
-                        placeholder="e.g., us-east-1",
-                    )
-                    analyze_aws_profile = gr.Textbox(
-                        label="AWS Profile (optional)",
-                        placeholder="e.g., default",
                     )
 
                 with gr.Column():
@@ -632,11 +599,6 @@ with gr.Blocks() as demo:
                 inputs=[
                     analyze_spec,
                     analyze_layers,
-                    analyze_eval_api,
-                    analyze_eval_model,
-                    analyze_techniques,
-                    analyze_aws_region,
-                    analyze_aws_profile,
                 ],
                 outputs=[
                     analyze_status,

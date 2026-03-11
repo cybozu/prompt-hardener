@@ -14,7 +14,7 @@ Prompt Hardener applies defense techniques to strengthen system prompts against 
 
 ## CLI Usage
 
-Techniques are applied during the `remediate` and `analyze` commands via the `-a` / `--apply-techniques` flag. If not specified, **all techniques are applied by default**.
+Techniques are applied during the `remediate`, `evaluate`, and `improve` commands via the `-a` / `--apply-techniques` flag. If not specified, **all techniques are applied by default**.
 
 ```bash
 # Apply all techniques (default)
@@ -27,7 +27,10 @@ prompt-hardener remediate agent_spec.yaml \
   -a spotlighting instruction_defense
 
 # Evaluate a prompt against specific techniques
-prompt-hardener analyze agent_spec.yaml \
+prompt-hardener evaluate \
+  --target-prompt-path path/to/prompt.json \
+  --input-mode chat \
+  --input-format openai \
   -ea openai -em gpt-4o-mini \
   -a random_sequence_enclosure secrets_exclusion
 ```

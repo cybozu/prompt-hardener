@@ -82,49 +82,6 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Layers to analyze. Defaults to all applicable layers.",
     )
-    analyze_parser.add_argument(
-        "-ea",
-        "--eval-api-mode",
-        type=str,
-        choices=["openai", "claude", "bedrock"],
-        default=None,
-        help="LLM API for prompt-layer evaluation. If not specified, only static analysis is performed.",
-    )
-    analyze_parser.add_argument(
-        "-em",
-        "--eval-model",
-        type=str,
-        default=None,
-        help="Model for prompt-layer evaluation.",
-    )
-    analyze_parser.add_argument(
-        "-a",
-        "--apply-techniques",
-        nargs="+",
-        choices=[
-            "spotlighting",
-            "random_sequence_enclosure",
-            "instruction_defense",
-            "role_consistency",
-            "secrets_exclusion",
-        ],
-        default=None,
-        help="Techniques for prompt evaluation.",
-    )
-    analyze_parser.add_argument(
-        "-ar",
-        "--aws-region",
-        type=str,
-        default="us-east-1",
-        help="AWS region for Bedrock API mode. Default is 'us-east-1'.",
-    )
-    analyze_parser.add_argument(
-        "-ap",
-        "--aws-profile",
-        type=str,
-        default=None,
-        help="AWS profile name for Bedrock API mode.",
-    )
 
     # --- remediate subcommand ---
     remediate_parser = subparsers.add_parser(
@@ -777,27 +734,11 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
     from prompt_hardener.analyze.markdown import render_markdown
     from prompt_hardener.progress import Spinner
 
-    eval_api_mode = getattr(args, "eval_api_mode", None)
-    eval_model = getattr(args, "eval_model", None)
-    apply_techniques = getattr(args, "apply_techniques", None)
-    aws_region = getattr(args, "aws_region", None)
-    aws_profile = getattr(args, "aws_profile", None)
-
-    if eval_api_mode:
-        spinner_msg = "Analyzing (static rules + LLM evaluation)..."
-    else:
-        spinner_msg = "Analyzing (static rules)..."
-
     try:
-        with Spinner(spinner_msg):
+        with Spinner("Analyzing (static rules)..."):
             report = run_analyze(
                 args.spec_path,
                 layers=args.layers,
-                eval_api_mode=eval_api_mode,
-                eval_model=eval_model,
-                apply_techniques=apply_techniques,
-                aws_region=aws_region,
-                aws_profile=aws_profile,
             )
     except ValueError as e:
         print("\033[31m" + str(e) + "\033[0m")
@@ -841,16 +782,6 @@ def run_analyze_cmd(args: argparse.Namespace) -> None:
             print(json_output)
             print("\n---\n")
             print(md_output)
-
-    # Print LLM evaluation results if available
-    if report.prompt_evaluation is not None:
-        print("\033[35m" + "\n--- LLM Prompt Evaluation ---" + "\033[0m")
-        print(json.dumps(report.prompt_evaluation, indent=2, ensure_ascii=False))
-        print(
-            "\033[33m"
-            + "Prompt Evaluation Score: %.2f" % report.prompt_eval_score
-            + "\033[0m"
-        )
 
 
 def run_remediate_cmd(args: argparse.Namespace) -> None:
@@ -1005,7 +936,8 @@ def main() -> None:
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()
     elif args.command == "evaluate":
-        from prompt_hardener.analyze.engine import run_analyze
+        from prompt_hardener.evaluate import evaluate_prompt
+        from prompt_hardener.utils import average_satisfaction
 
         current_prompt = parse_prompt_input(
             args.target_prompt_path, args.input_mode, args.input_format
@@ -1018,20 +950,20 @@ def main() -> None:
         )
         print(show_prompt(current_prompt))
 
-        # Build temporary AgentSpec and run analyze with LLM evaluation
+        # Build temporary AgentSpec for context only, then run legacy LLM evaluation.
         temp_spec = _prompt_input_to_agent_spec(current_prompt, args)
-        report = run_analyze(
-            temp_spec,
-            layers=["prompt"],
-            eval_api_mode=args.eval_api_mode,
-            eval_model=args.eval_model,
+        evaluation = evaluate_prompt(
+            args.eval_api_mode,
+            args.eval_model,
+            current_prompt,
+            args.user_input_description,
             apply_techniques=args.apply_techniques,
+            findings=None,
+            agent_context=temp_spec.to_agent_context(),
             aws_region=args.aws_region,
             aws_profile=args.aws_profile,
         )
-
-        evaluation = report.prompt_evaluation
-        avg_score = report.prompt_eval_score
+        avg_score = average_satisfaction(evaluation)
         print("\033[35m" + "\n🧪 Evaluation Result:" + "\033[0m")
         print(json.dumps(evaluation, indent=2, ensure_ascii=False))
         print(

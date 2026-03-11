@@ -1202,50 +1202,30 @@ class TestExampleAnalysis:
 
 
 # =========================================================================
-# Group 10: LLM Evaluation in Analyze
+# Group 10: Static-only Analyze
 # =========================================================================
 
 
-class TestLLMEvaluation:
+class TestStaticOnlyAnalyze:
     @patch("prompt_hardener.evaluate.evaluate_prompt")
-    def test_run_analyze_with_eval_params(self, mock_eval):
-        """When eval_api_mode/eval_model are set, prompt_evaluation is populated."""
-        mock_eval.return_value = {
-            "Spotlighting": {"Tag user inputs": {"satisfaction": 7}},
-        }
-        spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
-        report = run_analyze(
-            spec_path,
-            eval_api_mode="openai",
-            eval_model="gpt-4o-mini",
-        )
-        assert report.prompt_evaluation is not None
-        assert report.prompt_eval_score == 7.0
-        mock_eval.assert_called_once()
-
-    def test_run_analyze_without_eval_params(self):
-        """When eval_api_mode is None, prompt_evaluation remains None."""
+    def test_run_analyze_does_not_call_evaluate_prompt(self, mock_eval):
         spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
         report = run_analyze(spec_path)
-        assert report.prompt_evaluation is None
-        assert report.prompt_eval_score is None
+        assert report.findings is not None
+        mock_eval.assert_not_called()
 
-    @patch("prompt_hardener.evaluate.evaluate_prompt")
-    def test_llm_eval_not_in_to_dict(self, mock_eval):
-        """LLM evaluation results should NOT appear in to_dict() for schema compat."""
-        mock_eval.return_value = {
-            "Spotlighting": {"Tag user inputs": {"satisfaction": 8}},
-        }
+    def test_run_analyze_has_no_llm_fields(self):
         spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
-        report = run_analyze(
-            spec_path,
-            eval_api_mode="openai",
-            eval_model="gpt-4o-mini",
-        )
+        report = run_analyze(spec_path)
+        assert not hasattr(report, "prompt_evaluation")
+        assert not hasattr(report, "prompt_eval_score")
+
+    def test_llm_eval_not_in_to_dict(self):
+        spec_path = os.path.join(FIXTURES_DIR, "chatbot_spec.yaml")
+        report = run_analyze(spec_path)
         d = report.to_dict()
         assert "prompt_evaluation" not in d
         assert "prompt_eval_score" not in d
-        # Validate against schema still passes
         schema_path = os.path.join(SCHEMAS_DIR, "analyze_report.schema.json")
         with open(schema_path, "r") as f:
             schema = json.load(f)
@@ -1263,28 +1243,6 @@ class TestLLMEvaluation:
         report = run_analyze(spec, layers=["prompt"])
         assert report.metadata.agent_name == "Test Bot"
         assert report.metadata.spec_digest == "N/A"
-
-    @patch("prompt_hardener.evaluate.evaluate_prompt")
-    def test_run_analyze_agent_spec_with_eval(self, mock_eval):
-        """AgentSpec object + LLM evaluation works correctly."""
-        mock_eval.return_value = {
-            "Spotlighting": {"Tag user inputs": {"satisfaction": 6}},
-        }
-        spec = AgentSpec(
-            version="1.0",
-            type="chatbot",
-            name="Test Bot",
-            system_prompt="You are a helpful assistant.",
-            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
-        )
-        report = run_analyze(
-            spec,
-            layers=["prompt"],
-            eval_api_mode="openai",
-            eval_model="gpt-4o-mini",
-        )
-        assert report.prompt_evaluation is not None
-        assert report.prompt_eval_score == 6.0
 
 
 # =========================================================================
@@ -1393,3 +1351,23 @@ class TestCLIIntegration:
             text=True,
         )
         assert result.returncode != 0
+
+    def test_analyze_rejects_removed_llm_flags(self):
+        spec_path = os.path.join(FIXTURES_DIR, "rag_insecure_spec.yaml")
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "prompt_hardener.main",
+                "analyze",
+                spec_path,
+                "-ea",
+                "openai",
+                "-em",
+                "gpt-4o-mini",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode != 0
+        assert "unrecognized arguments" in result.stderr

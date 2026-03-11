@@ -329,28 +329,16 @@ def _compute_finding_counts(findings):
 def run_analyze(
     spec_path_or_spec,
     layers=None,
-    eval_api_mode=None,
-    eval_model=None,
-    apply_techniques=None,
-    aws_region=None,
-    aws_profile=None,
 ):
-    # type: (Union[str, AgentSpec], Optional[List[str]], Optional[str], Optional[str], Optional[List[str]], Optional[str], Optional[str]) -> AnalyzeReport
-    """Run static analysis on an agent spec file, with optional LLM evaluation.
+    # type: (Union[str, AgentSpec], Optional[List[str]]) -> AnalyzeReport
+    """Run deterministic static analysis on an agent spec file.
 
     Args:
         spec_path_or_spec: Path to the agent_spec.yaml file, or an AgentSpec object.
         layers: Optional list of layers to analyze (e.g., ["prompt", "tool"]).
-        eval_api_mode: LLM API for prompt-layer evaluation (optional).
-            If not specified, only static analysis is performed.
-        eval_model: Model for prompt-layer evaluation (optional).
-        apply_techniques: Techniques for prompt evaluation (optional).
-        aws_region: AWS region for Bedrock (optional).
-        aws_profile: AWS profile for Bedrock (optional).
 
     Returns:
-        AnalyzeReport with findings, scores, attack paths, fixes,
-        and optionally prompt_evaluation/prompt_eval_score.
+        AnalyzeReport with findings, scores, attack paths, and fixes.
 
     Raises:
         ValueError: If the spec file cannot be loaded.
@@ -410,34 +398,10 @@ def run_analyze(
         finding_counts=_compute_finding_counts(all_findings),
     )
 
-    # Optional LLM evaluation
-    prompt_evaluation = None
-    prompt_eval_score = None
-    if eval_api_mode is not None and eval_model is not None:
-        from prompt_hardener.evaluate import evaluate_prompt
-        from prompt_hardener.utils import average_satisfaction
-
-        prompt_input = spec.to_prompt_input()
-        agent_context = spec.to_agent_context()
-        prompt_evaluation = evaluate_prompt(
-            eval_api_mode,
-            eval_model,
-            prompt_input,
-            spec.user_input_description,
-            apply_techniques=apply_techniques,
-            findings=all_findings or None,
-            agent_context=agent_context,
-            aws_region=aws_region,
-            aws_profile=aws_profile,
-        )
-        prompt_eval_score = average_satisfaction(prompt_evaluation)
-
     return AnalyzeReport(
         metadata=metadata,
         summary=summary,
         findings=all_findings,
         attack_paths=attack_paths,
         recommended_fixes=fixes,
-        prompt_evaluation=prompt_evaluation,
-        prompt_eval_score=prompt_eval_score,
     )

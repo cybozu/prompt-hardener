@@ -1,6 +1,6 @@
 # Analysis Rules
 
-The `analyze` command performs a two-layer security analysis of your agent specification: **static rule-based analysis** across all applicable layers (prompt, tool, architecture), and an optional **LLM-powered evaluation** that scores **the system prompt only** against hardening techniques and static findings.
+The `analyze` command performs deterministic **static rule-based analysis** across all applicable layers (prompt, tool, architecture).
 
 ## Overview
 
@@ -295,59 +295,6 @@ Each rule is mapped to [OWASP Top 10 for LLM Applications 2025](https://genai.ow
 | ARCH-008 | LLM10:2025 Unbounded Consumption, LLM06:2025 Excessive Agency | ASI02 Tool Misuse and Exploitation | AML.T0029 Denial of AI Service, AML.T0034 Cost Harvesting |
 | ARCH-009 | LLM03:2025 Supply Chain | ASI04 Agentic Supply Chain Vulnerabilities | AML.T0104 Publish Poisoned AI Agent Tool, AML.T0011.002 Poisoned AI Agent Tool |
 
-## LLM Evaluation
-
-When enabled with `-ea`/`-em`, the LLM evaluation layer scores **the system prompt** against three categories of criteria:
-
-1. **Technique-based criteria** -- 5 hardening techniques
-2. **Findings-based criteria** -- dynamic criteria generated from static rule findings
-3. **Agent Configuration Alignment** -- dynamic criteria generated from the agent's tool, policy, data source, and MCP server configuration
-
-### Technique Criteria
-
-Each technique is evaluated on specific criteria with a satisfaction score (0-10):
-
-| Technique | Criteria | What is evaluated |
-|-----------|----------|-------------------|
-| `spotlighting` | Tag user inputs; use spotlighting markers for external/untrusted input | Whether untrusted content is wrapped in `<data>` tags and spaces replaced with U+E000 |
-| `random_sequence_enclosure` | Use random sequence tags to isolate trusted instructions; instruct model not to output tags | Whether instructions are enclosed in `<{RANDOM}>` tags and the model is told to never reveal them |
-| `instruction_defense` | Handle inappropriate inputs, persona switching, new instructions, prompt attacks | Whether the prompt includes explicit refusal rules for detected attack patterns |
-| `role_consistency` | System messages do not include user input | Whether user content is separated from system-role messages |
-| `secrets_exclusion` | No sensitive information hardcoded in the prompt | Whether API keys, passwords, PII, or internal details are absent from the prompt |
-
-Use `-a` / `--apply-techniques` to select specific techniques. If not specified, all 5 are applied.
-
-### Findings-Based Criteria
-
-Static rule findings are passed to the LLM as additional evaluation criteria. For each finding, the LLM assesses whether the system prompt addresses the identified weakness:
-
-| Score Range | Meaning |
-|-------------|---------|
-| 0-3 | Finding NOT addressed at all |
-| 4-6 | Finding PARTIALLY addressed (some mitigation but incomplete) |
-| 7-10 | Finding FULLY addressed with proper mitigation |
-
-### Agent Configuration Alignment
-
-When the agent spec includes tools, policies, data sources, or MCP servers, the LLM evaluates whether the system prompt aligns with these configuration elements. Criteria are generated dynamically based on the spec contents:
-
-| Context | Criteria | What is evaluated |
-|---------|----------|-------------------|
-| Sensitive tools | Usage constraints or confirmation requirements | Whether the prompt requires approval before executing destructive/sensitive tools |
-| Tool results | Untrusted result handling | Whether the prompt instructs the model to verify tool results before acting |
-| Denied actions | Prohibition in prompt | Whether denied actions from policies are explicitly forbidden in the prompt |
-| Data boundaries | Boundary references | Whether data boundary restrictions are mentioned in the prompt |
-| Escalation rules | Rule references | Whether escalation rules for high-risk actions are referenced in the prompt |
-| Untrusted data sources | Boundary/sanitization instructions | Whether the prompt includes handling instructions for untrusted data sources |
-| Untrusted MCP servers | Caution instructions | Whether the prompt treats untrusted MCP servers with appropriate caution |
-
-This category is only included when the agent spec contains relevant configuration (e.g., it is not generated for `chatbot` specs with no tools or data sources). Scoring follows the same 0-10 scale:
-
-| Score Range | Meaning |
-|-------------|---------|
-| 0-3 | Configuration concern NOT addressed at all |
-| 4-6 | Configuration concern PARTIALLY addressed |
-| 7-10 | Configuration concern FULLY addressed with explicit instructions |
 
 ## Scoring
 
@@ -404,26 +351,10 @@ The overall score maps to a risk level:
 prompt-hardener analyze agent_spec.yaml --format markdown
 ```
 
-### Static + LLM evaluation
-
-```bash
-prompt-hardener analyze agent_spec.yaml \
-  -ea openai -em gpt-4o-mini \
-  --format both -o report.json
-```
-
 ### Filter by layer
 
 ```bash
 prompt-hardener analyze agent_spec.yaml --layers prompt tool
-```
-
-### Select specific techniques for LLM evaluation
-
-```bash
-prompt-hardener analyze agent_spec.yaml \
-  -ea openai -em gpt-4o-mini \
-  -a spotlighting instruction_defense
 ```
 
 See `prompt-hardener analyze --help` for all options.

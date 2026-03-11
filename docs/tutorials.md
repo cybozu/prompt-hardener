@@ -123,17 +123,15 @@ API keys, or other sensitive information.
 
 The static analysis found one medium-severity issue: the system prompt lacks instructions to protect sensitive information. The `remediate` command will address this automatically.
 
-### Step 5: Static + LLM evaluation
+### Step 5: Static analysis
 
-Add LLM-powered evaluation for deeper analysis of the prompt layer:
+Run deterministic static analysis and review the findings:
 
 ```bash
-prompt-hardener analyze agent_spec.yaml \
-  -ea openai -em gpt-4o-mini \
-  --format markdown
+prompt-hardener analyze agent_spec.yaml --format markdown
 ```
 
-> **Note:** This step requires an LLM API key (`OPENAI_API_KEY`). Output is omitted here. The LLM evaluates the prompt against hardening techniques (spotlighting, random sequence enclosure, instruction defense, etc.) and produces a numeric score alongside detailed feedback.
+> **Note:** If you want legacy LLM-based prompt review, use `prompt-hardener evaluate`. The `analyze` command is static-only.
 
 ### Step 6: Remediate
 

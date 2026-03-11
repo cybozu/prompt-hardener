@@ -15,7 +15,7 @@ Prompt Hardener helps developers and security engineers understand **how prompt 
 | Feature | Description |
 |---------|-------------|
 | Agent Specification | Unified YAML format for chatbot, RAG, agent, and MCP-agent types |
-| Layered Analysis | Static rules + LLM evaluation across prompt, tool, and architecture layers |
+| Layered Analysis | Deterministic static rules across prompt, tool, and architecture layers |
 | Iterative Remediation | Three-layer remediation with LLM-driven prompt improvement |
 | Attack Simulation | Scenario-based adversarial testing from a built-in catalog |
 | Hardening Techniques | Spotlighting, Random Sequence Enclosure, Instruction Defense, and more |
@@ -99,21 +99,15 @@ prompt-hardener validate agent_spec.yaml
 
 ### 3. analyze
 
-Run static rule-based analysis. Optionally add LLM-powered evaluation for the prompt layer.
+Run deterministic static rule-based analysis.
 
 ```bash
-# Static analysis only
 prompt-hardener analyze agent_spec.yaml --format markdown
-
-# Static + LLM evaluation
-prompt-hardener analyze agent_spec.yaml \
-  -ea openai -em gpt-4o-mini \
-  --format both -o report.json
 ```
 
 Use `--layers prompt tool architecture` to filter which layers to analyze. See `prompt-hardener analyze --help` for all options.
 
-See [docs/analysis-rules.md](./docs/analysis-rules.md) for the full rule catalog, LLM evaluation criteria, and scoring details.
+See [docs/analysis-rules.md](./docs/analysis-rules.md) for the full static rule catalog and scoring details.
 
 ### 4. remediate
 
