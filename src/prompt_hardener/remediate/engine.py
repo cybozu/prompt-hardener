@@ -59,8 +59,6 @@ def run_remediate(
     eval_api_mode: str,
     eval_model: str,
     layers: Optional[List[str]] = None,
-    max_iterations: int = 3,
-    threshold: float = 8.5,
     apply_techniques: Optional[List[str]] = None,
     output_path: Optional[str] = None,
     aws_region: Optional[str] = None,
@@ -77,12 +75,10 @@ def run_remediate(
 
     Args:
         spec_path: Path to the agent_spec.yaml file.
-        eval_api_mode: LLM API to use for evaluation.
-        eval_model: Model name for evaluation.
+        eval_api_mode: LLM API to use for constrained prompt rewriting.
+        eval_model: Model name for constrained prompt rewriting.
         layers: Layers to remediate. Defaults to all applicable layers for the spec type.
-        max_iterations: Max iterations for prompt improvement loop.
-        threshold: Score threshold for prompt improvement.
-        apply_techniques: Techniques to apply during prompt improvement.
+        apply_techniques: Optional explicit technique override for prompt remediation.
         output_path: If set, write updated agent_spec.yaml here.
         aws_region: AWS region for Bedrock.
         aws_profile: AWS profile for Bedrock.
@@ -101,7 +97,7 @@ def run_remediate(
         raise ValueError("Invalid agent spec %s: %s" % (spec_path, errors))
 
     # Run static analysis to get findings
-    analyze_report = run_analyze(spec_path, layers=layers)
+    analyze_report = run_analyze(spec_path)
     all_findings = analyze_report.findings
 
     # Determine layers to remediate
@@ -133,15 +129,12 @@ def run_remediate(
     if "prompt" in active_layers:
         if on_progress is not None:
             on_progress("Remediating prompt layer...")
-        prompt_findings = [f for f in all_findings if f.layer == "prompt"]
         prompt_remediation, improved_system_prompt = remediate_prompt(
             spec=spec,
             eval_api_mode=eval_api_mode,
             eval_model=eval_model,
-            max_iterations=max_iterations,
-            threshold=threshold,
             apply_techniques=apply_techniques,
-            findings=prompt_findings or None,
+            findings=all_findings or None,
             aws_region=aws_region,
             aws_profile=aws_profile,
             on_progress=on_progress,

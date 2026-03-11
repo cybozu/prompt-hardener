@@ -102,19 +102,6 @@ def parse_args() -> argparse.Namespace:
         help="Layers to remediate. Defaults to all applicable layers for the spec type.",
     )
     remediate_parser.add_argument(
-        "-n",
-        "--max-iterations",
-        type=int,
-        default=3,
-        help="Maximum iterations for prompt improvement. Default is 3.",
-    )
-    remediate_parser.add_argument(
-        "--threshold",
-        type=float,
-        default=8.5,
-        help="Score threshold (0-10) to stop prompt refinement. Default is 8.5.",
-    )
-    remediate_parser.add_argument(
         "-a",
         "--apply-techniques",
         nargs="+",
@@ -125,7 +112,7 @@ def parse_args() -> argparse.Namespace:
             "role_consistency",
             "secrets_exclusion",
         ],
-        help="Techniques to apply during prompt improvement. Defaults to all.",
+        help="Optional required-technique override for planner-driven prompt remediation.",
     )
     remediate_parser.add_argument(
         "-ea",
@@ -133,14 +120,14 @@ def parse_args() -> argparse.Namespace:
         type=str,
         choices=["openai", "claude", "bedrock"],
         required=True,
-        help="LLM API to use for evaluation and improvement.",
+        help="LLM API to use for constrained prompt rewriting.",
     )
     remediate_parser.add_argument(
         "-em",
         "--eval-model",
         type=str,
         required=True,
-        help="Model name for evaluation and improvement.",
+        help="Model name for constrained prompt rewriting.",
     )
     remediate_parser.add_argument(
         "-o",
@@ -800,8 +787,6 @@ def run_remediate_cmd(args: argparse.Namespace) -> None:
                 eval_api_mode=args.eval_api_mode,
                 eval_model=args.eval_model,
                 layers=args.layers,
-                max_iterations=args.max_iterations,
-                threshold=args.threshold,
                 apply_techniques=args.apply_techniques,
                 output_path=args.output_path,
                 aws_region=args.aws_region,

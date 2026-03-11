@@ -26,16 +26,28 @@ class Recommendation:
 @dataclass
 class PromptRemediation:
     changes: str  # text summary of changes
+    rewrite_applied: bool = False
+    techniques_selected: List[str] = field(default_factory=list)
     techniques_applied: List[str] = field(default_factory=list)
     findings_addressed: List[str] = field(default_factory=list)  # rule_ids
+    deferred_findings: List[str] = field(default_factory=list)
+    no_op_reason: Optional[str] = None
+    change_notes: List[str] = field(default_factory=list)
 
     def to_dict(self):
         # type: () -> Dict
-        return {
+        d = {
             "changes": self.changes,
+            "rewrite_applied": self.rewrite_applied,
+            "techniques_selected": list(self.techniques_selected),
             "techniques_applied": list(self.techniques_applied),
             "findings_addressed": list(self.findings_addressed),
+            "deferred_findings": list(self.deferred_findings),
+            "change_notes": list(self.change_notes),
         }
+        if self.no_op_reason is not None:
+            d["no_op_reason"] = self.no_op_reason
+        return d
 
 
 @dataclass
@@ -72,10 +84,14 @@ class RemediationReport:
         findings = []
         total_recs = 0
         if self.prompt is not None:
-            findings.append(
-                "Prompt remediation applied (%d techniques)"
-                % len(self.prompt.techniques_applied)
-            )
+            if self.prompt.rewrite_applied:
+                findings.append(
+                    "Prompt remediation rewrote the system prompt (%d techniques)"
+                    % len(self.prompt.techniques_applied)
+                )
+            else:
+                reason = self.prompt.no_op_reason or "rewrite not justified"
+                findings.append("Prompt remediation kept original system prompt (%s)" % reason)
         if self.tool is not None:
             total_recs += len(self.tool)
             critical = sum(1 for r in self.tool if r.severity == "critical")

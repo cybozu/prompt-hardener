@@ -23,7 +23,7 @@ def _build_agent_context_criteria(agent_context):
     # Tool Alignment
     if agent_context.tools:
         sensitive_tools = [
-            t for t in agent_context.tools if _is_sensitive_tool(t.name)
+            t for t in agent_context.tools if _is_sensitive_tool(t)
         ]
         if sensitive_tools:
             tool_names = ", ".join(t.name for t in sensitive_tools)

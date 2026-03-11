@@ -389,7 +389,7 @@ class TestRunRemediateWebui:
         from prompt_hardener.webui import run_remediate_webui
 
         status, md, json_dl, html_dl, spec_dl = run_remediate_webui(
-            None, [], "openai", "gpt-4o", 3, 8.5, [], None, None
+            None, [], "openai", "gpt-4o", [], None, None
         )
         assert "Error" in status
 
@@ -406,7 +406,7 @@ class TestRunRemediateWebui:
         path = _write_temp_yaml(spec)
         try:
             status, md, json_dl, html_dl, spec_dl = run_remediate_webui(
-                path, [], None, None, 3, 8.5, [], None, None
+                path, [], None, None, [], None, None
             )
             assert "Error" in status
         finally:

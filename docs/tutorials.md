@@ -135,7 +135,7 @@ prompt-hardener analyze agent_spec.yaml --format markdown
 
 ### Step 6: Remediate
 
-Generate a hardened version of the spec with LLM-driven prompt improvement:
+Generate a hardened version of the spec with planner-driven constrained prompt rewriting:
 
 ```bash
 prompt-hardener remediate agent_spec.yaml \
@@ -143,7 +143,7 @@ prompt-hardener remediate agent_spec.yaml \
   -o hardened.yaml
 ```
 
-> **Note:** This step requires an LLM API key. The remediation engine iteratively improves the system prompt (up to 3 iterations by default), applying hardening techniques and evaluating the result after each round. The output `hardened.yaml` contains the improved spec.
+> **Note:** This step requires an LLM API key. The remediation engine builds a prompt hardening plan, treats selected techniques as required for an accepted rewrite, and falls back to the original prompt if the constrained rewrite cannot materialize them cleanly. `random_sequence_enclosure` is not auto-selected by default and is treated as an optional manual technique. The output `hardened.yaml` contains the resulting spec.
 
 ### Step 7: Compare before and after
 

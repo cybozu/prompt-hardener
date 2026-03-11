@@ -11,6 +11,8 @@
   "remediation": {
     "prompt": {
       "changes": "Added role boundary instructions and data separation markers",
+      "rewrite_applied": true,
+      "techniques_selected": ["instruction_defense", "role_consistency", "spotlighting"],
       "techniques_applied": ["instruction_defense", "role_consistency", "spotlighting"]
     },
     "tool": {

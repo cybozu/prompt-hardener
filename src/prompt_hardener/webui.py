@@ -385,8 +385,6 @@ def run_remediate_webui(
     layers,
     eval_api_mode,
     eval_model,
-    max_iterations,
-    threshold,
     techniques,
     aws_region,
     aws_profile,
@@ -415,8 +413,6 @@ def run_remediate_webui(
             eval_api_mode=eval_api_mode,
             eval_model=eval_model,
             layers=layers or None,
-            max_iterations=int(max_iterations),
-            threshold=float(threshold),
             apply_techniques=techniques or None,
             output_path=output_tmp.name,
             aws_region=aws_region or None,
@@ -719,20 +715,6 @@ with gr.Blocks() as demo:
                         label="Eval Model",
                         value="gpt-4o",
                     )
-                    rem_iterations = gr.Slider(
-                        1,
-                        10,
-                        value=3,
-                        step=1,
-                        label="Max Iterations",
-                    )
-                    rem_threshold = gr.Slider(
-                        0,
-                        10,
-                        value=8.5,
-                        step=0.1,
-                        label="Satisfaction Threshold",
-                    )
                     rem_techniques = gr.CheckboxGroup(
                         [
                             "spotlighting",
@@ -767,8 +749,6 @@ with gr.Blocks() as demo:
                     rem_layers,
                     rem_eval_api,
                     rem_eval_model,
-                    rem_iterations,
-                    rem_threshold,
                     rem_techniques,
                     rem_aws_region,
                     rem_aws_profile,

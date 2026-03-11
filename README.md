@@ -16,7 +16,7 @@ Prompt Hardener helps developers and security engineers understand **how prompt 
 |---------|-------------|
 | Agent Specification | Unified YAML format for chatbot, RAG, agent, and MCP-agent types |
 | Layered Analysis | Deterministic static rules across prompt, tool, and architecture layers |
-| Iterative Remediation | Three-layer remediation with LLM-driven prompt improvement |
+| Conservative Remediation | Three-layer remediation with planner-driven constrained prompt rewriting |
 | Attack Simulation | Scenario-based adversarial testing from a built-in catalog |
 | Hardening Techniques | Spotlighting, Random Sequence Enclosure, Instruction Defense, and more |
 | Multi-format Reports | Markdown, HTML, and JSON reports for CI/CD integration |
@@ -111,7 +111,7 @@ See [docs/analysis-rules.md](./docs/analysis-rules.md) for the full static rule 
 
 ### 4. remediate
 
-Generate actionable remediations across three layers. The prompt layer uses LLM-driven iterative improvement; tool and architecture layers produce recommendations.
+Generate actionable remediations across three layers. The prompt layer uses planner-driven constrained rewriting with deterministic acceptance. 
 
 ```bash
 prompt-hardener remediate agent_spec.yaml \
@@ -120,7 +120,7 @@ prompt-hardener remediate agent_spec.yaml \
   -rd ./reports
 ```
 
-Options: `--layers`, `--max-iterations`, `--threshold`, `--apply-techniques`. See `prompt-hardener remediate --help`.
+Options: `--layers`, `--apply-techniques`. See `prompt-hardener remediate --help`.
 
 ### 5. simulate
 
@@ -194,7 +194,7 @@ The `remediate` command applies fixes across three layers:
 
 | Layer | What It Does | Requires LLM |
 |-------|-------------|--------------|
-| **Prompt** | Iteratively improves the system prompt using LLM evaluation feedback. Applies hardening techniques, reinforces boundaries, and strengthens instructions. | Yes |
+| **Prompt** | Uses a planner-driven constrained rewrite. Selected techniques are normally required for an accepted rewrite. | Yes |
 | **Tool** | Analyzes tool definitions and policies. Recommends adding parameter validation, restricting allowed actions, and tightening schemas. | No |
 | **Architecture** | Reviews data sources, trust boundaries, and escalation rules. Recommends trust level adjustments, data boundary enforcement, and escalation policies. | No |
 

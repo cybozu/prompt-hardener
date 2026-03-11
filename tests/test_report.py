@@ -194,6 +194,7 @@ class TestRemediateRendering:
             "remediation": {
                 "prompt": {
                     "changes": "Added security instructions",
+                    "techniques_selected": ["spotlighting"],
                     "techniques_applied": ["spotlighting"],
                 },
             },
@@ -201,6 +202,8 @@ class TestRemediateRendering:
         }
         output = render_remediate_markdown(data)
         assert "Prompt Remediation" in output
+        assert "Selected Techniques" in output
+        assert "Applied Techniques" in output
         assert "Tool Recommendations" not in output
 
 

@@ -127,7 +127,12 @@ class TestH2RemediationMetadataLayers:
         )
 
         mock_prompt_result = (
-            PromptRemediation(changes="No changes", techniques_applied=[], findings_addressed=[]),
+            PromptRemediation(
+                changes="No changes",
+                techniques_selected=[],
+                techniques_applied=[],
+                findings_addressed=[],
+            ),
             "improved prompt",
         )
 

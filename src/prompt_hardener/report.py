@@ -622,11 +622,39 @@ def render_remediate_markdown(data):
         lines.append("")
         lines.append("**Changes:** %s" % prompt_rem.get("changes", ""))
         lines.append("")
+        lines.append(
+            "**Rewrite Applied:** %s"
+            % ("yes" if prompt_rem.get("rewrite_applied") else "no")
+        )
+        lines.append("")
+        if prompt_rem.get("no_op_reason"):
+            lines.append("**No-op Reason:** %s" % prompt_rem.get("no_op_reason"))
+            lines.append("")
+        selected_techniques = prompt_rem.get("techniques_selected", [])
+        if selected_techniques:
+            lines.append("**Selected Techniques:**")
+            for t in selected_techniques:
+                lines.append("- %s" % t)
+            lines.append("")
         techniques = prompt_rem.get("techniques_applied", [])
         if techniques:
-            lines.append("**Techniques Applied:**")
+            lines.append("**Applied Techniques:**")
             for t in techniques:
                 lines.append("- %s" % t)
+            lines.append("")
+        addressed = prompt_rem.get("findings_addressed", [])
+        if addressed:
+            lines.append("**Findings Addressed:** %s" % ", ".join(addressed))
+            lines.append("")
+        deferred = prompt_rem.get("deferred_findings", [])
+        if deferred:
+            lines.append("**Deferred Findings:** %s" % ", ".join(deferred))
+            lines.append("")
+        notes = prompt_rem.get("change_notes", [])
+        if notes:
+            lines.append("**Change Notes:**")
+            for note in notes:
+                lines.append("- %s" % note)
             lines.append("")
 
     # Tool recommendations
@@ -696,21 +724,46 @@ def render_remediate_html(data):
     prompt_html = ""
     prompt_rem = rem.get("prompt")
     if prompt_rem:
+        selected_techniques_html = ""
+        for t in prompt_rem.get("techniques_selected", []):
+            selected_techniques_html += "<li>%s</li>" % _esc(t)
+        if selected_techniques_html:
+            selected_techniques_html = "<ul>%s</ul>" % selected_techniques_html
         techniques_html = ""
         for t in prompt_rem.get("techniques_applied", []):
             techniques_html += "<li>%s</li>" % _esc(t)
         if techniques_html:
             techniques_html = "<ul>%s</ul>" % techniques_html
+        change_notes_html = ""
+        for note in prompt_rem.get("change_notes", []):
+            change_notes_html += "<li>%s</li>" % _esc(note)
+        if change_notes_html:
+            change_notes_html = "<ul>%s</ul>" % change_notes_html
         prompt_html = (
             '<div class="section">'
             "<h2>Prompt Remediation</h2>"
             "<p><strong>Changes:</strong> %s</p>"
+            "<p><strong>Rewrite Applied:</strong> %s</p>"
+            "%s"
+            "%s"
+            "%s"
             "%s"
             "</div>"
         ) % (
             _esc(prompt_rem.get("changes", "")),
+            _esc("yes" if prompt_rem.get("rewrite_applied") else "no"),
+            "<p><strong>No-op Reason:</strong> %s</p>"
+            % _esc(prompt_rem.get("no_op_reason"))
+            if prompt_rem.get("no_op_reason")
+            else "",
+            "<p><strong>Selected Techniques:</strong></p>%s" % selected_techniques_html
+            if selected_techniques_html
+            else "",
             "<p><strong>Techniques Applied:</strong></p>%s" % techniques_html
             if techniques_html
+            else "",
+            "<p><strong>Change Notes:</strong></p>%s" % change_notes_html
+            if change_notes_html
             else "",
         )
 

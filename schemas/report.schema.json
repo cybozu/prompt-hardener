@@ -93,14 +93,38 @@
               "type": "string",
               "description": "Diff or description of prompt changes"
             },
+            "rewrite_applied": {
+              "type": "boolean",
+              "description": "Whether a rewritten system prompt was accepted and applied"
+            },
+            "techniques_selected": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Planner-selected techniques considered for prompt remediation"
+            },
             "techniques_applied": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": { "type": "string" },
+              "description": "Techniques actually materialized in the accepted prompt rewrite"
             },
             "findings_addressed": {
               "type": "array",
               "items": { "type": "string" },
               "description": "Rule IDs of static analysis findings addressed during prompt remediation"
+            },
+            "deferred_findings": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Rule IDs deferred to non-prompt remediation or left unresolved"
+            },
+            "no_op_reason": {
+              "type": "string",
+              "description": "Reason the original prompt was preserved"
+            },
+            "change_notes": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Short notes describing accepted prompt changes"
             }
           },
           "additionalProperties": false
