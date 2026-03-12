@@ -143,6 +143,44 @@ class TestSimulateRendering:
         assert "Succeeded Attacks" in output
         assert "Block Rate" in output
 
+    def test_markdown_escapes_multiline_payloads_in_table(self):
+        data = {
+            "metadata": {
+                "agent_type": "agent",
+                "timestamp": "2026-03-12T12:00:00Z",
+                "models": {
+                    "attack": {"api": "openai", "model": "gpt-4.1-mini"},
+                    "judge": {"api": "openai", "model": "gpt-4.1-mini"},
+                },
+            },
+            "simulation": {
+                "summary": {
+                    "total": 1,
+                    "blocked": 1,
+                    "succeeded": 0,
+                    "block_rate": 1.0,
+                },
+                "scenarios": [
+                    {
+                        "id": "cross_agent_escalation",
+                        "category": "cross_agent_escalation",
+                        "target_layer": "architecture",
+                        "payload": "line 1\nline 2 | line 3",
+                        "response": "blocked",
+                        "outcome": "BLOCKED",
+                    }
+                ],
+            },
+            "summary": {"risk_level": "low", "key_findings": []},
+        }
+
+        output = render_simulate_markdown(data)
+
+        assert (
+            "| cross_agent_escalation | cross_agent_escalation | architecture | BLOCKED | "
+            "line 1 line 2 \\| line 3 |" in output
+        )
+
     def test_html(self, data):
         output = render_simulate_html(data)
         assert "<html>" in output

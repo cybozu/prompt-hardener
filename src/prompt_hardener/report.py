@@ -77,6 +77,32 @@ def _esc(text):
     return html.escape(str(text))
 
 
+def _md_table_text(text, max_len=60):
+    # type: (Any, int) -> str
+    """Normalize text for a single markdown table cell."""
+    normalized = " ".join(str(text).splitlines()).replace("|", "\\|")
+    if len(normalized) > max_len:
+        return normalized[:max_len] + "..."
+    return normalized
+
+
+def _md_fenced_block(text):
+    # type: (Any) -> str
+    """Wrap arbitrary text in a fenced code block without breaking on backticks."""
+    text = str(text)
+    max_ticks = 0
+    current_ticks = 0
+    for char in text:
+        if char == "`":
+            current_ticks += 1
+            if current_ticks > max_ticks:
+                max_ticks = current_ticks
+        else:
+            current_ticks = 0
+    fence = "`" * max(3, max_ticks + 1)
+    return "%s\n%s\n%s" % (fence, text, fence)
+
+
 def _severity_class(severity):
     # type: (str) -> str
     return "severity-%s" % severity
@@ -465,9 +491,6 @@ def render_simulate_markdown(data):
         lines.append("| ID | Category | Layer | Outcome | Payload |")
         lines.append("|----|----------|-------|---------|---------|")
         for sc in scenarios:
-            payload_short = sc.get("payload", "")[:60]
-            if len(sc.get("payload", "")) > 60:
-                payload_short += "..."
             lines.append(
                 "| %s | %s | %s | %s | %s |"
                 % (
@@ -475,7 +498,7 @@ def render_simulate_markdown(data):
                     sc.get("category", ""),
                     sc.get("target_layer", ""),
                     sc.get("outcome", ""),
-                    payload_short,
+                    _md_table_text(sc.get("payload", "")),
                 )
             )
         lines.append("")
@@ -488,9 +511,15 @@ def render_simulate_markdown(data):
             for sc in succeeded:
                 lines.append("**%s** (%s)" % (sc.get("id", ""), sc.get("category", "")))
                 lines.append("")
-                lines.append("- **Payload:** %s" % sc.get("payload", ""))
-                lines.append("- **Response:** %s" % sc.get("response", ""))
+                lines.append("**Payload:**")
+                lines.append("")
+                lines.append(_md_fenced_block(sc.get("payload", "")))
+                lines.append("")
+                lines.append("**Response:**")
+                lines.append("")
+                lines.append(_md_fenced_block(sc.get("response", "")))
                 if sc.get("details"):
+                    lines.append("")
                     lines.append("- **Details:** %s" % sc["details"])
                 lines.append("")
 
