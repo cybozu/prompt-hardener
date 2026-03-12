@@ -11,7 +11,12 @@ from prompt_hardener.llm.exceptions import (
 from prompt_hardener.llm.providers.anthropic_client import AnthropicProvider
 from prompt_hardener.llm.providers.bedrock_client import BedrockProvider
 from prompt_hardener.llm.providers.openai_client import OpenAIProvider
-from prompt_hardener.llm.types import LLMRequest, LLMResponse, LLMResponseFormat
+from prompt_hardener.llm.types import (
+    LLMMessage,
+    LLMRequest,
+    LLMResponse,
+    LLMResponseFormat,
+)
 from prompt_hardener.utils import extract_json_block
 
 
@@ -64,10 +69,43 @@ class LLMClient:
             )
 
     def _normalize_request(self, request: LLMRequest) -> LLMRequest:
+        if request.provider in ("claude", "bedrock"):
+            request = self._normalize_system_messages(request)
         if request.timeout_seconds is None:
             request.timeout_seconds = self.default_timeout_seconds
         if request.response_format is None:
             request.response_format = LLMResponseFormat.TEXT
+        return request
+
+    def _normalize_system_messages(self, request: LLMRequest) -> LLMRequest:
+        system_parts = []
+        if request.system_prompt:
+            system_parts.append(request.system_prompt)
+
+        normalized_messages = []
+        for message in request.messages or []:
+            if message.role != "system":
+                normalized_messages.append(message)
+                continue
+            if not isinstance(message.content, str):
+                raise LLMConfigurationError(
+                    "Provider '%s' requires system messages to have string content"
+                    % request.provider
+                )
+            if message.content:
+                system_parts.append(message.content)
+
+        request.messages = [
+            LLMMessage(
+                role=message.role,
+                content=message.content,
+                tool_calls=message.tool_calls,
+                tool_call_id=message.tool_call_id,
+                name=message.name,
+            )
+            for message in normalized_messages
+        ]
+        request.system_prompt = "\n\n".join(system_parts) or None
         return request
 
     def _map_error(self, exc: Exception, request: LLMRequest):

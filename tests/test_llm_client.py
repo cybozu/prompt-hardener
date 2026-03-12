@@ -99,6 +99,105 @@ def test_client_generate_json_raises_normalized_format_error():
         )
 
 
+def test_client_normalizes_system_messages_for_claude():
+    adapter = _FakeAdapter(
+        [
+            LLMResponse(
+                text='{"result": "ok"}',
+                provider="claude",
+                model="claude-sonnet",
+            )
+        ]
+    )
+    client = LLMClient(adapters={"claude": adapter})
+
+    client.generate(
+        LLMRequest(
+            provider="claude",
+            model="claude-sonnet",
+            messages=[
+                LLMMessage(role="system", content="system one"),
+                LLMMessage(role="user", content="hello"),
+                LLMMessage(role="system", content="system two"),
+            ],
+        )
+    )
+
+    request = adapter.calls[0]
+    assert request.system_prompt == "system one\n\nsystem two"
+    assert [message.role for message in request.messages] == ["user"]
+
+
+def test_client_normalizes_system_messages_for_bedrock():
+    adapter = _FakeAdapter(
+        [
+            LLMResponse(
+                text='{"result": "ok"}',
+                provider="bedrock",
+                model="anthropic.claude",
+            )
+        ]
+    )
+    client = LLMClient(adapters={"bedrock": adapter})
+
+    client.generate(
+        LLMRequest(
+            provider="bedrock",
+            model="anthropic.claude",
+            messages=[
+                LLMMessage(role="system", content="system"),
+                LLMMessage(role="user", content="hello"),
+            ],
+        )
+    )
+
+    request = adapter.calls[0]
+    assert request.system_prompt == "system"
+    assert all(message.role != "system" for message in request.messages)
+
+
+def test_client_generate_json_normalization_is_idempotent():
+    adapter = _FakeAdapter(
+        [
+            LLMResponse(
+                text='{"result": "ok"}',
+                provider="claude",
+                model="claude-sonnet",
+            )
+        ]
+    )
+    client = LLMClient(adapters={"claude": adapter})
+
+    response = client.generate_json(
+        LLMRequest(
+            provider="claude",
+            model="claude-sonnet",
+            messages=[
+                LLMMessage(role="system", content="system"),
+                LLMMessage(role="user", content="hello"),
+            ],
+        )
+    )
+
+    assert response.structured == {"result": "ok"}
+    request = adapter.calls[0]
+    assert request.system_prompt == "system"
+    assert [message.role for message in request.messages] == ["user"]
+
+
+def test_client_rejects_non_string_system_message_for_claude():
+    client = LLMClient(adapters={"claude": _FakeAdapter([])})
+
+    with pytest.raises(LLMConfigurationError, match="system messages to have string content"):
+        client.generate(
+            LLMRequest(
+                provider="claude",
+                model="claude-sonnet",
+                messages=[LLMMessage(role="system", content=[{"text": "bad"}])],
+            )
+        )
+
+
 def test_client_retries_timeout_and_succeeds():
     adapter = _FakeAdapter(
         [
