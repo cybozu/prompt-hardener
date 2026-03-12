@@ -7,37 +7,46 @@ argument-hint: "[from-code|from-questions] [path]"
 
 # Agent Spec Builder
 
-You are an expert at creating Prompt Hardener `agent_spec.yaml` files. You will analyze a codebase or interview the user to produce a draft spec optimized for security analysis.
+You create Prompt Hardener `agent_spec.yaml` files that are optimized for current static analysis and remediation.
 
 ## Output
 
 You always produce exactly 3 files:
 
 1. **`agent_spec.yaml`** — Valid spec that passes `prompt-hardener validate`
-2. **`evidence.md`** — Evidence log with confidence ratings for every field
+2. **`evidence.md`** — Evidence log with confidence ratings for every populated or inferred field
 3. **`open_questions.md`** — Unresolved fields grouped by analysis priority
 
-## Reference Files
+## Source Of Truth
 
-Before starting, internalize these references in `references/`:
-- `field-catalog.md` — All fields, their analysis value, and which rules they enable
+This skill is meant to be portable. Treat the bundled files in `references/` as the primary source of truth:
+
+- `field-catalog.md` — Field inventory, analysis value, and enabled rules
 - `code-extraction-patterns.md` — Search patterns for from-code mode
-- `output-templates.md` — Output file templates and YAML comment conventions
-- `question-flow.md` — Interview question flow for from-questions mode
+- `output-templates.md` — Output templates and YAML comment conventions
+- `question-flow.md` — Interview flow for from-questions mode
+
+If repository docs such as `docs/agent-spec.md` or `docs/analysis-rules.md` are available, use them only as an optional cross-check. Do not assume they exist.
+
+## General Rules
+
+- Only write schema-supported fields into `agent_spec.yaml`.
+- Put provenance evidence, detection rationale, and unresolved risk notes into `evidence.md` or `open_questions.md`, not into ad hoc YAML fields.
+- Keep confidence explicit for every inferred value.
+- Use current rule IDs only. Never mention deprecated or nonexistent rule IDs.
 
 ---
 
 ## Mode Selection
 
-Determine the mode and target scope based on the user's input:
+Determine the mode and scope from the user's input:
 
-1. **Explicit argument**: If the user says `from-code` or `from-questions`, use that mode.
-   - An optional path argument narrows the scope: `/agent-spec-builder from-code ./services/chatbot`
-2. **Auto-detect**: If no argument given:
-   - Run `Glob` for `**/*.py` in the current directory.
-   - If Python source files exist → `from-code`
-   - Otherwise → `from-questions`
-3. Tell the user which mode was selected and why.
+1. If the user explicitly says `from-code` or `from-questions`, use that mode.
+2. If the user passes a path, scope the scan or interview to that path.
+3. Otherwise auto-detect:
+   - If the target contains Python source files, use `from-code`
+   - If not, use `from-questions`
+4. Tell the user which mode you selected and why.
 
 ---
 
@@ -45,219 +54,215 @@ Determine the mode and target scope based on the user's input:
 
 ### Phase 0: Agent Discovery
 
-Before detailed scanning, detect whether the codebase contains multiple distinct agents. Each agent typically has its own system prompt, entry point, or service directory.
+Before deep scanning, detect whether the repo contains multiple distinct agents.
 
-**Discovery steps** (run in parallel):
+Run these checks in parallel:
 
-1. **System prompts**: Grep for `system_prompt\s*=`, `SYSTEM_PROMPT`, `role.*system`, `SystemMessage` across all Python files. Group matches by directory.
-2. **Entry points**: Glob for `**/main.py`, `**/app.py`, `**/server.py`, `**/agent.py`, `**/__main__.py`. Group by parent directory.
-3. **Service directories**: Look for patterns suggesting independent services:
-   - Separate `requirements.txt` / `pyproject.toml` in subdirectories
-   - Docker-related files (`Dockerfile`, `docker-compose*.yaml`) referencing multiple services
-   - Directories with their own `prompts/` or `config/` subdirectories
+1. **System prompt signals**: search for `system_prompt`, `SYSTEM_PROMPT`, `role.*system`, `SystemMessage`, `system_instruction`
+2. **Entrypoints**: search for `main.py`, `app.py`, `server.py`, `agent.py`, `__main__.py`
+3. **Service boundaries**: look for subdirectories with their own `pyproject.toml`, `requirements.txt`, `Dockerfile`, `prompts/`, or `config/`
 
-**Decision logic:**
+Decision logic:
 
-- **0 system prompts found**: Proceed with single-agent scan of the full repo.
-- **1 system prompt found**: Proceed with single-agent scan of the full repo.
-- **2+ system prompts found in different directories**:
+- If prompts are absent or only one candidate exists, scan the full scope.
+- If multiple plausible agents exist in different directories, present the candidates and ask the user which one to spec first.
+- If multiple prompt candidates exist in one directory, ask which one is the primary system prompt.
+- If the user passed an explicit path, skip discovery and scan only that path.
 
-  Present the candidates to the user:
+### Phase 1: Scan
 
-  ```
-  I found multiple potential agents in this codebase:
+Track every finding as a `FieldCandidate` with:
 
-  1. services/chatbot/ — system prompt in services/chatbot/prompts/system.txt
-     Signals: OpenAI import, no tools
-  2. services/support-agent/ — system prompt in services/support-agent/agent.py:42
-     Signals: @tool decorators, escalation logic
-  3. services/rag-service/ — system prompt in services/rag-service/config.py:15
-     Signals: ChromaDB import, vector store
+- `field_path`
+- `value`
+- `confidence` (`high` / `medium` / `low`)
+- `evidence` (file:line or reasoning)
+- `analysis_value`
+- `status` (`confirmed` / `inferred` / `unknown`)
 
-  Which agent would you like to build a spec for first?
-  ```
+Use the patterns in `references/code-extraction-patterns.md`.
 
-  After the user picks one:
-  - **Narrow the scan scope** to that agent's directory for Phase 1
-  - Record the full candidate list for the continuation prompt later
+#### Step 1: README / Docs
 
-- **2+ system prompts in the same directory**: Present them and ask the user which one is the primary system prompt for this agent. The others may be sub-prompts or test fixtures.
+- Extract hints for `name`, `description`, and `type`
+- Treat README-derived values as low confidence unless corroborated elsewhere
 
-**If the user provided a path argument** (e.g., `/agent-spec-builder from-code ./services/chatbot`):
-- Skip discovery and scope directly to that directory.
+#### Step 2: Provider
 
-### Phase 1: Scan (10 Steps)
-
-Execute these steps **within the target scope** (full repo, or narrowed directory from Phase 0) to collect field candidates. Use Glob and Grep in parallel where possible. Track every finding as a **FieldCandidate** with: `field_path`, `value`, `confidence` (high/medium/low), `evidence` (file:line or reasoning), `analysis_value` (from field-catalog.md), and `status` (confirmed/inferred/unknown).
-
-Refer to `references/code-extraction-patterns.md` for all search patterns.
-
-#### Step 1: README
-- Glob: `README.md`, `README.rst`, `README.txt`, `docs/README.md`
-- Extract hints for `name`, `description`, `type`
-- Confidence: low
-
-#### Step 2: LLM Provider
-- Grep Python files for SDK imports: `from openai`, `from anthropic`, `boto3.*bedrock`
-- Grep for model assignments: `model\s*=\s*["']`
-- Extract `provider.api` and `provider.model`
-- Confidence: high for imports, medium for env var references
+- Extract `provider.api`, `provider.model`, and for Bedrock also `provider.region` / `provider.profile`
+- Prefer direct client initialization or config literals over environment variable names
 
 #### Step 3: System Prompt
-- Grep for: `role.*system`, `system_prompt\s*=`, `SYSTEM_PROMPT`, `SystemMessage`, `system_instruction`
-- Glob: `**/prompts/**`, `**/prompt*.*`
-- Extract the system prompt text
-- **IMPORTANT**: Always present the extracted prompt to the user for confirmation
-- Check for potential secrets (long hex/base64 strings) — warn if found
-- Confidence: high for direct literals, medium for file references
+
+- Extract the actual prompt text from literals, prompt files, or config loaders
+- Always show the extracted prompt to the user for confirmation
+- Warn if the prompt appears to contain secrets or internal-only material
+- Record prompt-file provenance in `evidence.md` if the prompt is loaded from disk or remote storage
 
 #### Step 4: Agent Type
-- Detection priority (most specific first):
-  1. MCP config found (`mcp.json`, `MCPServer`) → `mcp-agent`
-  2. Tool definitions found (`tools=`, `@tool`, `functions=`) → `agent`
-  3. RAG setup found (`vectorstore`, `retriever`, `chromadb`, `pinecone`, `faiss`) → `rag`
-  4. None of above → `chatbot`
-- When ambiguous, default to the more complex type (safer — more rules apply)
-- Confidence: high when clear signals present
 
-#### Step 5: Tool Definitions
-- Grep for: `@tool`, `Tool(`, `functions=`, `tools=`, `"type":\s*"function"`
-- For each tool found, extract: `name`, `description`, `parameters`
-- Infer `effect` from name patterns (see code-extraction-patterns.md):
-  - `delete_`, `remove_`, `destroy_` → `delete`
-  - `write_`, `update_`, `create_`, `modify_` → `write`
-  - `send_`, `email_`, `notify_`, `publish_` → `external_send`
-  - `get_`, `read_`, `fetch_`, `search_`, `list_` → `read`
-  - Otherwise → `unknown`
-- Infer `impact`: DB mutations/account ops → `high`, file/config changes → `medium`, read-only → `low`, else → `unknown`
-- Infer `execution_identity`: user context → `user`, service account → `service`, else → `unknown`
-- Confidence: medium for name-based inference, low for unknown
+Detection priority:
+
+1. MCP config or MCP server code -> `mcp-agent`
+2. Tool definitions -> `agent`
+3. Retrieval/vector store/data-source signals -> `rag`
+4. Otherwise -> `chatbot`
+
+If both tools and retrieval are present, prefer `agent`.
+
+#### Step 5: Tools
+
+For each tool, collect or infer:
+
+- `name`
+- `description`
+- `parameters`
+- `effect`
+- `impact`
+- `execution_identity`
+- `source`
+- `version`
+- `content_hash`
+
+Also collect evidence for:
+
+- dangerous free-form parameters relevant to TOOL-007
+- duplicate, confusing, or overly generic tool names relevant to TOOL-008
+- third-party provenance gaps relevant to ARCH-009
+
+If `source` is `third_party`, try to resolve `version` and `content_hash`; if you cannot, keep the fields unresolved and record the gap.
 
 #### Step 6: Data Sources
-- Grep for: vector store imports, DB connections, file upload handling, API clients
-- For each source: extract `name`, `type`, `trust_level`, `sensitivity`
-- trust_level default: `untrusted` (safe default)
-- Confidence: medium
+
+For each data source, collect or infer:
+
+- `name`
+- `type`
+- `trust_level`
+- `description`
+- `sensitivity`
+
+Use `untrusted` as the safe default only when trust genuinely cannot be established.
 
 #### Step 7: MCP Servers
-- Glob: `mcp.json`, `**/mcp.json`, `.mcp.json`, `claude_desktop_config.json`
-- Grep: `MCPServer`, `@modelcontextprotocol`, `StdioServerParameters`
-- Extract server names, trust levels, allowed tools
-- trust_level: external servers → `untrusted`, local → `trusted`
-- Confidence: high for mcp.json, medium for code references
+
+For each MCP server, collect or infer:
+
+- `name`
+- `trust_level`
+- `allowed_tools`
+- `data_access`
+- `source`
+- `version`
+- `content_hash`
+
+Also capture whether the server is bundled/first-party, remote, or externally sourced for ARCH-009 evidence.
 
 #### Step 8: Policies
-- Grep for: deny/block lists, allow lists, escalation/approval flows, data handling rules
-- Extract `policies.denied_actions`, `policies.allowed_actions`, `policies.escalation_rules`, `policies.data_boundaries`
-- Confidence: medium
 
-#### Step 9: Memory & Scope
-- Grep for memory: `redis`, `session_store`, `ConversationBufferMemory`, `chat_history`, `persist`
-- Grep for scope: `tenant_id`, `org_id`, `multi_tenant`, `workspace_id`, `team_id`
-- Infer `has_persistent_memory` and `scope`
-- Confidence: medium for clear patterns
+Collect or infer:
 
-#### Step 10: Few-shot Messages
-- Grep for: `messages\s*=\s*\[`, `example_messages`, `few_shot`
-- Look for user/assistant message pairs
-- Confidence: medium
+- `policies.allowed_actions`
+- `policies.denied_actions`
+- `policies.data_boundaries`
+- `policies.escalation_rules`
+- `policies.max_tool_calls`
+- `policies.max_steps`
+- `policies.rate_limits`
+- `policies.cost_budget`
 
-### Phase 2: Gap Analysis + Questions (max 2 rounds)
+Prefer explicit ceilings found in code or config over prompt-only hints.
+
+#### Step 9: Memory, Scope, And Isolation
+
+Collect or infer:
+
+- `has_persistent_memory`
+- `scope`
+
+Also collect evidence for:
+
+- memory poisoning protections relevant to ARCH-005
+- tenant or user isolation relevant to ARCH-007
+
+Store those protection details in `evidence.md`, and when missing record the unresolved follow-up in `open_questions.md`.
+
+#### Step 10: Few-Shot Messages
+
+- Extract `messages` examples when they are clearly production-relevant
+- Exclude system messages from `messages`
+- Treat test fixtures as low confidence unless the user confirms they are representative
+
+### Phase 2: Gap Analysis And User Questions
 
 After scanning:
 
-1. **Present a summary table** of all collected FieldCandidates to the user:
-   ```
-   Field                    | Value       | Confidence | Source
-   -------------------------|-------------|------------|-------
-   type                     | agent       | high       | @tool decorators in src/agent.py
-   provider.api             | openai      | high       | import at src/main.py:3
-   tools[0].effect          | read        | medium     | inferred from "get_" prefix
-   tools[0].impact          | unknown     | —          | could not determine
-   ...
-   ```
-
-2. **Ask only about critical/high analysis_value fields** that are `unknown` or `low confidence`:
-   - Group related questions (e.g., all tool effects/impacts together)
-   - Present the analysis value: "This field enables TOOL-003 (critical severity)"
-   - Maximum 2 question rounds
-
-3. **Record medium/low analysis_value unknowns** directly in open_questions.md without asking.
-
-4. **Checkpoint**: "I found N tools. Is this the complete list?" (prevent tool omission)
+1. Present a summary table of collected candidates with confidence and source.
+2. Ask about unresolved or low-confidence **critical/high** fields first.
+3. Group questions to keep the follow-up compact.
+4. Use current priority:
+   - Critical: `tools[].impact`, `tools[].effect`
+   - High: `tools[].execution_identity`, tool/MCP provenance fields, `policies.denied_actions`, `policies.escalation_rules`, `data_sources[].sensitivity`, `has_persistent_memory`, `scope`
+   - Medium or lower: allowlists, budgets, user input description, dangerous parameter constraints, tenant-isolation wording
+5. Ask explicit completeness checkpoints when relevant:
+   - "I found N tools. Is that the full set?"
+   - "I found N data sources. Is that the full set?"
+   - "I found N MCP servers. Is that the full set?"
 
 ### Phase 3: Output Generation
 
-1. **Generate `agent_spec.yaml`**:
-   - Follow field ordering from `references/output-templates.md`
-   - Use YAML block scalar (`|`) for multiline system_prompt
-   - Add inline comments for inferred values with confidence
-   - Add TODO comments for unknown values with the rule they'd enable
-   - Omit sections that don't apply to the agent type
-
-2. **Run validation**: Execute `prompt-hardener validate agent_spec.yaml`
-   - If validation errors occur, fix and re-validate (max 3 attempts)
-   - If validation warnings occur, note them but proceed
-
-3. **Generate `evidence.md`**: Follow template in output-templates.md
-   - Include every field with its value, confidence, and evidence source
-   - Add detailed inference sections for medium/low confidence fields
-
-4. **Generate `open_questions.md`**: Follow template in output-templates.md
-   - Only include fields that are actually unknown/missing
-   - Use actual field paths (e.g., `tools[0].impact`, not generic placeholders)
-   - Group by priority: Critical > High > Medium
-   - Each entry: current value, why it matters (rule ID + severity), how to resolve
+1. Generate `agent_spec.yaml`
+   - Follow `references/output-templates.md`
+   - Use YAML block scalars for multiline prompts
+   - Add inline confidence or TODO comments only for schema-supported fields
+   - Omit type-irrelevant sections
+2. Run `prompt-hardener validate agent_spec.yaml`
+   - Fix validation errors and re-validate, up to 3 attempts
+   - Keep warnings, but document them in `evidence.md`
+3. Generate `evidence.md`
+   - Include every populated/inferred field
+   - Include provenance evidence, budget evidence, memory protection evidence, and tenant isolation evidence when applicable
+4. Generate `open_questions.md`
+   - Include only unresolved or low-confidence fields that materially affect analysis
+   - Use actual field paths
+   - Use current rule IDs only
+   - Group by priority
 
 ---
 
 ## FROM-QUESTIONS Mode
 
-### Overview
+Use the grouped question flow in `references/question-flow.md`.
 
-Interview the user in maximum 3 rounds, 10 questions total. Use the AskUserQuestion tool for structured choices and free-form input for complex answers.
+Rules:
 
-Refer to `references/question-flow.md` for the full question flow.
+- Keep the interview to 3 rounds and at most 10 user-facing prompts
+- Group related fields into structured prompts instead of asking one field at a time
+- If the agent has tools, collect provenance and budget information in the same round
+- If the agent is multi-tenant, ask for tenant isolation controls in the same prompt where scope is confirmed
+- If the agent has persistent memory, ask for memory-poisoning protections in the same prompt where memory is confirmed
+- If the user says "don't know", apply the documented safe default and record the unresolved field in `open_questions.md`
 
-### Round 1: Core Identity (4 questions, always asked)
+For tool-bearing agents, do not stop at tool names. Collect enough detail to support:
 
-**Q1 — Agent Type**:
-Use AskUserQuestion with options: chatbot, rag, agent, mcp-agent.
-Include descriptions for each type.
+- TOOL-003 (`impact`)
+- TOOL-004 (`execution_identity`)
+- TOOL-007 (`parameters` constraints)
+- TOOL-008 (naming ambiguity / provenance context)
+- ARCH-008 (budgets)
+- ARCH-009 (provenance metadata)
 
-**Q2 — Name & Description**:
-Ask for name and a one-line purpose description.
+For MCP agents, collect enough detail to support:
 
-**Q3 — Provider**:
-Ask for LLM provider (openai/claude/bedrock) and model identifier.
-Default: openai / gpt-4o-mini.
+- ARCH-002 (`trust_level`, `allowed_tools`)
+- ARCH-004 (`trust_level`)
+- ARCH-009 (`source`, `version`, `content_hash`)
 
-**Q4 — System Prompt**:
-Ask user to paste their system prompt or say "none".
-If "none", use a placeholder and note in open_questions.md.
+For agents with memory or shared scope, collect enough detail to support:
 
-### Round 2: Type-Conditional (3-5 questions, based on type)
-
-**For rag**:
-- Q5: Data sources (name, type, trust_level, sensitivity)
-- Q6: Data handling policies
-
-**For agent**:
-- Q5: Tools (name, description, effect, impact)
-- Q6: Denied actions + escalation rules
-- Q7: Execution identity
-
-**For mcp-agent** (includes agent questions plus):
-- Q8: MCP servers (name, trust_level, allowed_tools)
-
-**For chatbot**:
-- Q5 (optional): Basic topic restrictions / data boundaries
-
-### Round 3: Architecture Metadata (3 questions, always asked)
-
-**Q9 — Persistent Memory**: yes / no / don't know
-**Q10 — Deployment Scope**: single_user / shared_workspace / multi_tenant / don't know
-**Q11 — User Input Description**: free text or skip
+- ARCH-005 (memory protection evidence)
+- ARCH-006 (`scope` with sensitive tools)
+- ARCH-007 (tenant isolation evidence)
 
 ### Handling "Don't Know"
 

@@ -1,290 +1,217 @@
 # Question Flow
 
-Interactive question flow for the `from-questions` mode. Maximum 3 rounds, 10 questions total.
+Interactive question flow for `from-questions` mode. Keep the interview to **3 rounds** and **at most 10 user-facing prompts** by grouping related fields.
 
 ---
 
-## Round 1: Core Identity (Always asked — 4 questions)
+## Round 1: Core Identity (4 prompts)
 
 ### Q1: Agent Type
 
 > What type of agent are you building?
 
-Options (present with descriptions):
-- **chatbot** — A conversational bot with no tool access or external data retrieval
-- **rag** — A retrieval-augmented generation system that answers from documents/data
-- **agent** — A tool-calling agent that can perform actions via function calls
-- **mcp-agent** — An agent connected to MCP (Model Context Protocol) servers
+Options:
 
-Default: chatbot
-
-This answer determines:
-- Which fields are required (tools, data_sources, mcp_servers)
-- Which analysis layers are active (prompt, tool, architecture)
-- Which questions appear in Round 2
-
-### Q2: Name & Description
-
-> What is the name and purpose of your agent?
->
-> Example: "Customer Support Bot — Handles customer inquiries for Acme Corp's e-commerce platform"
+- **chatbot** — conversational bot without tools or retrieval
+- **rag** — retrieval-augmented assistant
+- **agent** — tool-calling agent
+- **mcp-agent** — tool-calling agent connected to MCP servers
 
 Extract:
-- `name`: the name portion
-- `description`: the purpose/description portion
 
-If user gives only a name, ask briefly for a one-line description. If they skip, set description to empty.
+- `type`
+
+### Q2: Name And Description
+
+> What is the agent called, and what is its purpose?
+
+Extract:
+
+- `name`
+- `description`
 
 ### Q3: Provider
 
-> Which LLM provider and model will this agent use?
->
-> Examples:
-> - openai / gpt-4o
-> - claude / claude-sonnet-4-20250514
-> - bedrock / anthropic.claude-3-sonnet
+> Which LLM provider and model will it use? If Bedrock, include region and profile if applicable.
 
 Extract:
-- `provider.api`: one of `openai`, `claude`, `bedrock`
-- `provider.model`: the model identifier string
 
-If bedrock, also ask:
-> Which AWS region? (e.g., us-east-1)
+- `provider.api`
+- `provider.model`
+- `provider.region` when applicable
+- `provider.profile` when applicable
 
-Default: openai / gpt-4o-mini
+Default if skipped: `openai / gpt-4o-mini`
 
 ### Q4: System Prompt
 
-> Please paste your system prompt below. If you don't have one yet, say "none" and a placeholder will be used.
->
-> Tip: For multiline prompts, just paste the full text.
+> Paste the current system prompt. If you do not have one yet, say `none`.
 
 Extract:
-- `system_prompt`: the pasted text
 
-If "none" or empty:
-- Set `system_prompt` to a basic placeholder: "You are a helpful assistant."
-- Add to open_questions.md as high priority
+- `system_prompt`
+
+If missing, use `You are a helpful assistant.` and record the placeholder in `open_questions.md`.
 
 ---
 
-## Round 2: Type-Conditional Questions
+## Round 2: Type-Conditional Prompts
 
-### For `rag` type:
+### For `rag`
 
 #### Q5-rag: Data Sources
 
-> What data sources does your RAG system retrieve from?
->
-> For each source, please provide:
-> - **Name**: identifier (e.g., "knowledge_base", "user_uploads")
-> - **Type**: what kind of source (e.g., vector_store, database, file_input, api)
-> - **Trust level**: `trusted` (you control the content) or `untrusted` (external/user-provided content)
-> - **Sensitivity**: `public`, `internal`, or `confidential`
->
-> Example:
-> - knowledge_base, vector_store, trusted, internal
-> - user_uploads, file_input, untrusted, confidential
-
-Extract per source:
-- `data_sources[].name`
-- `data_sources[].type`
-- `data_sources[].trust_level` (default: `untrusted`)
-- `data_sources[].sensitivity` (default: `unknown`)
-
-If user can't determine trust_level → use `untrusted` (safe default).
-
-#### Q6-rag: Data Handling Policies
-
-> Are there any data handling rules your agent should follow?
->
-> Examples:
-> - "Never include document metadata in responses"
-> - "Don't quote more than 3 sentences from a single document"
-> - "PII must not be included in responses"
->
-> Say "none" to skip.
+> List each data source with: name, type, trust level, and sensitivity.
 
 Extract:
-- `policies.data_boundaries`: list of rules
 
----
+- `data_sources[].name`
+- `data_sources[].type`
+- `data_sources[].trust_level`
+- `data_sources[].sensitivity`
 
-### For `agent` type:
+#### Q6-rag: Retrieval Policies
+
+> List any data boundaries or retrieval-handling rules, especially for confidential data or untrusted content.
+
+Extract:
+
+- `policies.data_boundaries`
+
+### For `agent`
 
 #### Q5-agent: Tools
 
-> What tools does your agent have access to?
->
-> For each tool, please provide:
-> - **Name**: function name (e.g., "get_order_status", "delete_account")
-> - **Description**: what it does
-> - **Effect**: `read`, `write`, `delete`, or `external_send`
-> - **Impact**: `low` (read-only), `medium` (config changes), or `high` (data mutation, payments)
->
-> Example:
-> - get_order_status: Retrieves order details (effect: read, impact: low)
-> - update_record: Modifies a database record (effect: write, impact: high)
-> - send_email: Sends email to customer (effect: external_send, impact: medium)
+> For each tool, provide: name, description, key parameters, effect, impact, execution identity, and source. If a tool is third-party, include version and content hash if known.
 
-Extract per tool:
+Extract:
+
 - `tools[].name`
 - `tools[].description`
-- `tools[].effect` (default: `unknown`)
-- `tools[].impact` (default: `unknown`)
+- `tools[].parameters`
+- `tools[].effect`
+- `tools[].impact`
+- `tools[].execution_identity`
+- `tools[].source`
+- `tools[].version`
+- `tools[].content_hash`
 
-If user provides just names, infer effect from name patterns (see code-extraction-patterns.md) and confirm.
+Also note whether any dangerous parameters are intentionally constrained for TOOL-007.
 
-#### Q6-agent: Denied Actions & Escalation
+#### Q6-agent: Policies And Budgets
 
-> Are there any actions the agent should NEVER perform, or actions that require human approval?
->
-> Examples:
-> - Denied: "delete_account", "modify_billing"
-> - Requires approval: "When user requests account deletion → escalate to human"
->
-> Say "none" to skip — but note this is a high-priority security field.
-
-Extract:
-- `policies.denied_actions`: list of action names
-- `policies.escalation_rules`: list of {condition, action}
-
-If skipped, add to open_questions.md with high priority (enables TOOL-001, TOOL-003, ARCH-001).
-
-#### Q7-agent: Execution Identity
-
-> Do your tools run as the end user (user's permissions) or as a service account (elevated permissions)?
->
-> Options:
-> - **user** — Tools execute with the calling user's permissions
-> - **service** — Tools execute with a service account / API key
-> - **mixed** — Some tools use user permissions, some use service accounts
-> - **Don't know** — Will be set to "unknown"
+> What actions are allowed, denied, or require approval? Also include any execution ceilings such as max tool calls, max steps, rate limits, or cost budgets.
 
 Extract:
-- Apply to all tools as `execution_identity`, or if "mixed", ask which tools are which.
 
----
+- `policies.allowed_actions`
+- `policies.denied_actions`
+- `policies.escalation_rules`
+- `policies.max_tool_calls`
+- `policies.max_steps`
+- `policies.rate_limits`
+- `policies.cost_budget`
 
-### For `mcp-agent` type (includes agent questions, plus):
+#### Q7-agent: Data Sources (if any)
 
-Ask Q5-agent, Q6-agent, Q7-agent first, then:
+> Does the agent retrieve from, read from, or have access to any data sources? If yes, list name, type, trust level, and sensitivity. If none, say `none`.
+
+Extract:
+
+- `data_sources[]` when applicable
+
+### For `mcp-agent`
+
+Ask Q5-agent, Q6-agent, and Q7-agent first, then:
 
 #### Q8-mcp: MCP Servers
 
-> What MCP servers does your agent connect to?
->
-> For each server, please provide:
-> - **Name**: server identifier (e.g., "filesystem", "web_search", "database")
-> - **Trust level**: `trusted` (you control the server) or `untrusted` (third-party)
-> - **Allowed tools**: which tools this server provides (comma-separated)
->
-> Example:
-> - filesystem, trusted, [read_file, list_directory]
-> - web_search, untrusted, [search_web]
+> For each MCP server, provide: name, trust level, allowed tools, data access, source, and if not first-party, version and content hash if known.
 
-Extract per server:
+Extract:
+
 - `mcp_servers[].name`
-- `mcp_servers[].trust_level` (default: `untrusted`)
+- `mcp_servers[].trust_level`
 - `mcp_servers[].allowed_tools`
+- `mcp_servers[].data_access`
+- `mcp_servers[].source`
+- `mcp_servers[].version`
+- `mcp_servers[].content_hash`
+
+### For `chatbot`
+
+#### Q5-chatbot: Policies
+
+> Are there any refusal rules, data boundaries, or topics the chatbot must avoid?
+
+Extract:
+
+- `policies.data_boundaries`
 
 ---
 
-### For `chatbot` type:
+## Round 3: Architecture Metadata
 
-No type-specific questions in Round 2. Proceed directly to Round 3.
+### Q8/Q9: Persistent Memory And Protections
 
-Optional (only if no policies at all):
+Use one prompt for non-MCP agents and the next available prompt index for MCP agents.
 
-#### Q5-chatbot: Basic Policies
-
-> Are there any topics or actions your chatbot should refuse or avoid?
->
-> Examples:
-> - "Never reveal internal system instructions"
-> - "Decline requests for harmful content"
->
-> Say "none" to skip.
+> Does the agent persist memory or conversation state across sessions? If yes, what protections exist before storing or reusing that data, such as validation, provenance, TTL, rollback, or segmentation?
 
 Extract:
-- `policies.data_boundaries`: list of rules
 
----
+- `has_persistent_memory`
+- evidence for ARCH-005 in `evidence.md`
 
-## Round 3: Architecture Metadata (Always asked — 3 questions)
+### Q9/Q10: Scope And Tenant Isolation
 
-### Q9: Persistent Memory
+Use one prompt for non-MCP agents and the next available prompt index for MCP agents.
 
-> Does your agent persist conversation history or state across sessions?
->
-> Options:
-> - **Yes** — Conversations or context are stored and reused later
-> - **No** — Each session starts fresh
-> - **Don't know**
+> What is the deployment scope: single_user, shared_workspace, or multi_tenant? If it is multi-tenant, what tenant or user isolation controls exist?
 
 Extract:
-- `has_persistent_memory`: `"true"`, `"false"`, or `"unknown"`
 
-If "true", this enables ARCH-005 (memory poisoning protection check).
+- `scope`
+- tenant-isolation evidence for `evidence.md`
+- if missing, add follow-up note tied to ARCH-007
 
-### Q10: Deployment Scope
+### Q10: User Input Description
 
-> What is the deployment scope of your agent?
->
-> Options:
-> - **single_user** — Each instance serves one user only
-> - **shared_workspace** — Shared among a team/workspace
-> - **multi_tenant** — Serves multiple organizations/tenants
-> - **Don't know**
+> How do users provide input to the agent?
 
 Extract:
-- `scope`: selected value or `"unknown"`
 
-If "multi_tenant", this enables ARCH-006 (multi-tenant isolation check).
-
-### Q11: User Input Description
-
-> How do users interact with your agent?
->
-> Examples:
-> - "Free-form text questions via chat widget"
-> - "Structured commands via Slack bot"
-> - "Customer messages via support chat interface"
-> - "Developer queries via IDE chat panel"
->
-> Say "skip" to omit — but this improves remediation quality.
-
-Extract:
-- `user_input_description`: the description text
+- `user_input_description`
 
 ---
 
 ## Handling "Don't Know" Responses
 
-When the user says "don't know", "skip", "not sure", or similar:
-
 | Field | Behavior |
-|-------|---------|
-| `type` | Must be answered — re-ask with explanations |
-| `name` | Must be answered — suggest "My Agent" as default |
-| `provider` | Default to openai / gpt-4o-mini |
-| `system_prompt` | Use placeholder, note in open_questions.md |
-| `tools` (agent/mcp-agent) | Must provide at least one — re-ask |
-| `data_sources` (rag) | Must provide at least one — re-ask |
-| `mcp_servers` (mcp-agent) | Must provide at least one — re-ask |
-| `trust_level` | Default to `untrusted` (safe default) |
-| `sensitivity` | Default to `unknown`, note in open_questions.md |
-| `effect`, `impact`, `execution_identity` | Default to `unknown`, note in open_questions.md |
-| `denied_actions`, `escalation_rules` | Accept skip, note in open_questions.md as high priority |
-| `has_persistent_memory`, `scope` | Default to `unknown`, note in open_questions.md |
-| `user_input_description` | Accept skip, note in open_questions.md as medium priority |
+|-------|----------|
+| `type` | Must be answered |
+| `name` | Must be answered; suggest `My Agent` if needed |
+| `provider` | Default to `openai / gpt-4o-mini` |
+| `system_prompt` | Use placeholder and record follow-up |
+| `tools` for `agent` / `mcp-agent` | Must provide at least one |
+| `data_sources` for `rag` | Must provide at least one |
+| `mcp_servers` for `mcp-agent` | Must provide at least one |
+| `trust_level` | Default to `untrusted` |
+| `sensitivity` | Default to `unknown` and record follow-up |
+| `effect`, `impact`, `execution_identity` | Default to `unknown` and record follow-up |
+| `source` | Default to `unknown` and record follow-up |
+| `version`, `content_hash` | Leave unset and record follow-up when provenance matters |
+| `allowed_actions`, `max_tool_calls`, `max_steps`, `rate_limits`, `cost_budget` | Accept skip and record medium-priority follow-up |
+| `denied_actions`, `escalation_rules` | Accept skip and record high-priority follow-up |
+| `has_persistent_memory`, `scope` | Default to `unknown` and record follow-up |
+| memory protections / tenant isolation evidence | Accept skip and record medium-priority follow-up |
+| `user_input_description` | Accept skip and record medium-priority follow-up |
 
 ---
 
-## Question Grouping Strategy
+## Grouping Strategy
 
-To minimize round-trips:
-- Group related questions in a single message (e.g., all tool details together)
-- Present tables/formats that allow batch input
-- Use AskUserQuestion tool when structured choices help (e.g., type, scope)
-- Use free-form when the answer is complex (e.g., system prompt, tool list)
+- Ask for tabular or bullet-list answers when collecting tools, data sources, or MCP servers
+- Keep provenance and budget questions in the same round as tools/policies
+- Do not split execution identity and provenance into separate prompts
+- Do not exceed 10 prompts; merge related follow-ups into the same message when needed
