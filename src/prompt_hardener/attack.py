@@ -9,6 +9,9 @@ from prompt_hardener.simulate import (
     assess_injection_success as _assess_injection_success,
     execute_preinjected_attack as _execute_preinjected_attack,
     execute_single_attack as _execute_single_attack,
+    inject_as_mcp_response as _inject_as_mcp_response,
+    inject_as_rag_context as _inject_as_rag_context,
+    inject_as_tool_result as _inject_as_tool_result,
     insert_attack_into_prompt as _insert_attack_into_prompt,
 )
 
@@ -105,6 +108,22 @@ def execute_preinjected_attack(
         aws_profile=aws_profile,
         success_criteria=success_criteria,
     )
+
+
+def inject_as_tool_result(
+    prompt: PromptInput, payload: str, tool_name: str = "search"
+) -> PromptInput:
+    return _inject_as_tool_result(prompt, payload, tool_name)
+
+
+def inject_as_rag_context(prompt: PromptInput, payload: str) -> PromptInput:
+    return _inject_as_rag_context(prompt, payload)
+
+
+def inject_as_mcp_response(
+    prompt: PromptInput, payload: str, server_name: str = "external_server"
+) -> PromptInput:
+    return _inject_as_mcp_response(prompt, payload, server_name)
 
 
 def run_injection_test(
@@ -224,3 +243,16 @@ def run_injection_test(
             )
 
     return results
+
+
+__all__ = [
+    "AttackResult",
+    "assess_injection_success",
+    "execute_preinjected_attack",
+    "execute_single_attack",
+    "inject_as_mcp_response",
+    "inject_as_rag_context",
+    "inject_as_tool_result",
+    "insert_attack_into_prompt",
+    "run_injection_test",
+]
