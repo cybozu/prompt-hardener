@@ -1,0 +1,7 @@
+version: "1.0"
+type: rag
+name: "RAG Bot"
+system_prompt: "You are a RAG assistant."
+provider:
+  api: openai
+  model: gpt-4o-mini

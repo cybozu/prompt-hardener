@@ -1,0 +1,69 @@
+version: "1.0"
+type: agent
+name: "Customer Support Agent"
+description: "Handles customer support inquiries with tool access"
+
+system_prompt: |
+  You are a customer support agent for Acme Corp.
+  Help customers with their inquiries using the available tools.
+  Always verify the customer's identity before accessing account information.
+  Never perform destructive actions without explicit customer confirmation.
+  Do not reveal internal ticket IDs, system names, or employee information.
+
+messages:
+  - role: user
+    content: "I need to check my order status."
+  - role: assistant
+    content: "I'd be happy to help! Could you please provide your order number?"
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+tools:
+  - name: get_order_status
+    description: "Retrieve the current status of a customer order"
+    parameters:
+      type: object
+      properties:
+        order_id:
+          type: string
+          description: "The order identifier"
+      required: [order_id]
+  - name: search_knowledge_base
+    description: "Search the support knowledge base for help articles"
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: "Search query"
+      required: [query]
+  - name: escalate_to_human
+    description: "Transfer conversation to a human support agent"
+    parameters:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: "Reason for escalation"
+      required: [reason]
+
+policies:
+  allowed_actions:
+    - get_order_status
+    - search_knowledge_base
+    - escalate_to_human
+  denied_actions:
+    - delete_account
+    - modify_billing
+  data_boundaries:
+    - "Never expose internal ticket IDs to customers"
+    - "PII must not be included in tool call arguments beyond what is necessary"
+  escalation_rules:
+    - condition: "Customer requests account deletion"
+      action: "Escalate to human agent"
+    - condition: "Customer reports a security incident"
+      action: "Escalate to human agent immediately"
+
+user_input_description: "Customer messages via support chat interface"

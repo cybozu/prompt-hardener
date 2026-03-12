@@ -1,0 +1,23 @@
+version: "1.0"
+type: rag
+name: "Insecure RAG Assistant"
+description: "Intentionally weak RAG spec for testing"
+
+system_prompt: |
+  Answer questions using the provided documents.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+data_sources:
+  - name: public_uploads
+    type: file_input
+    trust_level: untrusted
+    description: "Files uploaded by anyone"
+  - name: web_scraper
+    type: api
+    trust_level: untrusted
+    description: "Content scraped from external websites"
+
+user_input_description: "User questions"

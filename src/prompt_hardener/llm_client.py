@@ -1,29 +1,15 @@
-import os
 import json
-import requests
-from typing import List, Dict, Union, Optional, Any
-from openai import OpenAI
-from anthropic import Anthropic
-import boto3
-from prompt_hardener.utils import extract_json_block, to_bedrock_message_format
+from typing import Any, Dict, List, Optional, Union
+
+from prompt_hardener.llm import LLMClient, LLMMessage, LLMRequest
 from prompt_hardener.schema import PromptInput
+from prompt_hardener.utils import extract_json_block
 
-openai_client = None
-claude_client = None
-
-
-def get_openai_client():
-    global openai_client
-    if openai_client is None:
-        openai_client = OpenAI()
-    return openai_client
+_CLIENT = LLMClient()
 
 
-def get_claude_client():
-    global claude_client
-    if claude_client is None:
-        claude_client = Anthropic()
-    return claude_client
+def _legacy_client() -> LLMClient:
+    return _CLIENT
 
 
 # --- Message builders ---
@@ -176,11 +162,45 @@ def build_claude_messages_for_improve(
         f"The target prompt is:\n{prompt_block}\n\n"
         f"Please improve the above according to the criteria and respond in valid JSON."
     )
-
     return [{"role": "user", "content": content.strip()}]
 
 
-# --- API Callers ---
+def _to_request(
+    api_mode: str,
+    model: str,
+    messages: List[Dict[str, Any]],
+    *,
+    system_message: Optional[str] = None,
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
+    aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
+    response_format: Optional[str] = None,
+    tools: Optional[List[dict]] = None,
+    tool_choice: Optional[str] = None,
+    stop: Optional[List[str]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> LLMRequest:
+    return LLMRequest(
+        provider=api_mode,
+        model=model,
+        messages=[
+            LLMMessage(role=m["role"], content=m.get("content")) for m in messages
+        ],
+        system_prompt=system_message,
+        temperature=temperature,
+        max_output_tokens=max_tokens,
+        response_format=response_format,
+        aws_region=aws_region,
+        aws_profile=aws_profile,
+        tools=tools,
+        tool_choice=tool_choice,
+        stop=stop,
+        metadata=metadata,
+    )
+
+
+# --- Compatibility wrappers over prompt_hardener.llm ---
 
 
 def call_llm_api_for_eval(
@@ -205,49 +225,20 @@ def call_llm_api_for_eval(
         else:
             raise ValueError(f"Unsupported api_mode: {api_mode}")
 
-        if api_mode == "openai":
-            completion = get_openai_client().chat.completions.create(
-                model=model_name,
-                messages=messages,
+        response = _legacy_client().generate_json(
+            _to_request(
+                api_mode,
+                model_name,
+                messages,
                 temperature=0.2,
                 max_tokens=1500,
-                response_format={"type": "json_object"},
+                aws_region=aws_region,
+                aws_profile=aws_profile,
+                response_format="json",
+                metadata={"bedrock_mode": "invoke_model"},
             )
-            content = completion.choices[0].message.content
-        elif api_mode == "claude":
-            completion = get_claude_client().messages.create(
-                model=model_name,
-                messages=messages,
-                temperature=0.2,
-                max_tokens=1500,
-            )
-            content = completion.content[0].text
-        elif api_mode == "bedrock":
-            session = (
-                boto3.Session(profile_name=aws_profile)
-                if aws_profile
-                else boto3.Session()
-            )
-            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
-            json_data = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 1500,
-            }
-            response = bedrock_client.invoke_model(
-                modelId=model_name,
-                body=json.dumps(json_data),
-                contentType="application/json",
-                accept="application/json",
-            )
-            response_body = json.loads(response.get("body").read())
-            content = response_body["content"][0]["text"]
-        else:
-            raise ValueError(f"Unsupported API mode: {api_mode}")
-
-        return json.loads(content)
-
+        )
+        return response.structured
     except Exception as e:
         raise ValueError(
             f"Error: Failed to call {api_mode} API with model '{model_name}': {e}"
@@ -276,49 +267,20 @@ def call_llm_api_for_improve(
         else:
             raise ValueError(f"Unsupported api_mode: {api_mode}")
 
-        if api_mode == "openai":
-            completion = get_openai_client().chat.completions.create(
-                model=model_name,
-                messages=messages,
+        response = _legacy_client().generate_json(
+            _to_request(
+                api_mode,
+                model_name,
+                messages,
                 temperature=0.2,
                 max_tokens=1500,
-                response_format={"type": "json_object"},
+                aws_region=aws_region,
+                aws_profile=aws_profile,
+                response_format="json",
+                metadata={"bedrock_mode": "invoke_model"},
             )
-            content = completion.choices[0].message.content
-
-        elif api_mode == "claude":
-            completion = get_claude_client().messages.create(
-                model=model_name,
-                messages=messages,
-                temperature=0.2,
-                max_tokens=1500,
-            )
-            content = completion.content[0].text
-
-        elif api_mode == "bedrock":
-            session = (
-                boto3.Session(profile_name=aws_profile)
-                if aws_profile
-                else boto3.Session()
-            )
-            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
-            json_data = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 1500,
-            }
-            response = bedrock_client.invoke_model(
-                modelId=model_name,
-                body=json.dumps(json_data),
-                contentType="application/json",
-                accept="application/json",
-            )
-            response_body = json.loads(response.get("body").read())
-            content = response_body["content"][0]["text"]
-        messages = extract_json_block(content)
-        return messages
-
+        )
+        return response.structured
     except Exception as e:
         raise ValueError(
             f"Error: Failed to call {api_mode} API with model '{model_name}': {e}"
@@ -333,50 +295,19 @@ def call_llm_api_for_payload_injection(
     aws_profile: Optional[str] = None,
 ) -> str:
     try:
-        if api_mode == "openai":
-            kwargs = {
-                "model": model,
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 1024,
-            }
-            response = get_openai_client().chat.completions.create(**kwargs)
-            return response.choices[0].message.content
-
-        elif api_mode == "claude":
-            kwargs = {
-                "model": model,
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 1024,
-            }
-            response = get_claude_client().messages.create(**kwargs)
-            return response.content[0].text.strip()
-
-        elif api_mode == "bedrock":
-            session = (
-                boto3.Session(profile_name=aws_profile)
-                if aws_profile
-                else boto3.Session()
+        response = _legacy_client().generate(
+            _to_request(
+                api_mode,
+                model,
+                messages,
+                temperature=0.2,
+                max_tokens=1024,
+                aws_region=aws_region,
+                aws_profile=aws_profile,
+                metadata={"bedrock_mode": "invoke_model"},
             )
-            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
-            json_data = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 1024,
-            }
-            response = bedrock_client.invoke_model(
-                modelId=model,
-                body=json.dumps(json_data),
-                contentType="application/json",
-                accept="application/json",
-            )
-            response_content = json.loads(response.get("body").read())
-            return response_content["content"][0]["text"].strip()
-
-        else:
-            raise ValueError(f"Unsupported API mode: {api_mode}")
+        )
+        return response.text
     except Exception as e:
         raise ValueError(
             f"Error: Failed to call {api_mode} API with model '{model}': {e}"
@@ -393,63 +324,19 @@ def call_llm_api_for_attack_completion(
     aws_profile: Optional[str] = None,
 ) -> str:
     try:
-        if api_mode == "openai":
-            response = requests.post(
-                "https://api.openai.com/v1/completions",
-                headers={
-                    "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "prompt": prompt,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                },
+        response = _legacy_client().generate(
+            _to_request(
+                api_mode,
+                model,
+                [{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+                aws_region=aws_region,
+                aws_profile=aws_profile,
+                metadata={"bedrock_mode": "converse"},
             )
-            choices = response.json().get("choices", [])
-            if len(choices) > 0:
-                return choices[0].get("text", "").strip()
-            else:
-                return ""
-
-        elif api_mode == "claude":
-            kwargs = {
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.2,
-                "max_tokens": 1024,
-            }
-            response = get_claude_client().messages.create(**kwargs)
-            if len(response.content) > 0:
-                return response.content[0].text.strip()
-            else:
-                return ""
-
-        elif api_mode == "bedrock":
-            session = (
-                boto3.Session(profile_name=aws_profile)
-                if aws_profile
-                else boto3.Session()
-            )
-            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
-            kwargs = {
-                "modelId": model,
-                "messages": [{"role": "user", "content": [{"text": prompt}]}],
-                "inferenceConfig": {
-                    "temperature": temperature,
-                    "maxTokens": max_tokens,
-                },
-            }
-            response = bedrock_client.converse(**kwargs)
-            if len(response["output"]["message"]["content"]) > 0:
-                return response["output"]["message"]["content"][0]["text"]
-            else:
-                return ""
-
-        else:
-            raise ValueError(f"Unsupported API mode: {api_mode}")
-
+        )
+        return response.text.strip()
     except Exception as e:
         raise ValueError(
             f"Error: Failed to call {api_mode} completion API with model '{model}': {e}"
@@ -469,64 +356,22 @@ def call_llm_api_for_attack_chat(
     aws_profile: Optional[str] = None,
 ) -> str:
     try:
-        if api_mode == "openai":
-            kwargs = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            }
-            if tools:
-                kwargs["tools"] = tools
-            response = get_openai_client().chat.completions.create(**kwargs)
-            if len(response.choices) > 0 and response.choices[0].message:
-                return response.choices[0].message.content
-            else:
-                return ""
-
-        elif api_mode == "claude":
-            kwargs = {
-                "model": model,
-                "system": system_message,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            }
-            if tools:
-                kwargs["tools"] = tools
-            response = get_claude_client().messages.create(**kwargs)
-            if len(response.content) > 0:
-                return response.content[0].text.strip()
-            else:
-                return ""
-
-        elif api_mode == "bedrock":
-            session = (
-                boto3.Session(profile_name=aws_profile)
-                if aws_profile
-                else boto3.Session()
+        response = _legacy_client().generate(
+            _to_request(
+                api_mode,
+                model,
+                messages,
+                system_message=system_message,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                aws_region=aws_region,
+                aws_profile=aws_profile,
+                tools=tools,
+                tool_choice=tool_choice,
+                metadata={"bedrock_mode": "converse"},
             )
-            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
-            messages = to_bedrock_message_format(messages)
-            kwargs = {
-                "modelId": model,
-                "system": [{"text": system_message}],
-                "messages": messages,
-                "inferenceConfig": {
-                    "temperature": temperature,
-                    "maxTokens": max_tokens,
-                },
-            }
-            if tools:
-                kwargs["toolConfig"] = tools
-            response = bedrock_client.converse(**kwargs)
-            if len(response["output"]["message"]["content"]) > 0:
-                return response["output"]["message"]["content"][0]["text"]
-            else:
-                return ""
-
-        else:
-            raise ValueError(f"Unsupported API mode: {api_mode}")
+        )
+        return response.text
     except Exception as e:
         raise ValueError(
             f"Error: Failed to call {api_mode} API with model '{model}': {e}"
@@ -542,50 +387,25 @@ def call_llm_api_for_judge(
     aws_profile: Optional[str] = None,
 ) -> str:
     try:
-        if api_mode == "openai":
-            response = get_openai_client().chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-            )
-            return response.choices[0].message.content
-
-        elif api_mode == "claude":
-            response = claude_client.messages.create(
-                model=model,
-                messages=messages,
+        response = _legacy_client().generate(
+            _to_request(
+                api_mode,
+                model,
+                messages,
                 temperature=temperature,
                 max_tokens=512,
+                aws_region=aws_region,
+                aws_profile=aws_profile,
+                metadata={"bedrock_mode": "invoke_model"},
             )
-            return response.content[0].text.strip()
-
-        elif api_mode == "bedrock":
-            session = (
-                boto3.Session(profile_name=aws_profile)
-                if aws_profile
-                else boto3.Session()
-            )
-            bedrock_client = session.client("bedrock-runtime", region_name=aws_region)
-            json_data = {
-                "anthropic_version": "bedrock-2023-05-31",
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": 512,
-            }
-            response = bedrock_client.invoke_model(
-                modelId=model,
-                body=json.dumps(json_data),
-                contentType="application/json",
-                accept="application/json",
-            )
-            response_content = json.loads(response.get("body").read())
-            if len(response_content["content"]) == 0:
-                return ""
-            return response_content["content"][0]["text"].strip()
-
-        else:
-            raise ValueError(f"Unsupported API mode: {api_mode}")
+        )
+        return response.text
     except Exception as e:
         raise ValueError(
             f"Error: Failed to call {api_mode} API with model '{model}': {e}"
         )
+
+
+def parse_json_response(text: str) -> Dict[str, Any]:
+    """Temporary generic helper for legacy callers expecting parsed JSON."""
+    return extract_json_block(text)

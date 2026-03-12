@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prompt-hardener"
-version = "0.4.0"
-description = "Automated Evaluation and Hardening of LLM System Prompts"
+version = "0.5.0"
+description = "Analyze prompt-injection risk in LLM-based agents and applications."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "Apache 2.0" }
@@ -17,7 +17,9 @@ dependencies = [
   "gradio==6.8.0",
   "anthropic==0.83.0",
   "boto3==1.42.50",
-  "pytest==9.0.2"
+  "pytest==9.0.2",
+  "pyyaml==6.0.3",
+  "jsonschema==4.26.0",
 ]
 
 [project.scripts]
@@ -28,3 +30,6 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+prompt_hardener = ["schemas/*.json", "templates/*.yaml", "catalog/*.yaml"]

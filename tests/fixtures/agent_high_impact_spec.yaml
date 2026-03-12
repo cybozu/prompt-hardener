@@ -1,0 +1,55 @@
+version: "1.0"
+type: agent
+name: "High Impact Agent"
+description: "Agent with high-impact tools but no escalation rules"
+
+system_prompt: |
+  You are a database administration agent.
+  Help users manage their database operations.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+tools:
+  - name: drop_table
+    description: "Drop a database table"
+    effect: delete
+    impact: high
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        table_name:
+          type: string
+      required: [table_name]
+  - name: query_data
+    description: "Query data from a table"
+    effect: read
+    impact: low
+    execution_identity: user
+    parameters:
+      type: object
+      properties:
+        sql:
+          type: string
+      required: [sql]
+  - name: export_report
+    description: "Export data to external reporting service"
+    effect: external_send
+    impact: medium
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        report_id:
+          type: string
+      required: [report_id]
+
+policies:
+  allowed_actions:
+    - drop_table
+    - query_data
+    - export_report
+
+user_input_description: "DBA requests via admin console"

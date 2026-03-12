@@ -1,0 +1,42 @@
+version: "1.0"
+type: rag
+name: "My RAG Assistant"
+description: "Answers questions using retrieved documents"
+
+system_prompt: |
+  You are a document Q&A assistant.
+  Answer questions strictly based on the provided reference documents.
+  If the documents don't contain the answer, say so explicitly.
+  Never fabricate information not found in the documents.
+
+# Few-shot example messages (optional):
+# messages:
+#   - role: user
+#     content: "What is our refund policy?"
+#   - role: assistant
+#     content: "According to the policy document, refunds are available within 30 days."
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+# Data sources (required for rag type):
+data_sources:
+  - name: knowledge_base
+    type: vector_store
+    trust_level: trusted
+    description: "Internal documentation"
+  # Add untrusted sources when retrieving user-provided content:
+  # - name: user_uploads
+  #   type: file_input
+  #   trust_level: untrusted
+  #   description: "Files uploaded by end users"
+
+# Security policies (optional):
+# policies:
+#   data_boundaries:
+#     - "Never include document metadata in responses"
+#     - "Do not quote more than 3 sentences from a single document"
+
+# Description of user input (recommended for better analysis):
+# user_input_description: "Natural language questions about documentation"

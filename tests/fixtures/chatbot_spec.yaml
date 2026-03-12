@@ -1,0 +1,22 @@
+version: "1.0"
+type: chatbot
+name: "Simple FAQ Bot"
+description: "Answers frequently asked questions about Acme Corp products"
+
+system_prompt: |
+  You are a helpful FAQ assistant for Acme Corp.
+  Answer questions based on the following product information.
+  If you don't know the answer, say "I don't have that information."
+  Do not make up answers or provide information outside your knowledge.
+
+messages:
+  - role: user
+    content: "What are your business hours?"
+  - role: assistant
+    content: "Our business hours are Monday to Friday, 9 AM to 5 PM JST."
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+user_input_description: "Customer questions via web chat widget"

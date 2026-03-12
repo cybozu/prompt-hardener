@@ -1,0 +1,31 @@
+version: "1.0"
+type: rag
+name: "Document Q&A Assistant"
+description: "Answers questions using retrieved internal documentation"
+
+system_prompt: |
+  You are a document Q&A assistant.
+  Answer questions strictly based on the provided reference documents.
+  If the documents don't contain the answer, say so explicitly.
+  Never fabricate information not found in the documents.
+
+provider:
+  api: claude
+  model: claude-sonnet-4-20250514
+
+data_sources:
+  - name: product_docs
+    type: vector_store
+    trust_level: trusted
+    description: "Internal product documentation maintained by the docs team"
+  - name: user_uploads
+    type: file_input
+    trust_level: untrusted
+    description: "PDF files uploaded by end users for analysis"
+
+policies:
+  data_boundaries:
+    - "Never include document metadata (file paths, timestamps) in responses"
+    - "Do not quote more than 3 sentences from any single document"
+
+user_input_description: "Natural language questions about internal documentation"

@@ -1,0 +1,65 @@
+version: "1.0"
+type: agent
+name: "My Agent"
+description: "An agent with tool access"
+
+system_prompt: |
+  You are a helpful agent with access to tools.
+  Use the available tools to assist the user.
+  Always verify user identity before accessing sensitive data.
+  Never perform destructive actions without explicit confirmation.
+
+# Few-shot example messages (optional):
+# messages:
+#   - role: user
+#     content: "Check the status of order #1234"
+#   - role: assistant
+#     content: "Let me look that up for you."
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+# Tool definitions (required for agent type):
+tools:
+  - name: example_tool
+    description: "An example tool - replace with your actual tools"
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: "Input parameter"
+      required: [query]
+    # effect: read          # read | write | delete | external_send | unknown
+    # impact: low           # low | medium | high | unknown
+    # execution_identity: user  # user | service | mixed | unknown
+    # source: local         # local | third_party | mcp | unknown
+    # version: "1.0.0"     # version pinning for third-party tools
+    # content_hash: "sha256:..."  # integrity hash
+
+# Security policies (recommended):
+# policies:
+#   allowed_actions:
+#     - example_tool
+#   denied_actions:
+#     - dangerous_action
+#   data_boundaries:
+#     - "Never expose internal system details"
+#   escalation_rules:
+#     - condition: "User requests destructive action"
+#       action: "Ask for explicit confirmation"
+#   max_tool_calls: 20      # execution budget
+#   # max_steps: 10
+#   # rate_limits: ["10 calls/minute"]
+#   # cost_budget: "$1.00/session"
+
+# Data sources (optional):
+# data_sources:
+#   - name: internal_db
+#     type: api
+#     trust_level: trusted
+#     description: "Internal database"
+
+# Description of user input (recommended for better analysis):
+# user_input_description: "User requests via chat interface"

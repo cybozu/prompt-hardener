@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cybozu/prompt-hardener/schemas/report.schema.json",
+  "title": "Prompt Hardener Report",
+  "description": "Schema for report output",
+  "type": "object",
+  "required": ["metadata", "summary"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["tool_version", "timestamp", "agent_type"],
+      "properties": {
+        "tool_version": {
+          "type": "string",
+          "description": "Prompt Hardener version"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Report generation time (ISO 8601)"
+        },
+        "agent_spec_digest": {
+          "type": "string",
+          "description": "SHA-256 hash of the input agent_spec.yaml"
+        },
+        "agent_type": {
+          "type": "string",
+          "enum": ["chatbot", "rag", "agent", "mcp-agent"]
+        },
+        "models": {
+          "type": "object",
+          "properties": {
+            "eval": { "$ref": "#/$defs/model_ref" },
+            "attack": { "$ref": "#/$defs/model_ref" },
+            "judge": { "$ref": "#/$defs/model_ref" }
+          }
+        },
+        "catalog_version": {
+          "type": "string",
+          "description": "Version of the scenario catalog used"
+        }
+      },
+      "additionalProperties": false
+    },
+    "analysis": {
+      "type": "object",
+      "properties": {
+        "layers": {
+          "type": "object",
+          "patternProperties": {
+            "^(prompt|tool|architecture)$": {
+              "$ref": "#/$defs/layer_analysis"
+            }
+          },
+          "additionalProperties": false
+        },
+        "overall_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "simulation": {
+      "type": "object",
+      "properties": {
+        "scenarios": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/scenario_result" }
+        },
+        "summary": {
+          "type": "object",
+          "required": ["total", "blocked", "succeeded", "block_rate"],
+          "properties": {
+            "total": { "type": "integer", "minimum": 0 },
+            "blocked": { "type": "integer", "minimum": 0 },
+            "succeeded": { "type": "integer", "minimum": 0 },
+            "block_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "remediation": {
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "type": "object",
+          "properties": {
+            "changes": {
+              "type": "string",
+              "description": "Diff or description of prompt changes"
+            },
+            "rewrite_applied": {
+              "type": "boolean",
+              "description": "Whether a rewritten system prompt was accepted and applied"
+            },
+            "techniques_selected": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Planner-selected techniques considered for prompt remediation"
+            },
+            "techniques_applied": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Techniques actually materialized in the accepted prompt rewrite"
+            },
+            "findings_addressed": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Rule IDs of static analysis findings addressed during prompt remediation"
+            },
+            "deferred_findings": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Rule IDs deferred to non-prompt remediation or left unresolved"
+            },
+            "no_op_reason": {
+              "type": "string",
+              "description": "Reason the original prompt was preserved"
+            },
+            "change_notes": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Short notes describing accepted prompt changes"
+            }
+          },
+          "additionalProperties": false
+        },
+        "tool": {
+          "type": "object",
+          "properties": {
+            "recommendations": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/recommendation" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "architecture": {
+          "type": "object",
+          "properties": {
+            "recommendations": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/recommendation" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "applied_patches": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Descriptions of deterministic spec patches auto-applied during remediation"
+        }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["risk_level"],
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "key_findings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "scores_by_layer": {
+          "type": "object",
+          "patternProperties": {
+            "^(prompt|tool|architecture)$": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "model_ref": {
+      "type": "object",
+      "required": ["api", "model"],
+      "properties": {
+        "api": { "type": "string", "enum": ["openai", "claude", "bedrock"] },
+        "model": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "layer_analysis": {
+      "type": "object",
+      "required": ["criteria", "average_score"],
+      "properties": {
+        "criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "subcriteria"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "subcriteria": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "satisfaction", "mark", "comment"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "satisfaction": { "type": "integer", "minimum": 0, "maximum": 10 },
+                    "mark": { "type": "string" },
+                    "comment": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "average_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenario_result": {
+      "type": "object",
+      "required": ["id", "category", "target_layer", "payload", "injection_method", "response", "outcome"],
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "target_layer": { "type": "string", "enum": ["prompt", "tool", "architecture"] },
+        "payload": { "type": "string" },
+        "injection_method": { "type": "string", "enum": ["user_message", "tool_result", "mcp_response", "rag_context"] },
+        "response": { "type": "string" },
+        "outcome": { "type": "string", "enum": ["BLOCKED", "SUCCEEDED"] },
+        "details": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["severity", "title", "description"],
+      "properties": {
+        "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "suggested_change": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

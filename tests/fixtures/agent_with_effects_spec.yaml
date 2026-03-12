@@ -1,0 +1,58 @@
+version: "1.0"
+type: agent
+name: "Agent with Effects"
+description: "Agent spec with effect/impact/execution_identity annotations"
+
+system_prompt: |
+  You are a helpful agent for managing user accounts.
+  Always verify the user's identity before making changes.
+  Never perform destructive actions without explicit confirmation.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+tools:
+  - name: get_balance
+    description: "Get account balance"
+    effect: read
+    impact: low
+    execution_identity: user
+    parameters:
+      type: object
+      properties:
+        account_id:
+          type: string
+      required: [account_id]
+  - name: delete_account
+    description: "Delete a user account permanently"
+    effect: delete
+    impact: high
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        user_id:
+          type: string
+      required: [user_id]
+  - name: send_notification
+    description: "Send notification to external service"
+    effect: external_send
+    impact: medium
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+policies:
+  allowed_actions:
+    - get_balance
+    - delete_account
+    - send_notification
+  denied_actions:
+    - drop_database
+
+user_input_description: "User requests via chat"

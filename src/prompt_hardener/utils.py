@@ -1,6 +1,23 @@
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 import re
 import json
+
+
+def average_satisfaction(evaluation: Dict[str, Any]) -> float:
+    """Calculate average satisfaction score from an evaluation dict."""
+    total, count = 0, 0
+    for category, items in evaluation.items():
+        if category in ("critique", "recommendation"):
+            continue
+        if not isinstance(items, dict):
+            continue
+        for sub in items.values():
+            try:
+                total += float(sub["satisfaction"])
+                count += 1
+            except (ValueError, TypeError, KeyError):
+                continue
+    return round((total / count), 2) if count else 0.0
 
 
 def validate_chat_completion_format(prompt: List[Dict[str, str]]) -> None:
@@ -32,14 +49,16 @@ def extract_json_block(text: str) -> Dict[str, Any]:
     :return: The parsed JSON object (either a dictionary or a list).
     """
     try:
-        # Search for embedded JSON object
-        matches = re.findall(r"{[\s\S]*}", text)
-        for candidate in matches:
-            try:
-                data = json.loads(candidate.replace("\n", ""))
-                return data
-            except json.JSONDecodeError:
-                continue
+        # Try greedy first (handles nested JSON correctly), then
+        # fall back to non-greedy (handles multiple separate {} groups).
+        for pattern in [r"{[\s\S]*}", r"{[\s\S]*?}"]:
+            matches = re.findall(pattern, text)
+            for candidate in matches:
+                try:
+                    data = json.loads(candidate.replace("\n", ""))
+                    return data
+                except json.JSONDecodeError:
+                    continue
 
         raise ValueError("No valid JSON block found in the input text.")
 

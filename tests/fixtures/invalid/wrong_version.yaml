@@ -1,0 +1,7 @@
+version: "2.0"
+type: chatbot
+name: "Test Bot"
+system_prompt: "You are a test bot."
+provider:
+  api: openai
+  model: gpt-4o-mini
