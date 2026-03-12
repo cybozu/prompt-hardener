@@ -18,7 +18,7 @@ from prompt_hardener.webui import launch_webui
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate, improve, and test the security of system prompts using LLM APIs."
+        description="Analyze prompt-injection risk in agent specs with static rules, optional LLM-backed remediation, and attack simulation."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

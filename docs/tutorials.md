@@ -1,6 +1,6 @@
 # Tutorials
 
-Step-by-step guides for using Prompt Hardener to evaluate and harden LLM agent specifications against prompt injection attacks. Covers chatbots, tool-calling agents, and MCP agents with multi-layer security analysis.
+Step-by-step guides for using Prompt Hardener to analyze and harden agent specifications against prompt injection attacks. Covers chatbots, tool-calling agents, and MCP agents with multi-layer security analysis.
 
 ## Table of Contents
 
@@ -123,17 +123,9 @@ API keys, or other sensitive information.
 
 The static analysis found one medium-severity issue: the system prompt lacks instructions to protect sensitive information. The `remediate` command will address this automatically.
 
-### Step 5: Static analysis
+> **Note:** If you want legacy LLM-based prompt review, use `prompt-hardener evaluate`. The `analyze` command is static-only and does not require an API key.
 
-Run deterministic static analysis and review the findings:
-
-```bash
-prompt-hardener analyze agent_spec.yaml --format markdown
-```
-
-> **Note:** If you want legacy LLM-based prompt review, use `prompt-hardener evaluate`. The `analyze` command is static-only.
-
-### Step 6: Remediate
+### Step 5: Remediate
 
 Generate a hardened version of the spec with planner-driven constrained prompt rewriting:
 
@@ -143,9 +135,9 @@ prompt-hardener remediate agent_spec.yaml \
   -o hardened.yaml
 ```
 
-> **Note:** This step requires an LLM API key. The remediation engine builds a prompt hardening plan, treats selected techniques as required for an accepted rewrite, and falls back to the original prompt if the constrained rewrite cannot materialize them cleanly. `random_sequence_enclosure` is not auto-selected by default and is treated as an optional manual technique. The output `hardened.yaml` contains the resulting spec.
+> **Note:** Prompt-layer remediation requires an LLM API key. The remediation engine builds a prompt hardening plan, treats selected techniques as required for an accepted rewrite, and falls back to the original prompt if the constrained rewrite cannot materialize them cleanly. If you run only `--layers tool architecture`, the recommendations are deterministic and no LLM call is made. `random_sequence_enclosure` is not auto-selected by default and must be requested explicitly. The output `hardened.yaml` contains the resulting spec.
 
-### Step 7: Compare before and after
+### Step 6: Compare before and after
 
 See what the remediation changed:
 
@@ -155,7 +147,7 @@ prompt-hardener diff agent_spec.yaml hardened.yaml
 
 > **Note:** This step requires `hardened.yaml` from the previous step. The diff shows changes to the system prompt and any other modified fields.
 
-### Step 8: Attack simulation
+### Step 7: Attack simulation
 
 Run adversarial scenarios against the hardened spec:
 
@@ -167,7 +159,7 @@ prompt-hardener simulate hardened.yaml \
 
 > **Note:** This step requires an LLM API key. The simulator runs attack scenarios from the built-in catalog (persona switching, prompt leaking, output attacks, etc.) and reports how many were blocked.
 
-### Step 9: Generate a report
+### Step 8: Generate a report
 
 Render the simulation results as markdown:
 
@@ -353,7 +345,7 @@ prompt-hardener remediate agent_spec.yaml \
   -a spotlighting instruction_defense
 ```
 
-> **Note:** This step requires an LLM API key. The `-a` flag selects which hardening techniques to apply. Here we use `spotlighting` (marks user input with tags and special characters) and `instruction_defense` (adds explicit refusal instructions). See [docs/techniques.md](techniques.md) for details on all available techniques.
+> **Note:** This step requires an LLM API key because it includes prompt-layer remediation. The `-a` flag explicitly overrides the planner's default technique selection. Here we request `spotlighting` (marks untrusted content as data, not instructions) and `instruction_defense` (adds attack-detection refusal guidance). See [docs/techniques.md](techniques.md) for details on all available techniques.
 
 Other available techniques: `random_sequence_enclosure`, `role_consistency`, `secrets_exclusion`.
 

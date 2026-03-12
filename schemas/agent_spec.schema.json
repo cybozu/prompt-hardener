@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/cybozu/prompt-hardener/schemas/agent_spec.schema.json",
   "title": "Prompt Hardener Agent Specification",
-  "description": "Schema for agent_spec.yaml used by Prompt Hardener vNext",
+  "description": "Schema for agent_spec.yaml used by Prompt Hardener",
   "type": "object",
   "required": ["version", "type", "name", "system_prompt", "provider"],
   "properties": {

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/cybozu/prompt-hardener/schemas/report.schema.json",
   "title": "Prompt Hardener Report",
-  "description": "Schema for vNext report output",
+  "description": "Schema for report output",
   "type": "object",
   "required": ["metadata", "summary"],
   "properties": {

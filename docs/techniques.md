@@ -14,19 +14,21 @@ Prompt Hardener applies defense techniques to strengthen system prompts against 
 
 ## CLI Usage
 
-Techniques are applied during the `remediate`, `evaluate`, and `improve` commands via the `-a` / `--apply-techniques` flag. If not specified, **all techniques are applied by default**.
+Techniques are used by prompt-layer `remediate` and by the legacy `evaluate` / `improve` commands via the `-a` / `--apply-techniques` flag.
+
+For `remediate`, omitting `-a` lets the planner choose a minimal relevant subset from the static findings and agent context. `random_sequence_enclosure` is not auto-selected; request it explicitly if you want enclosure-based hardening.
 
 ```bash
-# Apply all techniques (default)
+# Let the planner choose techniques (default)
 prompt-hardener remediate agent_spec.yaml -ea openai -em gpt-4o-mini -o hardened.yaml
 
-# Apply specific techniques
+# Apply specific techniques explicitly
 prompt-hardener remediate agent_spec.yaml \
   -ea openai -em gpt-4o-mini \
   -o hardened.yaml \
   -a spotlighting instruction_defense
 
-# Evaluate a prompt against specific techniques
+# Legacy: evaluate a prompt against specific techniques
 prompt-hardener evaluate \
   --target-prompt-path path/to/prompt.json \
   --input-mode chat \
@@ -39,12 +41,13 @@ Available technique names: `spotlighting`, `random_sequence_enclosure`, `instruc
 
 ## How Techniques Are Applied
 
-During remediation, each selected technique works in two phases:
+In `remediate`, prompt techniques are applied through a planner-driven flow:
 
-1. **Evaluation** -- The LLM scores the current prompt against technique-specific criteria (e.g., "Are user inputs tagged?" for spotlighting). Each criterion receives a satisfaction score (0-10).
-2. **Improvement** -- The LLM rewrites the prompt to address low-scoring criteria, following technique-specific instructions and examples.
+1. **Plan** -- Static findings and agent context are converted into a prompt hardening plan and a selected technique set.
+2. **Rewrite** -- If prompt edits are justified, the LLM attempts a constrained rewrite that keeps the original prompt as intact as possible.
+3. **Accept or keep original** -- A deterministic acceptance check verifies that the rewrite actually materialized the required techniques and stayed within the guardrails. If not, the original prompt is kept.
 
-This evaluate-then-improve cycle repeats up to `--max-iterations` times (default: 3) or until the score meets `--threshold` (default: 8.5).
+The criterion tables below are primarily used by the legacy `evaluate` / `improve` workflow. `remediate` does not use numeric technique scores or the old evaluate-then-improve loop.
 
 ---
 
@@ -292,7 +295,7 @@ Techniques are designed to work together. A fully hardened prompt typically comb
 | Role Consistency + Spotlighting | User content is in the correct role *and* marked as untrusted within that role |
 | Secrets Exclusion + Random Sequence Enclosure | No secrets to leak, and system instructions are hidden behind unpredictable tags |
 
-Example of a fully hardened system prompt (all techniques applied):
+Example of an aggressively hardened system prompt with all five techniques explicitly selected:
 
 ```
 <xK3mP9qRtZ>

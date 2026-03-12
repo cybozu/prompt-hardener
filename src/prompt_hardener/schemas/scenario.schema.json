@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/cybozu/prompt-hardener/schemas/scenario.schema.json",
   "title": "Prompt Hardener Attack Scenario",
-  "description": "Schema for attack scenario YAML files used by Prompt Hardener vNext",
+  "description": "Schema for attack scenario YAML files used by Prompt Hardener",
   "type": "object",
   "required": ["id", "name", "category", "target_layer", "applicability", "injection_method", "payloads", "success_criteria"],
   "properties": {

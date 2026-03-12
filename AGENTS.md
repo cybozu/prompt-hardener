@@ -152,4 +152,4 @@ Legacy commands `evaluate` and `improve` (from v0.4) are preserved and functiona
 - `evaluate` -> calls `run_analyze()` with LLM evaluation enabled
 - `improve` -> calls the legacy `run_improvement_loop()`
 
-These commands accept the same arguments as before. New users should use the vnext workflow (`init` -> `validate` -> `analyze` -> `remediate` -> `simulate`).
+These commands accept the same arguments as before. New users should use the workflow (`init` -> `validate` -> `analyze` -> `remediate` -> `simulate`).

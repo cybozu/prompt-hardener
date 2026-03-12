@@ -1,6 +1,6 @@
 # Agent Specification (agent_spec.yaml)
 
-The agent specification is a YAML file that describes the agent under test. It is the single input for all commands in the vnext workflow (`init` -> `validate` -> `analyze` -> `remediate` -> `simulate` -> `report` -> `diff`).
+The agent specification is a YAML file that describes the agent under test. It is the single input for the standard workflow (`init` -> `validate` -> `analyze` -> `remediate` -> `simulate` -> `report` -> `diff`).
 
 ## Agent Types
 

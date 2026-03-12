@@ -26,11 +26,16 @@ Prompt Hardener helps developers and security engineers understand **how prompt 
 
 ### API Keys
 
-Prompt Hardener uses LLMs to **evaluate** prompts, **apply security improvements**, **test prompt injection attacks**, and **judge whether attacks were successful** — all in an automated pipeline.
+Most of the standard workflow does **not** require an API key. `init`, `validate`, `analyze`, `report`, and `diff` are deterministic commands.
 
-Prompt Hardener supports **OpenAI**, **Anthropic Claude** and **AWS Bedrock (Claude v3 or newer)** APIs.
+LLM credentials are only needed for LLM-backed operations:
 
-You must set at least one of the following environment variables before use:
+- prompt-layer `remediate`
+- `simulate`
+
+Prompt Hardener supports **OpenAI**, **Anthropic Claude** and **AWS Bedrock (Claude v3 or newer)** APIs for LLM-backed commands.
+
+You must set at least one of the following environment variables before using those commands:
 
 ```bash
 # For OpenAI API (e.g., GPT-4, GPT-4o)
@@ -111,7 +116,7 @@ See [docs/analysis-rules.md](./docs/analysis-rules.md) for the full static rule 
 
 ### 4. remediate
 
-Generate actionable remediations across three layers. The prompt layer uses planner-driven constrained rewriting with deterministic acceptance. 
+Generate actionable remediations across three layers. The prompt layer uses planner-driven constrained rewriting with deterministic acceptance.
 
 ```bash
 prompt-hardener remediate agent_spec.yaml \
@@ -121,6 +126,8 @@ prompt-hardener remediate agent_spec.yaml \
 ```
 
 Options: `--layers`, `--apply-techniques`. See `prompt-hardener remediate --help`.
+
+If you run only `--layers tool architecture`, remediation stays deterministic and does not make LLM calls.
 
 ### 5. simulate
 
@@ -163,7 +170,7 @@ prompt-hardener diff before.yaml after.yaml -f markdown
 
 ## Agent Specification (agent_spec.yaml)
 
-The agent specification is a YAML file that describes the agent under test. It is the single input for all vnext commands. Four agent types are supported:
+The agent specification is a YAML file that describes the agent under test. It is the single input for the standard command workflow. Four agent types are supported:
 
 | Type | Description | Analyzed Layers |
 |------|-------------|-----------------|
@@ -184,7 +191,7 @@ See [docs/attack-simulation.md](./docs/attack-simulation.md) for the full catalo
 
 ## Hardening Techniques
 
-Prompt Hardener applies five defense techniques during remediation: **Spotlighting**, **Random Sequence Enclosure**, **Instruction Defense**, **Role Consistency**, and **Secrets Exclusion**. All are applied by default; use `-a` to select specific techniques.
+Prompt Hardener supports five prompt-layer hardening techniques: **Spotlighting**, **Random Sequence Enclosure**, **Instruction Defense**, **Role Consistency**, and **Secrets Exclusion**.
 
 See [docs/techniques.md](./docs/techniques.md) for how each technique works, evaluation criteria, and examples.
 
@@ -236,7 +243,7 @@ Step-by-step walkthroughs for hardening a chatbot and a tool-calling agent:
 
 ## Legacy Commands (v0.4.0 Compatible)
 
-The `evaluate` and `improve` commands from v0.4.0 are still supported for backward compatibility. New users should use the vnext workflow above.
+The `evaluate` and `improve` commands from v0.4.0 are still supported for backward compatibility. New users should use the workflow above.
 
 <details>
 <summary>Arguments Overview for evaluate Command</summary>
