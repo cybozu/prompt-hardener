@@ -8,6 +8,7 @@ import yaml
 
 from prompt_hardener.webui import (
     download_yaml,
+    get_simulate_category_choices,
     load_template,
     run_diff_webui,
     run_report_webui,
@@ -71,6 +72,27 @@ class TestLoadTemplate:
     def test_load_nonexistent_template(self):
         result = load_template("nonexistent")
         assert "Error" in result
+
+
+class TestSimulateCategoryChoices:
+    def test_matches_catalog_categories(self):
+        choices = get_simulate_category_choices()
+        assert choices == [
+            "cot_escape",
+            "cross_agent_escalation",
+            "data_source_poisoning",
+            "function_call_hijacking",
+            "ignoring_rag",
+            "mcp_server_poisoning",
+            "memory_poisoning",
+            "multi_turn_state_attack",
+            "output_attack",
+            "persona_switch",
+            "privilege_escalation",
+            "prompt_leaking",
+            "tool_definition_leakage",
+            "tool_schema_manipulation",
+        ]
 
 
 # =========================================================================

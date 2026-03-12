@@ -584,12 +584,21 @@ class TestInjectAsToolResult:
             system_prompt="You are helpful.",
         )
 
+    def _make_bedrock_prompt(self):
+        return PromptInput(
+            mode="chat",
+            messages=[],
+            messages_format="bedrock",
+            system_prompt="You are helpful.",
+        )
+
     def test_openai_format_contains_payload(self):
         prompt = self._make_openai_prompt()
         result = inject_as_tool_result(prompt, "INJECTED_PAYLOAD", "my_tool")
         msgs = result.messages
         # Should have original system msg + user + assistant + tool
         assert len(msgs) == 4
+        assert msgs[-2]["content"] == ""
         assert msgs[-1]["role"] == "tool"
         assert msgs[-1]["content"] == "INJECTED_PAYLOAD"
         assert msgs[-2]["tool_calls"][0]["function"]["name"] == "my_tool"
@@ -608,6 +617,14 @@ class TestInjectAsToolResult:
         prompt = self._make_claude_prompt()
         result = inject_as_tool_result(prompt, "payload", "tool")
         assert result.system_prompt == "You are helpful."
+
+    def test_bedrock_format_contains_tool_blocks(self):
+        prompt = self._make_bedrock_prompt()
+        result = inject_as_tool_result(prompt, "INJECTED_PAYLOAD", "my_tool")
+        msgs = result.messages
+        assert len(msgs) == 3
+        assert msgs[-2]["content"][0]["toolUse"]["name"] == "my_tool"
+        assert msgs[-1]["content"][0]["toolResult"]["content"][0]["text"] == "INJECTED_PAYLOAD"
 
     def test_default_tool_name(self):
         prompt = self._make_openai_prompt()
@@ -817,6 +834,54 @@ class TestInjectionMethodDispatch:
         # chatbot + persona_switch = only user_message scenarios
         assert mock_single.call_count > 0
         assert mock_preinjected.call_count == 0
+
+    @patch("prompt_hardener.simulate.execute_preinjected_attack")
+    @patch("prompt_hardener.simulate.execute_single_attack")
+    def test_tool_result_normalizes_prompt_for_attack_provider(
+        self, mock_single, mock_preinjected
+    ):
+        from prompt_hardener.models import AgentSpec, ProviderConfig, ToolDef
+
+        mock_single.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+        mock_preinjected.return_value = AttackResult(
+            payload="test", response="no", success=False, outcome="PASSED"
+        )
+
+        spec = AgentSpec(
+            version="1.0",
+            type="agent",
+            name="test",
+            system_prompt="You are helpful.",
+            provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
+            messages=[{"role": "user", "content": "hello"}],
+            tools=[ToolDef(name="search", description="Search the web")],
+        )
+        validation = type("Validation", (), {"errors": []})()
+
+        with patch(
+            "prompt_hardener.simulate.engine.load_and_validate",
+            return_value=(spec, validation),
+        ):
+            run_simulate(
+                spec_path=os.path.join(FIXTURES_DIR, "chatbot_spec.yaml"),
+                attack_api_mode="claude",
+                attack_model="claude-sonnet-4-20250514",
+                judge_api_mode="claude",
+                judge_model="claude-sonnet-4-20250514",
+                categories=["function_call_hijacking"],
+            )
+
+        preinjected_prompts = [
+            call.kwargs["prompt"] for call in mock_preinjected.call_args_list
+        ]
+        assert preinjected_prompts
+        assert all(prompt.messages_format == "claude" for prompt in preinjected_prompts)
+        assert all(
+            all(message.get("role") != "system" for message in (prompt.messages or []))
+            for prompt in preinjected_prompts
+        )
 
 
 # =========================================================================

@@ -179,6 +179,118 @@ def test_openai_provider_normalizes_response(monkeypatch):
     assert captured["timeout"] == 11
 
 
+def test_openai_provider_preserves_tool_calls_when_content_is_empty(monkeypatch):
+    def fake_create(**kwargs):
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    finish_reason="tool_calls",
+                    message=SimpleNamespace(
+                        content=None,
+                        tool_calls=[
+                            SimpleNamespace(
+                                id="call_123",
+                                type="function",
+                                function=SimpleNamespace(
+                                    name="query_data",
+                                    arguments='{"query":"x"}',
+                                ),
+                            )
+                        ],
+                    ),
+                )
+            ],
+            usage=SimpleNamespace(
+                prompt_tokens=10,
+                completion_tokens=5,
+                total_tokens=15,
+            ),
+        )
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))
+    )
+    monkeypatch.setattr(
+        "prompt_hardener.llm.providers.openai_client.get_client",
+        lambda: fake_client,
+    )
+
+    response = OpenAIProvider().generate(
+        LLMRequest(
+            provider="openai",
+            model="gpt-4o-mini",
+            messages=[LLMMessage(role="user", content="hello")],
+        )
+    )
+
+    assert response.text == ""
+    assert response.finish_reason == "tool_calls"
+    assert response.tool_calls == [
+        {
+            "id": "call_123",
+            "type": "function",
+            "function": {"name": "query_data", "arguments": '{"query":"x"}'},
+        }
+    ]
+
+
+def test_openai_provider_serializes_tool_call_messages(monkeypatch):
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    finish_reason="stop",
+                    message=SimpleNamespace(content="done", tool_calls=None),
+                )
+            ],
+            usage=SimpleNamespace(
+                prompt_tokens=1,
+                completion_tokens=1,
+                total_tokens=2,
+            ),
+        )
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))
+    )
+    monkeypatch.setattr(
+        "prompt_hardener.llm.providers.openai_client.get_client",
+        lambda: fake_client,
+    )
+
+    OpenAIProvider().generate(
+        LLMRequest(
+            provider="openai",
+            model="gpt-4o-mini",
+            messages=[
+                LLMMessage(role="user", content="look up"),
+                LLMMessage(
+                    role="assistant",
+                    content="",
+                    tool_calls=[
+                        {
+                            "id": "call_123",
+                            "type": "function",
+                            "function": {"name": "search", "arguments": "{}"},
+                        }
+                    ],
+                ),
+                LLMMessage(
+                    role="tool",
+                    content="payload",
+                    tool_call_id="call_123",
+                ),
+            ],
+        )
+    )
+
+    assert captured["messages"][1]["tool_calls"][0]["function"]["name"] == "search"
+    assert captured["messages"][2]["tool_call_id"] == "call_123"
+
+
 def test_anthropic_provider_normalizes_response(monkeypatch):
     captured = {}
 
@@ -211,6 +323,77 @@ def test_anthropic_provider_normalizes_response(monkeypatch):
     assert response.usage.input_tokens == 12
     assert captured["system"] == "system"
     assert captured["timeout"] == 9
+
+
+def test_anthropic_provider_normalizes_tools_and_preserves_tool_use(monkeypatch):
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            content=[
+                SimpleNamespace(
+                    type="tool_use",
+                    id="toolu_123",
+                    name="query_data",
+                    input={"sql": "select 1"},
+                )
+            ],
+            stop_reason="tool_use",
+            usage=SimpleNamespace(input_tokens=12, output_tokens=7),
+        )
+
+    fake_client = SimpleNamespace(messages=SimpleNamespace(create=fake_create))
+    monkeypatch.setattr(
+        "prompt_hardener.llm.providers.anthropic_client.get_client",
+        lambda: fake_client,
+    )
+
+    response = AnthropicProvider().generate(
+        LLMRequest(
+            provider="claude",
+            model="claude-sonnet",
+            messages=[LLMMessage(role="user", content="hello")],
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "query_data",
+                        "description": "Query data",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {"sql": {"type": "string"}},
+                            "required": ["sql"],
+                        },
+                    },
+                }
+            ],
+        )
+    )
+
+    assert captured["tools"] == [
+        {
+            "name": "query_data",
+            "description": "Query data",
+            "input_schema": {
+                "type": "object",
+                "properties": {"sql": {"type": "string"}},
+                "required": ["sql"],
+            },
+        }
+    ]
+    assert response.text == ""
+    assert response.finish_reason == "tool_use"
+    assert response.tool_calls == [
+        {
+            "id": "toolu_123",
+            "type": "function",
+            "function": {
+                "name": "query_data",
+                "arguments": '{"sql": "select 1"}',
+            },
+        }
+    ]
 
 
 def test_bedrock_provider_uses_invoke_model_by_default(monkeypatch):
@@ -272,6 +455,85 @@ def test_bedrock_provider_uses_converse_when_system_prompt_present(monkeypatch):
     assert response.usage.total_tokens == 7
     assert captured["system"] == [{"text": "system"}]
     assert captured["inferenceConfig"]["maxTokens"] == 25
+
+
+def test_bedrock_provider_normalizes_tools_and_preserves_tool_use(monkeypatch):
+    captured = {}
+
+    def fake_converse(**kwargs):
+        captured.update(kwargs)
+        return {
+            "output": {
+                "message": {
+                    "content": [
+                        {
+                            "toolUse": {
+                                "toolUseId": "tooluse_123",
+                                "name": "query_data",
+                                "input": {"sql": "select 1"},
+                            }
+                        }
+                    ]
+                }
+            },
+            "stopReason": "tool_use",
+            "usage": {"inputTokens": 4, "outputTokens": 3, "totalTokens": 7},
+        }
+
+    fake_client = SimpleNamespace(converse=fake_converse)
+    monkeypatch.setattr(BedrockProvider, "_make_client", lambda self, request: fake_client)
+
+    response = BedrockProvider().generate(
+        LLMRequest(
+            provider="bedrock",
+            model="anthropic.claude",
+            messages=[LLMMessage(role="user", content="hello")],
+            tools=[
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "query_data",
+                        "description": "Query data",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {"sql": {"type": "string"}},
+                            "required": ["sql"],
+                        },
+                    },
+                }
+            ],
+        )
+    )
+
+    assert captured["toolConfig"] == {
+        "tools": [
+            {
+                "toolSpec": {
+                    "name": "query_data",
+                    "description": "Query data",
+                    "inputSchema": {
+                        "json": {
+                            "type": "object",
+                            "properties": {"sql": {"type": "string"}},
+                            "required": ["sql"],
+                        }
+                    },
+                }
+            }
+        ]
+    }
+    assert response.text == ""
+    assert response.finish_reason == "tool_use"
+    assert response.tool_calls == [
+        {
+            "id": "tooluse_123",
+            "type": "function",
+            "function": {
+                "name": "query_data",
+                "arguments": '{"sql": "select 1"}',
+            },
+        }
+    ]
 
 
 def test_legacy_eval_wrapper_returns_structured_payload(monkeypatch):

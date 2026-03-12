@@ -7,12 +7,18 @@ from pathlib import Path
 
 import gradio as gr
 import yaml
+from prompt_hardener.catalog import load_catalog
 
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates"
+
+
+def get_simulate_category_choices():
+    """Return sorted unique simulate categories from the built-in catalog."""
+    return sorted({scenario.category for scenario in load_catalog()})
 
 # ---------------------------------------------------------------------------
 # Legacy backend functions (subprocess-based)
@@ -635,13 +641,7 @@ with gr.Blocks() as demo:
                         value="gpt-4o",
                     )
                     sim_categories = gr.CheckboxGroup(
-                        [
-                            "prompt_injection",
-                            "jailbreak",
-                            "data_exfiltration",
-                            "privilege_escalation",
-                            "tool_misuse",
-                        ],
+                        get_simulate_category_choices(),
                         label="Categories (optional)",
                     )
                     sim_layers = gr.CheckboxGroup(

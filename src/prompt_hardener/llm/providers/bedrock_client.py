@@ -11,6 +11,45 @@ from prompt_hardener.utils import to_bedrock_message_format
 class BedrockProvider:
     name = "bedrock"
 
+    def _normalize_tools(self, tools: List[Dict[str, Any]]) -> Dict[str, Any]:
+        normalized_tools = []
+        for tool in tools or []:
+            if "toolSpec" in tool:
+                normalized_tools.append(tool)
+                continue
+            function = tool.get("function", {}) if isinstance(tool, dict) else {}
+            normalized_tools.append(
+                {
+                    "toolSpec": {
+                        "name": function.get("name"),
+                        "description": function.get("description", ""),
+                        "inputSchema": {
+                            "json": function.get("parameters")
+                            or {"type": "object", "properties": {}}
+                        },
+                    }
+                }
+            )
+        return {"tools": normalized_tools}
+
+    def _normalize_tool_calls(self, blocks: List[Any]):
+        normalized = []
+        for block in blocks or []:
+            if not isinstance(block, dict) or "toolUse" not in block:
+                continue
+            tool_use = block["toolUse"] or {}
+            normalized.append(
+                {
+                    "id": tool_use.get("toolUseId"),
+                    "type": "function",
+                    "function": {
+                        "name": tool_use.get("name"),
+                        "arguments": json.dumps(tool_use.get("input"), ensure_ascii=False),
+                    },
+                }
+            )
+        return normalized or None
+
     def generate(self, request: LLMRequest) -> LLMResponse:
         mode = self._select_mode(request)
         if mode == "converse":
@@ -102,10 +141,11 @@ class BedrockProvider:
         if inference:
             kwargs["inferenceConfig"] = inference
         if request.tools:
-            kwargs["toolConfig"] = request.tools
+            kwargs["toolConfig"] = self._normalize_tools(request.tools)
 
         response = client.converse(**kwargs)
         output = response.get("output", {}).get("message", {}).get("content", [])
+        tool_calls = self._normalize_tool_calls(output)
         usage_data = response.get("usage") or {}
         usage = None
         if usage_data:
@@ -121,6 +161,7 @@ class BedrockProvider:
             finish_reason=response.get("stopReason"),
             usage=usage,
             raw=response,
+            tool_calls=tool_calls,
         )
 
     def _extract_text_from_blocks(self, blocks: List[Any]) -> str:

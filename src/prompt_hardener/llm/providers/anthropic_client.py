@@ -1,4 +1,5 @@
-from typing import Any, Dict
+import json
+from typing import Any, Dict, List, Optional
 
 from anthropic import Anthropic
 
@@ -17,6 +18,42 @@ def get_client():
 class AnthropicProvider:
     name = "claude"
 
+    def _normalize_tools(self, tools: Optional[List[Dict[str, Any]]]):
+        normalized = []
+        for tool in tools or []:
+            if "name" in tool and "input_schema" in tool:
+                normalized.append(tool)
+                continue
+            function = tool.get("function", {}) if isinstance(tool, dict) else {}
+            normalized.append(
+                {
+                    "name": function.get("name"),
+                    "description": function.get("description", ""),
+                    "input_schema": function.get("parameters")
+                    or {"type": "object", "properties": {}},
+                }
+            )
+        return normalized or None
+
+    def _normalize_tool_calls(self, blocks: Any) -> Optional[List[Dict[str, Any]]]:
+        normalized = []
+        for block in blocks or []:
+            block_type = getattr(block, "type", None)
+            if block_type != "tool_use":
+                continue
+            tool_input = getattr(block, "input", None)
+            normalized.append(
+                {
+                    "id": getattr(block, "id", None),
+                    "type": "function",
+                    "function": {
+                        "name": getattr(block, "name", None),
+                        "arguments": json.dumps(tool_input, ensure_ascii=False),
+                    },
+                }
+            )
+        return normalized or None
+
     def generate(self, request: LLMRequest) -> LLMResponse:
         kwargs: Dict[str, Any] = {
             "model": request.model,
@@ -34,17 +71,19 @@ class AnthropicProvider:
         if request.stop:
             kwargs["stop_sequences"] = request.stop
         if request.tools:
-            kwargs["tools"] = request.tools
+            kwargs["tools"] = self._normalize_tools(request.tools)
         if request.timeout_seconds is not None:
             kwargs["timeout"] = request.timeout_seconds
 
         response = get_client().messages.create(**kwargs)
         text_parts = []
-        for block in getattr(response, "content", []) or []:
+        content_blocks = getattr(response, "content", []) or []
+        for block in content_blocks:
             if getattr(block, "type", None) == "text":
                 text_parts.append(getattr(block, "text", ""))
             elif hasattr(block, "text"):
                 text_parts.append(getattr(block, "text", ""))
+        tool_calls = self._normalize_tool_calls(content_blocks)
         usage = None
         if getattr(response, "usage", None) is not None:
             usage = LLMUsage(
@@ -59,4 +98,5 @@ class AnthropicProvider:
             finish_reason=getattr(response, "stop_reason", None),
             usage=usage,
             raw=response,
+            tool_calls=tool_calls,
         )

@@ -11,6 +11,9 @@ class LLMResponseFormat:
 class LLMMessage:
     role: str
     content: Any
+    tool_calls: Optional[List[Dict[str, Any]]] = None
+    tool_call_id: Optional[str] = None
+    name: Optional[str] = None
 
 
 @dataclass
@@ -47,4 +50,5 @@ class LLMResponse:
     usage: Optional[LLMUsage] = None
     raw: Any = None
     structured: Any = None
+    tool_calls: Optional[List[Dict[str, Any]]] = None
     warnings: List[str] = field(default_factory=list)
