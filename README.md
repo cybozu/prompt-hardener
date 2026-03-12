@@ -229,11 +229,9 @@ prompt-hardener webui
 ```
 
 Then visit http://localhost:7860 to use Prompt Hardener interactively:
-- Paste prompts
-- Choose models & settings
-- Download hardened prompt and reports
 
-<img width="1544" alt="webui" src="https://github.com/user-attachments/assets/406afba7-9c90-4342-a2ec-c730031c3cd9" />
+<img width="1255" height="785" alt="Screenshot 2026-03-12 at 15 41 35" src="https://github.com/user-attachments/assets/2a1483db-07b5-43b2-9694-2eed526bb4b7" />
+
 
 ## Tutorials
 
