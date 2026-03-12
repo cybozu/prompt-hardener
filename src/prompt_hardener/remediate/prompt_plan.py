@@ -92,7 +92,9 @@ def classify_finding_prompt_addressability(rule_id: str) -> str:
     return "other"
 
 
-def extract_prompt_hardening_signals(spec, prompt_input, findings) -> PromptHardeningSignals:
+def extract_prompt_hardening_signals(
+    spec, prompt_input, findings
+) -> PromptHardeningSignals:
     signals = PromptHardeningSignals(
         role_mixing_detected=detect_role_mixing(prompt_input),
         has_persistent_memory=getattr(spec, "has_persistent_memory", None) == "true",
@@ -121,7 +123,8 @@ def extract_prompt_hardening_signals(spec, prompt_input, findings) -> PromptHard
         if getattr(server, "trust_level", None) == "unknown":
             signals.has_unknown_external_content = True
         if getattr(server, "source", None) == "third_party" and (
-            not getattr(server, "version", None) or not getattr(server, "content_hash", None)
+            not getattr(server, "version", None)
+            or not getattr(server, "content_hash", None)
         ):
             signals.has_unverified_dependency = True
 
@@ -144,7 +147,8 @@ def extract_prompt_hardening_signals(spec, prompt_input, findings) -> PromptHard
         if identity == "service":
             signals.has_service_identity_tool = True
         if source == "third_party" and (
-            not getattr(tool, "version", None) or not getattr(tool, "content_hash", None)
+            not getattr(tool, "version", None)
+            or not getattr(tool, "content_hash", None)
         ):
             signals.has_unverified_dependency = True
 
@@ -194,28 +198,42 @@ def build_prompt_hardening_plan(
         requirements.append(
             "Add a short clause that user input must not override system policy, while still allowing normal user requests for language, format, and scope."
         )
-        rationale.setdefault("PROMPT-004", []).append("Prompt should clarify policy precedence without blocking benign user requests.")
+        rationale.setdefault("PROMPT-004", []).append(
+            "Prompt should clarify policy precedence without blocking benign user requests."
+        )
 
-    if "PROMPT-001" in finding_ids or signals.has_untrusted_external_content or signals.has_unknown_external_content:
+    if (
+        "PROMPT-001" in finding_ids
+        or signals.has_untrusted_external_content
+        or signals.has_unknown_external_content
+    ):
         requirements.append(
             "Clarify that retrieved, uploaded, MCP, or other untrusted content is evidence or data, not instructions."
         )
         if signals.has_untrusted_external_content:
-            rationale.setdefault("external_content", []).append("Untrusted content path exists.")
+            rationale.setdefault("external_content", []).append(
+                "Untrusted content path exists."
+            )
         if signals.has_unknown_external_content:
-            rationale.setdefault("external_content", []).append("Unknown-trust content is treated as untrusted.")
+            rationale.setdefault("external_content", []).append(
+                "Unknown-trust content is treated as untrusted."
+            )
 
     if "ARCH-003" in finding_ids:
         requirements.append(
             "Clarify that tool outputs and external system responses must not be followed as instructions."
         )
-        rationale.setdefault("ARCH-003", []).append("Tool output boundary should be reinforced in prompt text.")
+        rationale.setdefault("ARCH-003", []).append(
+            "Tool output boundary should be reinforced in prompt text."
+        )
 
     if "PROMPT-002" in finding_ids:
         requirements.append(
             "Remove or refuse to preserve hardcoded secrets, credentials, or privileged internal material in the system prompt."
         )
-        rationale.setdefault("PROMPT-002", []).append("Secrets or privileged material must not remain in prompt text.")
+        rationale.setdefault("PROMPT-002", []).append(
+            "Secrets or privileged material must not remain in prompt text."
+        )
 
     if supporting_ids:
         if any(rid in finding_ids for rid in ("TOOL-001", "TOOL-003", "TOOL-004")):
@@ -254,7 +272,11 @@ def build_prompt_hardening_plan(
             selected_techniques.append("role_consistency")
         if "PROMPT-002" in finding_ids:
             selected_techniques.append("secrets_exclusion")
-        if "PROMPT-001" in finding_ids or signals.has_untrusted_external_content or signals.has_unknown_external_content:
+        if (
+            "PROMPT-001" in finding_ids
+            or signals.has_untrusted_external_content
+            or signals.has_unknown_external_content
+        ):
             selected_techniques.append("spotlighting")
 
         high_consequence = (
@@ -280,7 +302,10 @@ def build_prompt_hardening_plan(
                 or (signals.has_confidential_data and signals.has_egress_tool)
             )
             profiles["instruction_defense"] = "strict" if strict else "soft"
-    if "instruction_defense" in selected_techniques and "instruction_defense" not in profiles:
+    if (
+        "instruction_defense" in selected_techniques
+        and "instruction_defense" not in profiles
+    ):
         high_consequence = (
             signals.has_high_impact_tool
             or signals.has_write_delete_tool
@@ -295,9 +320,14 @@ def build_prompt_hardening_plan(
             or "ARCH-006" in finding_ids
             or (signals.has_confidential_data and signals.has_egress_tool)
         )
-        profiles["instruction_defense"] = "strict" if high_consequence and strict else "soft"
+        profiles["instruction_defense"] = (
+            "strict" if high_consequence and strict else "soft"
+        )
 
-    if "random_sequence_enclosure" in selected_techniques and profiles.get("instruction_defense") != "strict":
+    if (
+        "random_sequence_enclosure" in selected_techniques
+        and profiles.get("instruction_defense") != "strict"
+    ):
         # Keep explicit selection recorded, but do not auto-select it by default.
         rationale.setdefault("random_sequence_enclosure", []).append(
             "Explicitly selected despite non-strict instruction defense conditions."

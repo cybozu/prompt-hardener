@@ -8,7 +8,9 @@ from prompt_hardener.llm import LLMClient, LLMRequest, LLMResponseFormat, LLMMes
 def _format_findings(findings: Sequence) -> str:
     lines = []
     for finding in findings or []:
-        lines.append("[%s] %s: %s" % (finding.rule_id, finding.title, finding.description))
+        lines.append(
+            "[%s] %s: %s" % (finding.rule_id, finding.title, finding.description)
+        )
     return "\n".join(lines)
 
 
@@ -42,7 +44,9 @@ def rewrite_system_prompt_with_plan(
     conservative_retry: bool = False,
     retry_feedback: str = "",
 ) -> Tuple[str, List[str], List[str], Dict[str, str]]:
-    instruction_defense_profile = plan.technique_profiles.get("instruction_defense", "off")
+    instruction_defense_profile = plan.technique_profiles.get(
+        "instruction_defense", "off"
+    )
     messages = [
         LLMMessage(
             role="system",
@@ -61,7 +65,11 @@ def rewrite_system_prompt_with_plan(
                 "Do not add fixed 'Prompt Attack Detected' boilerplate unless instruction_defense is strict.\n"
                 "Do not broadly block benign user requests for language, format, or scope.\n"
                 "Prefer short natural language clauses over heavy hardening templates.\n"
-                + ("Be even more conservative than usual.\n" if conservative_retry else "")
+                + (
+                    "Be even more conservative than usual.\n"
+                    if conservative_retry
+                    else ""
+                )
                 + (("Retry guidance: %s\n" % retry_feedback) if retry_feedback else "")
             ),
         ),
@@ -86,9 +94,14 @@ def rewrite_system_prompt_with_plan(
             % (
                 original_system_prompt,
                 ", ".join(plan.selected_techniques) or "(none)",
-                plan.technique_profiles or {"instruction_defense": instruction_defense_profile},
-                "\n- ".join(plan.prompt_requirements) if plan.prompt_requirements else "(none)",
-                "\n- ".join(plan.prompt_alignment_targets) if plan.prompt_alignment_targets else "(none)",
+                plan.technique_profiles
+                or {"instruction_defense": instruction_defense_profile},
+                "\n- ".join(plan.prompt_requirements)
+                if plan.prompt_requirements
+                else "(none)",
+                "\n- ".join(plan.prompt_alignment_targets)
+                if plan.prompt_alignment_targets
+                else "(none)",
                 _format_findings(prompt_findings) or "(none)",
                 "\n- ".join(plan.quality_guardrails),
             ),

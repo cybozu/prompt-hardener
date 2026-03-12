@@ -40,8 +40,7 @@ def _derive_attack_paths(findings, spec):
     # Group findings by rule for combined attack paths
     untrusted_data_findings = [f for f in findings if f.rule_id == "PROMPT-001"]
     tool_findings = [
-        f for f in findings
-        if f.rule_id in ("TOOL-001", "TOOL-003", "TOOL-004")
+        f for f in findings if f.rule_id in ("TOOL-001", "TOOL-003", "TOOL-004")
     ]
     mcp_findings = [f for f in findings if f.rule_id == "ARCH-002"]
     unknown_trust_findings = [f for f in findings if f.rule_id == "ARCH-004"]
@@ -373,7 +372,9 @@ def run_analyze(
     _assign_finding_ids(all_findings)
 
     # Compute scores
-    scores_by_layer, overall_score, risk_level = compute_scores(all_findings, spec.type, layers=layers)
+    scores_by_layer, overall_score, risk_level = compute_scores(
+        all_findings, spec.type, layers=layers
+    )
 
     # Derive attack paths and fixes
     attack_paths = _derive_attack_paths(all_findings, spec)

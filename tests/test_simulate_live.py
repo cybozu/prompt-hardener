@@ -106,7 +106,9 @@ def test_simulate_live_claude():
 )
 def test_simulate_live_bedrock():
     _gate_or_skip()
-    region = os.getenv("PROMPT_HARDENER_AWS_REGION", os.getenv("AWS_REGION", "us-east-1"))
+    region = os.getenv(
+        "PROMPT_HARDENER_AWS_REGION", os.getenv("AWS_REGION", "us-east-1")
+    )
     profile = os.getenv("PROMPT_HARDENER_AWS_PROFILE", os.getenv("AWS_PROFILE"))
     report = run_simulate(
         spec_path=SPEC_PATH,

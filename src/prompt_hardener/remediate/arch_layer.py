@@ -192,7 +192,8 @@ def _add_rag_recommendations(
     # Check for confidential data sources needing extra protection
     if spec.data_sources:
         confidential_sources = [
-            ds for ds in spec.data_sources
+            ds
+            for ds in spec.data_sources
             if getattr(ds, "sensitivity", None) == "confidential"
         ]
         if confidential_sources:

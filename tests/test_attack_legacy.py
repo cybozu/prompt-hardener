@@ -1,6 +1,10 @@
 from unittest.mock import patch
 
-from prompt_hardener.attack import AttackResult, execute_single_attack, run_injection_test
+from prompt_hardener.attack import (
+    AttackResult,
+    execute_single_attack,
+    run_injection_test,
+)
 from prompt_hardener.schema import PromptInput
 
 
@@ -16,7 +20,9 @@ def test_execute_single_attack_is_legacy_adapter():
         outcome="PASSED",
     )
 
-    with patch("prompt_hardener.attack._execute_single_attack", return_value=fake_result) as mock_exec:
+    with patch(
+        "prompt_hardener.attack._execute_single_attack", return_value=fake_result
+    ) as mock_exec:
         result = execute_single_attack(
             prompt=prompt,
             payload="payload",
@@ -42,7 +48,9 @@ def test_run_injection_test_preserves_legacy_return_shape():
         outcome="PASSED",
     )
 
-    with patch("prompt_hardener.attack.execute_single_attack", return_value=fake_result) as mock_exec:
+    with patch(
+        "prompt_hardener.attack.execute_single_attack", return_value=fake_result
+    ) as mock_exec:
         results = run_injection_test(
             prompt,
             "openai",

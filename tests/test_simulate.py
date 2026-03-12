@@ -624,7 +624,10 @@ class TestInjectAsToolResult:
         msgs = result.messages
         assert len(msgs) == 3
         assert msgs[-2]["content"][0]["toolUse"]["name"] == "my_tool"
-        assert msgs[-1]["content"][0]["toolResult"]["content"][0]["text"] == "INJECTED_PAYLOAD"
+        assert (
+            msgs[-1]["content"][0]["toolResult"]["content"][0]["text"]
+            == "INJECTED_PAYLOAD"
+        )
 
     def test_default_tool_name(self):
         prompt = self._make_openai_prompt()

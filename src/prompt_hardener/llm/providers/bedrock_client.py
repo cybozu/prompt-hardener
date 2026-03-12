@@ -44,7 +44,9 @@ class BedrockProvider:
                     "type": "function",
                     "function": {
                         "name": tool_use.get("name"),
-                        "arguments": json.dumps(tool_use.get("input"), ensure_ascii=False),
+                        "arguments": json.dumps(
+                            tool_use.get("input"), ensure_ascii=False
+                        ),
                     },
                 }
             )
@@ -179,7 +181,10 @@ class BedrockProvider:
         if not usage_data:
             return None
         return LLMUsage(
-            input_tokens=usage_data.get("input_tokens") or usage_data.get("inputTokens"),
-            output_tokens=usage_data.get("output_tokens") or usage_data.get("outputTokens"),
-            total_tokens=usage_data.get("total_tokens") or usage_data.get("totalTokens"),
+            input_tokens=usage_data.get("input_tokens")
+            or usage_data.get("inputTokens"),
+            output_tokens=usage_data.get("output_tokens")
+            or usage_data.get("outputTokens"),
+            total_tokens=usage_data.get("total_tokens")
+            or usage_data.get("totalTokens"),
         )

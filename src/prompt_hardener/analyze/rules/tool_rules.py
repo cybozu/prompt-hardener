@@ -297,8 +297,7 @@ def check_privileged_identity(spec):
                 recommendation=(
                     "Add '%s' to denied_actions or create an escalation rule. "
                     "Prefer short-lived, task-scoped credentials over long-lived "
-                    "shared service identities wherever possible."
-                    % tool.name
+                    "shared service identities wherever possible." % tool.name
                 ),
             )
         )
@@ -432,14 +431,14 @@ def check_confidential_data_external_send(spec):
         return findings
 
     egress_tools = [
-        (i, t) for i, t in enumerate(spec.tools or [])
-        if _is_egress_capable_tool(t)
+        (i, t) for i, t in enumerate(spec.tools or []) if _is_egress_capable_tool(t)
     ]
     if not egress_tools:
         return findings
 
     confidential_names = [
-        ds.name for ds in (spec.data_sources or [])
+        ds.name
+        for ds in (spec.data_sources or [])
         if getattr(ds, "sensitivity", None) == "confidential"
     ]
     for i, tool in egress_tools:
@@ -447,9 +446,7 @@ def check_confidential_data_external_send(spec):
             Finding(
                 id="",
                 rule_id="TOOL-006",
-                title=(
-                    "Confidential data exfiltration risk via '%s'" % tool.name
-                ),
+                title=("Confidential data exfiltration risk via '%s'" % tool.name),
                 severity="critical",
                 layer="tool",
                 description=(
@@ -497,9 +494,27 @@ _DANGEROUS_TOOL_PATTERNS = [
 
 # Parameter names that are dangerous when unconstrained
 _DANGEROUS_PARAM_NAMES = {
-    "command", "cmd", "sql", "query", "code", "script", "path", "file_path",
-    "filepath", "url", "uri", "endpoint", "body", "payload", "recipient",
-    "to", "headers", "shell", "expression", "exec", "input",
+    "command",
+    "cmd",
+    "sql",
+    "query",
+    "code",
+    "script",
+    "path",
+    "file_path",
+    "filepath",
+    "url",
+    "uri",
+    "endpoint",
+    "body",
+    "payload",
+    "recipient",
+    "to",
+    "headers",
+    "shell",
+    "expression",
+    "exec",
+    "input",
 }
 
 
@@ -513,8 +528,17 @@ def _is_dangerous_tool(tool):
         if re.search(pattern, lower):
             return True
     lower_desc = tool.description.lower()
-    for kw in ("execute", "run command", "run shell", "sql", "query", "file system",
-                "filesystem", "http request", "network"):
+    for kw in (
+        "execute",
+        "run command",
+        "run shell",
+        "sql",
+        "query",
+        "file system",
+        "filesystem",
+        "http request",
+        "network",
+    ):
         if kw in lower_desc:
             return True
     return False
@@ -605,8 +629,19 @@ def check_unconstrained_dangerous_params(spec):
 # ---- TOOL-008 helpers ----
 
 _OVERLY_GENERIC_NAMES = {
-    "run", "do", "get", "set", "call", "exec", "action", "tool",
-    "execute", "invoke", "process", "handle", "perform",
+    "run",
+    "do",
+    "get",
+    "set",
+    "call",
+    "exec",
+    "action",
+    "tool",
+    "execute",
+    "invoke",
+    "process",
+    "handle",
+    "perform",
 }
 
 
@@ -629,8 +664,8 @@ def check_ambiguous_tool_names(spec):
     all_names = []
     for t in spec.tools:
         all_names.append(t.name)
-    for ms in (spec.mcp_servers or []):
-        for tool_name in (ms.allowed_tools or []):
+    for ms in spec.mcp_servers or []:
+        for tool_name in ms.allowed_tools or []:
             all_names.append(tool_name)
 
     # Check for duplicates

@@ -21,9 +21,7 @@ def _has_write_or_delete_tools(spec):
     """Check if spec has tools with write or delete effect."""
     if not spec.tools:
         return False
-    return any(
-        getattr(t, "effect", None) in ("write", "delete") for t in spec.tools
-    )
+    return any(getattr(t, "effect", None) in ("write", "delete") for t in spec.tools)
 
 
 @rule(
@@ -246,8 +244,7 @@ def check_memory_poisoning(spec):
         boundaries_text = " ".join(spec.policies.data_boundaries).lower()
 
     has_boundary_protection = any(
-        re.search(pattern, boundaries_text)
-        for pattern in _MEMORY_PROTECTION_PATTERNS
+        re.search(pattern, boundaries_text) for pattern in _MEMORY_PROTECTION_PATTERNS
     )
     if has_boundary_protection:
         return findings
@@ -460,9 +457,7 @@ def check_tool_budget(spec):
     if spec.policies and spec.policies.data_boundaries:
         search_text += " " + " ".join(spec.policies.data_boundaries).lower()
 
-    has_budget = any(
-        re.search(pattern, search_text) for pattern in _BUDGET_PATTERNS
-    )
+    has_budget = any(re.search(pattern, search_text) for pattern in _BUDGET_PATTERNS)
     if has_budget:
         return findings
 

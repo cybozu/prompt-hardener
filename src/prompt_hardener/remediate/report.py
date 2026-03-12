@@ -91,7 +91,9 @@ class RemediationReport:
                 )
             else:
                 reason = self.prompt.no_op_reason or "rewrite not justified"
-                findings.append("Prompt remediation kept original system prompt (%s)" % reason)
+                findings.append(
+                    "Prompt remediation kept original system prompt (%s)" % reason
+                )
         if self.tool is not None:
             total_recs += len(self.tool)
             critical = sum(1 for r in self.tool if r.severity == "critical")

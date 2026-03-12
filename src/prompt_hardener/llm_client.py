@@ -2,8 +2,6 @@ import json
 from typing import Any, Dict, List, Optional, Union
 
 from prompt_hardener.llm import LLMClient, LLMMessage, LLMRequest
-from prompt_hardener.llm.providers.anthropic_client import get_client as get_claude_client
-from prompt_hardener.llm.providers.openai_client import get_client as get_openai_client
 from prompt_hardener.schema import PromptInput
 from prompt_hardener.utils import extract_json_block
 
@@ -186,7 +184,9 @@ def _to_request(
     return LLMRequest(
         provider=api_mode,
         model=model,
-        messages=[LLMMessage(role=m["role"], content=m.get("content")) for m in messages],
+        messages=[
+            LLMMessage(role=m["role"], content=m.get("content")) for m in messages
+        ],
         system_prompt=system_message,
         temperature=temperature,
         max_output_tokens=max_tokens,

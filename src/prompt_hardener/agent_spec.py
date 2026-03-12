@@ -352,7 +352,9 @@ def _deep_merge(base, overrides):
     return base
 
 
-def write_updated_spec(original_path, output_path, improved_system_prompt=None, spec_patches=None):
+def write_updated_spec(
+    original_path, output_path, improved_system_prompt=None, spec_patches=None
+):
     # type: (str, str, ..., ...) -> None
     """Write a copy of the agent spec with optional prompt update and patches.
 

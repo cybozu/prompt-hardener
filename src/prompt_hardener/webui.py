@@ -20,6 +20,7 @@ def get_simulate_category_choices():
     """Return sorted unique simulate categories from the built-in catalog."""
     return sorted({scenario.category for scenario in load_catalog()})
 
+
 # ---------------------------------------------------------------------------
 # Legacy backend functions (subprocess-based)
 # ---------------------------------------------------------------------------

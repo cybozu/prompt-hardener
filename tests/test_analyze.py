@@ -315,7 +315,9 @@ class TestToolRules:
             system_prompt="Test",
             provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
             tools=[
-                ToolDef(name="admin_tool", description="d", execution_identity="service"),
+                ToolDef(
+                    name="admin_tool", description="d", execution_identity="service"
+                ),
             ],
             policies=Policies(denied_actions=["admin_tool"]),
         )
@@ -503,7 +505,9 @@ class TestArchRules:
             provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
             has_persistent_memory="true",
             policies=Policies(
-                data_boundaries=["Validate stored data from previous sessions before use"],
+                data_boundaries=[
+                    "Validate stored data from previous sessions before use"
+                ],
             ),
         )
         findings = check_memory_poisoning(spec)
@@ -618,8 +622,10 @@ class TestArchRules:
             provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
             tools=[
                 ToolDef(
-                    name="ext_tool", description="External",
-                    source="third_party", version="1.2.3",
+                    name="ext_tool",
+                    description="External",
+                    source="third_party",
+                    version="1.2.3",
                     content_hash="sha256:abcdef",
                 ),
             ],
@@ -655,7 +661,9 @@ class TestArchRules:
             tools=[ToolDef(name="t", description="t")],
             mcp_servers=[
                 McpServer(
-                    name="our_server", trust_level="trusted", source="first_party",
+                    name="our_server",
+                    trust_level="trusted",
+                    source="first_party",
                 ),
             ],
         )
@@ -671,7 +679,9 @@ class TestArchRules:
             provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
             data_sources=[
                 DataSource(
-                    name="hr_records", type="api", trust_level="trusted",
+                    name="hr_records",
+                    type="api",
+                    trust_level="trusted",
                     sensitivity="confidential",
                 ),
             ],
@@ -689,7 +699,9 @@ class TestArchRules:
             provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
             data_sources=[
                 DataSource(
-                    name="hr_records", type="api", trust_level="trusted",
+                    name="hr_records",
+                    type="api",
+                    trust_level="trusted",
                     sensitivity="confidential",
                 ),
             ],
@@ -708,11 +720,17 @@ class TestArchRules:
             system_prompt="You are a helper.",
             provider=ProviderConfig(api="openai", model="gpt-4o-mini"),
             tools=[
-                ToolDef(name="send_report", description="Send report", effect="external_send"),
+                ToolDef(
+                    name="send_report",
+                    description="Send report",
+                    effect="external_send",
+                ),
             ],
             data_sources=[
                 DataSource(
-                    name="pii_db", type="api", trust_level="trusted",
+                    name="pii_db",
+                    type="api",
+                    trust_level="trusted",
                     sensitivity="confidential",
                 ),
             ],
@@ -733,7 +751,12 @@ class TestArchRules:
                 ToolDef(name="send_report", description="Send", effect="external_send"),
             ],
             data_sources=[
-                DataSource(name="public", type="api", trust_level="trusted", sensitivity="public"),
+                DataSource(
+                    name="public",
+                    type="api",
+                    trust_level="trusted",
+                    sensitivity="public",
+                ),
             ],
         )
         findings = check_confidential_data_external_send(spec)
@@ -752,7 +775,9 @@ class TestArchRules:
             ],
             data_sources=[
                 DataSource(
-                    name="pii_db", type="api", trust_level="trusted",
+                    name="pii_db",
+                    type="api",
+                    trust_level="trusted",
                     sensitivity="confidential",
                 ),
             ],
@@ -776,7 +801,10 @@ class TestArchRules:
                     parameters={
                         "type": "object",
                         "properties": {
-                            "command": {"type": "string", "description": "Shell command"},
+                            "command": {
+                                "type": "string",
+                                "description": "Shell command",
+                            },
                         },
                         "required": ["command"],
                     },
@@ -852,7 +880,9 @@ class TestArchRules:
                 ToolDef(name="read_file", description="Read a file"),
             ],
             mcp_servers=[
-                McpServer(name="fs", trust_level="trusted", allowed_tools=["read_file"]),
+                McpServer(
+                    name="fs", trust_level="trusted", allowed_tools=["read_file"]
+                ),
             ],
         )
         findings = check_ambiguous_tool_names(spec)

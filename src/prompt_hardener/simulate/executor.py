@@ -220,8 +220,10 @@ def insert_attack_into_prompt(
         fallback_prompt = normalize_prompt_for_provider(prompt, api_mode)
         if fallback_prompt.mode == "chat":
             messages = list(fallback_prompt.messages or [])
-            if messages and messages[0].get("role") == "user" and isinstance(
-                messages[0].get("content"), str
+            if (
+                messages
+                and messages[0].get("role") == "user"
+                and isinstance(messages[0].get("content"), str)
             ):
                 messages[0] = {
                     **messages[0],

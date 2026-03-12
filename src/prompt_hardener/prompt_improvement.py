@@ -113,8 +113,7 @@ def run_improvement_loop(
         # Improve
         if on_progress is not None:
             on_progress(
-                "Iteration %d/%d: improving..."
-                % (iteration_count, max_iterations)
+                "Iteration %d/%d: improving..." % (iteration_count, max_iterations)
             )
         current_prompt = improve_prompt(
             eval_api_mode,

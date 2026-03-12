@@ -1,7 +1,7 @@
 """Data classes for analyze report output."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 @dataclass

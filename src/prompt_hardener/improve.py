@@ -25,9 +25,7 @@ def _format_agent_context_section(agent_context) -> str:
         if policies.denied_actions:
             lines.append("Denied Actions: %s" % ", ".join(policies.denied_actions))
         if policies.data_boundaries:
-            lines.append(
-                "Data Boundaries: %s" % ", ".join(policies.data_boundaries)
-            )
+            lines.append("Data Boundaries: %s" % ", ".join(policies.data_boundaries))
         if policies.escalation_rules:
             lines.append("Escalation Rules:")
             for rule in policies.escalation_rules:
@@ -45,9 +43,7 @@ def _format_agent_context_section(agent_context) -> str:
     if agent_context.mcp_servers:
         lines.append("MCP Servers:")
         for s in agent_context.mcp_servers:
-            allowed = (
-                ", ".join(s.allowed_tools) if s.allowed_tools else "unrestricted"
-            )
+            allowed = ", ".join(s.allowed_tools) if s.allowed_tools else "unrestricted"
             lines.append(
                 "  - %s (trust: %s, allowed_tools: %s)"
                 % (s.name, s.trust_level, allowed)
@@ -68,9 +64,7 @@ def _format_findings_section(findings: List[Any]) -> str:
         "You MUST address each finding when improving the prompt.\n",
     ]
     for f in findings:
-        lines.append(
-            "[%s] %s: %s" % (f.severity.upper(), f.rule_id, f.title)
-        )
+        lines.append("[%s] %s: %s" % (f.severity.upper(), f.rule_id, f.title))
         lines.append("  Description: %s" % f.description)
         if f.evidence:
             lines.append("  Evidence: %s" % "; ".join(f.evidence))
@@ -256,9 +250,7 @@ Please ensure the improved version of the prompt follows these key principles:
             "When improving the prompt, ensure it aligns with the agent configuration above:\n",
         ]
         if agent_context.tools:
-            sensitive_tools = [
-                t for t in agent_context.tools if _is_sensitive_tool(t)
-            ]
+            sensitive_tools = [t for t in agent_context.tools if _is_sensitive_tool(t)]
             if sensitive_tools:
                 tool_names = ", ".join(t.name for t in sensitive_tools)
                 alignment_lines.append(
@@ -282,9 +274,7 @@ Please ensure the improved version of the prompt follows these key principles:
 
         if agent_context.data_sources:
             untrusted = [
-                ds
-                for ds in agent_context.data_sources
-                if ds.trust_level == "untrusted"
+                ds for ds in agent_context.data_sources if ds.trust_level == "untrusted"
             ]
             if untrusted:
                 names = ", ".join(ds.name for ds in untrusted)
@@ -295,15 +285,12 @@ Please ensure the improved version of the prompt follows these key principles:
 
         if agent_context.mcp_servers:
             untrusted = [
-                s
-                for s in agent_context.mcp_servers
-                if s.trust_level == "untrusted"
+                s for s in agent_context.mcp_servers if s.trust_level == "untrusted"
             ]
             if untrusted:
                 names = ", ".join(s.name for s in untrusted)
                 alignment_lines.append(
-                    "- Add caution instructions for untrusted MCP servers (%s)."
-                    % names
+                    "- Add caution instructions for untrusted MCP servers (%s)." % names
                 )
 
         if len(alignment_lines) > 2:

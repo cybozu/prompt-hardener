@@ -22,20 +22,20 @@ def _build_agent_context_criteria(agent_context):
 
     # Tool Alignment
     if agent_context.tools:
-        sensitive_tools = [
-            t for t in agent_context.tools if _is_sensitive_tool(t)
-        ]
+        sensitive_tools = [t for t in agent_context.tools if _is_sensitive_tool(t)]
         if sensitive_tools:
             tool_names = ", ".join(t.name for t in sensitive_tools)
             json_criteria[
-                "Sensitive tools (%s) have usage constraints or confirmation requirements in the prompt" % tool_names
+                "Sensitive tools (%s) have usage constraints or confirmation requirements in the prompt"
+                % tool_names
             ] = {
                 "satisfaction": "0-10",
                 "mark": "❌/⚠️/✅",
                 "comment": "...",
             }
             criteria_lines.append(
-                "- Sensitive tools (%s) have usage constraints or confirmation requirements in the prompt" % tool_names
+                "- Sensitive tools (%s) have usage constraints or confirmation requirements in the prompt"
+                % tool_names
             )
             has_content = True
 
@@ -64,13 +64,12 @@ def _build_agent_context_criteria(agent_context):
                 "comment": "...",
             }
             criteria_lines.append(
-                "- Denied actions (%s) are explicitly prohibited in the prompt" % actions
+                "- Denied actions (%s) are explicitly prohibited in the prompt"
+                % actions
             )
             has_content = True
         if policies.data_boundaries:
-            json_criteria[
-                "Data boundary restrictions are referenced in the prompt"
-            ] = {
+            json_criteria["Data boundary restrictions are referenced in the prompt"] = {
                 "satisfaction": "0-10",
                 "mark": "❌/⚠️/✅",
                 "comment": "...",
@@ -100,14 +99,16 @@ def _build_agent_context_criteria(agent_context):
         if untrusted_sources:
             source_names = ", ".join(ds.name for ds in untrusted_sources)
             json_criteria[
-                "Untrusted data sources (%s) have boundary/sanitization instructions in the prompt" % source_names
+                "Untrusted data sources (%s) have boundary/sanitization instructions in the prompt"
+                % source_names
             ] = {
                 "satisfaction": "0-10",
                 "mark": "❌/⚠️/✅",
                 "comment": "...",
             }
             criteria_lines.append(
-                "- Untrusted data sources (%s) have boundary/sanitization instructions in the prompt" % source_names
+                "- Untrusted data sources (%s) have boundary/sanitization instructions in the prompt"
+                % source_names
             )
             has_content = True
 
@@ -119,14 +120,16 @@ def _build_agent_context_criteria(agent_context):
         if untrusted_servers:
             server_names = ", ".join(s.name for s in untrusted_servers)
             json_criteria[
-                "Untrusted MCP servers (%s) are treated with caution in the prompt" % server_names
+                "Untrusted MCP servers (%s) are treated with caution in the prompt"
+                % server_names
             ] = {
                 "satisfaction": "0-10",
                 "mark": "❌/⚠️/✅",
                 "comment": "...",
             }
             criteria_lines.append(
-                "- Untrusted MCP servers (%s) are treated with caution in the prompt" % server_names
+                "- Untrusted MCP servers (%s) are treated with caution in the prompt"
+                % server_names
             )
             has_content = True
 
@@ -370,9 +373,7 @@ Your task is to improve the target prompt according to the items listed in the c
     if findings:
         finding_items = []
         for f in findings:
-            finding_items.append(
-                "- %s: %s (%s)" % (f.rule_id, f.title, f.description)
-            )
+            finding_items.append("- %s: %s (%s)" % (f.rule_id, f.title, f.description))
         if finding_items:
             criteria_sections.append(
                 "[Static Analysis Findings]\n" + "\n".join(finding_items)

@@ -201,9 +201,8 @@ def _add_effect_based_recommendations(
     # Recommend restrictions for service-identity tools
     service_tools = [t for t in spec.tools if t.execution_identity == "service"]
     if service_tools:
-        has_restrictions = (
-            spec.policies is not None
-            and (spec.policies.denied_actions or spec.policies.escalation_rules)
+        has_restrictions = spec.policies is not None and (
+            spec.policies.denied_actions or spec.policies.escalation_rules
         )
         if not has_restrictions:
             recommendations.append(

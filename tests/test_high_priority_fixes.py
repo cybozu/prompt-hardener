@@ -100,7 +100,11 @@ class TestH2RemediationMetadataLayers:
         """run_remediate must populate metadata['layers']."""
         from unittest.mock import patch
         from prompt_hardener.remediate.engine import run_remediate
-        from prompt_hardener.analyze.report import AnalyzeReport, AnalyzeMetadata, AnalyzeSummary
+        from prompt_hardener.analyze.report import (
+            AnalyzeReport,
+            AnalyzeMetadata,
+            AnalyzeSummary,
+        )
         from prompt_hardener.remediate.report import PromptRemediation
 
         spec_path = os.path.join(FIXTURES_DIR, "agent_spec.yaml")
@@ -119,7 +123,13 @@ class TestH2RemediationMetadataLayers:
                 risk_level="low",
                 overall_score=10.0,
                 scores_by_layer={"prompt": 10.0},
-                finding_counts={"critical": 0, "high": 0, "medium": 0, "low": 0, "total": 0},
+                finding_counts={
+                    "critical": 0,
+                    "high": 0,
+                    "medium": 0,
+                    "low": 0,
+                    "total": 0,
+                },
             ),
             findings=[],
             attack_paths=[],
@@ -136,8 +146,14 @@ class TestH2RemediationMetadataLayers:
             "improved prompt",
         )
 
-        with patch("prompt_hardener.remediate.engine.run_analyze", return_value=mock_analyze_report):
-            with patch("prompt_hardener.remediate.engine.remediate_prompt", return_value=mock_prompt_result):
+        with patch(
+            "prompt_hardener.remediate.engine.run_analyze",
+            return_value=mock_analyze_report,
+        ):
+            with patch(
+                "prompt_hardener.remediate.engine.remediate_prompt",
+                return_value=mock_prompt_result,
+            ):
                 report = run_remediate(
                     spec_path=spec_path,
                     eval_api_mode="openai",

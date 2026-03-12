@@ -73,7 +73,9 @@ def run_simulate(
         execute_single_attack_fn = execute_single_attack
         execute_preinjected_attack_fn = execute_preinjected_attack
 
-    prompt_input = normalize_prompt_for_provider(spec.to_prompt_input(), attack_api_mode)
+    prompt_input = normalize_prompt_for_provider(
+        spec.to_prompt_input(), attack_api_mode
+    )
     all_scenarios = load_catalog(scenarios_dir)
     filtered = filter_scenarios(
         all_scenarios,

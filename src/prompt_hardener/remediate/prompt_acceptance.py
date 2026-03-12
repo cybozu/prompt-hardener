@@ -15,16 +15,26 @@ def _missing_positive_clauses(text: str, plan) -> List[str]:
     for finding_id in plan.addressed_findings:
         if finding_id == "PROMPT-001" and not any(
             phrase in lowered
-            for phrase in ("evidence, not instructions", "data, not instructions", "not instructions")
+            for phrase in (
+                "evidence, not instructions",
+                "data, not instructions",
+                "not instructions",
+            )
         ):
             missing.append("PROMPT-001")
         elif finding_id == "PROMPT-004" and not any(
             phrase in lowered
-            for phrase in ("must not override", "does not override", "cannot override", "cannot supersede")
+            for phrase in (
+                "must not override",
+                "does not override",
+                "cannot override",
+                "cannot supersede",
+            )
         ):
             missing.append("PROMPT-004")
         elif finding_id == "ARCH-003" and not any(
-            phrase in lowered for phrase in ("tool output", "tool results", "external system responses")
+            phrase in lowered
+            for phrase in ("tool output", "tool results", "external system responses")
         ):
             missing.append("ARCH-003")
     return missing
@@ -41,9 +51,8 @@ class PromptAcceptanceResult:
 
 def _has_spotlighting_clause(lowered: str) -> bool:
     return (
-        ("evidence" in lowered or "data" in lowered)
-        and "not instructions" in lowered
-    )
+        "evidence" in lowered or "data" in lowered
+    ) and "not instructions" in lowered
 
 
 def _has_soft_instruction_defense(lowered: str) -> bool:
@@ -67,7 +76,11 @@ def _has_strict_instruction_defense(lowered: str) -> bool:
     if not _has_soft_instruction_defense(lowered):
         return False
     return (
-        ("tool output" in lowered or "tool results" in lowered or "external system responses" in lowered)
+        (
+            "tool output" in lowered
+            or "tool results" in lowered
+            or "external system responses" in lowered
+        )
         and "not instructions" in lowered
     ) or (
         ("retrieved" in lowered or "uploaded" in lowered or "untrusted" in lowered)
@@ -174,19 +187,36 @@ def accept_rewritten_prompt(
         hard_reasons.append("contains Unicode PUA or synthetic encoding")
     if "\ue000" in rewritten:
         hard_reasons.append("contains U+E000 substitution")
-    if "prompt attack detected" in lowered and plan.technique_profiles.get("instruction_defense") != "strict":
-        soft_warnings.append("contains strict refusal boilerplate outside strict instruction defense mode")
-    if ("<data>" in lowered or "</data>" in lowered) and "spotlighting" not in plan.selected_techniques:
+    if (
+        "prompt attack detected" in lowered
+        and plan.technique_profiles.get("instruction_defense") != "strict"
+    ):
+        soft_warnings.append(
+            "contains strict refusal boilerplate outside strict instruction defense mode"
+        )
+    if (
+        "<data>" in lowered or "</data>" in lowered
+    ) and "spotlighting" not in plan.selected_techniques:
         soft_warnings.append("introduces data wrappers without spotlighting selection")
-    if ("<{random}>" in lowered or "</{random}>" in lowered) and "random_sequence_enclosure" not in plan.selected_techniques:
+    if (
+        "<{random}>" in lowered or "</{random}>" in lowered
+    ) and "random_sequence_enclosure" not in plan.selected_techniques:
         soft_warnings.append("introduces random delimiter scheme without selection")
-    if "u+e000" in lowered or "private use area" in lowered or "invisible character" in lowered:
+    if (
+        "u+e000" in lowered
+        or "private use area" in lowered
+        or "invisible character" in lowered
+    ):
         hard_reasons.append("introduces synthetic encoding/runtime assumptions")
     if re.search(r"all user (input|messages?) .*not instructions", lowered):
-        soft_warnings.append("uses overbroad wording that may block benign user requests")
+        soft_warnings.append(
+            "uses overbroad wording that may block benign user requests"
+        )
     if "render every user message" in lowered or "wrap every user message" in lowered:
         soft_warnings.append("introduces unsupported runtime wrapper assumptions")
-    if "role_consistency" not in plan.selected_techniques and _has_role_mixing_markers(rewritten):
+    if "role_consistency" not in plan.selected_techniques and _has_role_mixing_markers(
+        rewritten
+    ):
         soft_warnings.append("retains role-mixing markers in rewritten prompt")
     if len(original) > 0 and len(rewritten) > _max_allowed_length(original, plan):
         soft_warnings.append("expands prompt excessively")
@@ -198,11 +228,26 @@ def accept_rewritten_prompt(
     for missing in _missing_positive_clauses(rewritten, plan):
         soft_warnings.append("does not clearly address %s" % missing)
 
-    if any(fid in plan.deferred_findings for fid in ("TOOL-002", "TOOL-007", "TOOL-008", "ARCH-008", "ARCH-009")):
-        if "allow_actions" in lowered or "content hash verification" in lowered or "version pinning" in lowered:
-            soft_warnings.append("tries to solve structural-only findings in prompt text")
-    if "secrets_exclusion" in plan.selected_techniques and _contains_secret_material(original) and _contains_secret_material(rewritten):
-        hard_reasons.append("selected technique not actually materialized: secrets_exclusion")
+    if any(
+        fid in plan.deferred_findings
+        for fid in ("TOOL-002", "TOOL-007", "TOOL-008", "ARCH-008", "ARCH-009")
+    ):
+        if (
+            "allow_actions" in lowered
+            or "content hash verification" in lowered
+            or "version pinning" in lowered
+        ):
+            soft_warnings.append(
+                "tries to solve structural-only findings in prompt text"
+            )
+    if (
+        "secrets_exclusion" in plan.selected_techniques
+        and _contains_secret_material(original)
+        and _contains_secret_material(rewritten)
+    ):
+        hard_reasons.append(
+            "selected technique not actually materialized: secrets_exclusion"
+        )
 
     fulfilled = _fulfilled_techniques(rewritten, plan)
     required_selected = _required_selected_techniques(plan)
@@ -211,20 +256,40 @@ def accept_rewritten_prompt(
         for technique in required_selected
         if not fulfilled.get(technique, False)
     ]
-    if "spotlighting" in plan.selected_techniques and not fulfilled.get("spotlighting", False):
-        soft_warnings.append("selected technique not actually materialized: spotlighting")
-    if "instruction_defense" in plan.selected_techniques and not fulfilled.get("instruction_defense", False):
-        soft_warnings.append("selected technique not actually materialized: instruction_defense")
-    if "role_consistency" in plan.selected_techniques and not fulfilled.get("role_consistency", False):
-        soft_warnings.append("selected technique not actually materialized: role_consistency")
-    if "secrets_exclusion" in plan.selected_techniques and not fulfilled.get("secrets_exclusion", False):
-        hard_reasons.append("selected technique not actually materialized: secrets_exclusion")
+    if "spotlighting" in plan.selected_techniques and not fulfilled.get(
+        "spotlighting", False
+    ):
+        soft_warnings.append(
+            "selected technique not actually materialized: spotlighting"
+        )
+    if "instruction_defense" in plan.selected_techniques and not fulfilled.get(
+        "instruction_defense", False
+    ):
+        soft_warnings.append(
+            "selected technique not actually materialized: instruction_defense"
+        )
+    if "role_consistency" in plan.selected_techniques and not fulfilled.get(
+        "role_consistency", False
+    ):
+        soft_warnings.append(
+            "selected technique not actually materialized: role_consistency"
+        )
+    if "secrets_exclusion" in plan.selected_techniques and not fulfilled.get(
+        "secrets_exclusion", False
+    ):
+        hard_reasons.append(
+            "selected technique not actually materialized: secrets_exclusion"
+        )
 
     fulfilled_techniques = [
-        technique for technique in plan.selected_techniques if fulfilled.get(technique, False)
+        technique
+        for technique in plan.selected_techniques
+        if fulfilled.get(technique, False)
     ]
     if any(technique not in fulfilled_techniques for technique in required_selected):
-        soft_warnings.append("accepted rewrite should materialize all selected techniques")
+        soft_warnings.append(
+            "accepted rewrite should materialize all selected techniques"
+        )
 
     return PromptAcceptanceResult(
         accepted=len(hard_reasons) == 0,

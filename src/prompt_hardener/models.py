@@ -108,7 +108,9 @@ class AgentSpec:
     mcp_servers: Optional[List[McpServer]] = None
     user_input_description: Optional[str] = None
     has_persistent_memory: Optional[str] = None  # "true"|"false"|"unknown"
-    scope: Optional[str] = None  # "single_user"|"shared_workspace"|"multi_tenant"|"unknown"
+    scope: Optional[str] = (
+        None  # "single_user"|"shared_workspace"|"multi_tenant"|"unknown"
+    )
 
     def to_agent_context(self):
         # type: () -> AgentContext

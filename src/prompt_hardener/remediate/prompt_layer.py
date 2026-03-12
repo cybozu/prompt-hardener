@@ -70,11 +70,15 @@ def remediate_prompt(
     for attempt in range(2):
         if on_progress is not None:
             on_progress(
-                "Remediating prompt layer (rewrite attempt %d/2)..."
-                % (attempt + 1)
+                "Remediating prompt layer (rewrite attempt %d/2)..." % (attempt + 1)
             )
         try:
-            rewritten_prompt, change_notes, _applied_techniques, _requirement_coverage = rewrite_system_prompt_with_plan(
+            (
+                rewritten_prompt,
+                change_notes,
+                _applied_techniques,
+                _requirement_coverage,
+            ) = rewrite_system_prompt_with_plan(
                 client=llm_client,
                 provider=eval_api_mode,
                 model=eval_model,
@@ -140,7 +144,9 @@ def remediate_prompt(
         techniques_applied=[],
         findings_addressed=[],
         deferred_findings=list(plan.deferred_findings),
-        no_op_reason="; ".join(failure_reasons) if failure_reasons else "rewrite failed acceptance",
+        no_op_reason="; ".join(failure_reasons)
+        if failure_reasons
+        else "rewrite failed acceptance",
         change_notes=[],
     )
     return remediation, original_system_prompt

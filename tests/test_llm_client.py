@@ -7,7 +7,6 @@ from prompt_hardener.llm.client import LLMClient
 from prompt_hardener.llm.exceptions import (
     LLMConfigurationError,
     LLMResponseFormatError,
-    LLMTimeoutError,
 )
 from prompt_hardener.llm.providers.anthropic_client import AnthropicProvider
 from prompt_hardener.llm.providers.bedrock_client import BedrockProvider
@@ -188,7 +187,9 @@ def test_client_generate_json_normalization_is_idempotent():
 def test_client_rejects_non_string_system_message_for_claude():
     client = LLMClient(adapters={"claude": _FakeAdapter([])})
 
-    with pytest.raises(LLMConfigurationError, match="system messages to have string content"):
+    with pytest.raises(
+        LLMConfigurationError, match="system messages to have string content"
+    ):
         client.generate(
             LLMRequest(
                 provider="claude",
@@ -511,7 +512,9 @@ def test_bedrock_provider_uses_invoke_model_by_default(monkeypatch):
             "kwargs": kwargs,
         }
     )
-    monkeypatch.setattr(BedrockProvider, "_make_client", lambda self, request: fake_client)
+    monkeypatch.setattr(
+        BedrockProvider, "_make_client", lambda self, request: fake_client
+    )
 
     response = BedrockProvider().generate(
         LLMRequest(
@@ -538,7 +541,9 @@ def test_bedrock_provider_uses_converse_when_system_prompt_present(monkeypatch):
         }
 
     fake_client = SimpleNamespace(converse=fake_converse)
-    monkeypatch.setattr(BedrockProvider, "_make_client", lambda self, request: fake_client)
+    monkeypatch.setattr(
+        BedrockProvider, "_make_client", lambda self, request: fake_client
+    )
 
     response = BedrockProvider().generate(
         LLMRequest(
@@ -580,7 +585,9 @@ def test_bedrock_provider_normalizes_tools_and_preserves_tool_use(monkeypatch):
         }
 
     fake_client = SimpleNamespace(converse=fake_converse)
-    monkeypatch.setattr(BedrockProvider, "_make_client", lambda self, request: fake_client)
+    monkeypatch.setattr(
+        BedrockProvider, "_make_client", lambda self, request: fake_client
+    )
 
     response = BedrockProvider().generate(
         LLMRequest(
@@ -672,7 +679,9 @@ def test_legacy_attack_completion_wrapper_uses_message_request(monkeypatch):
     class _FakeClient:
         def generate(self, request):
             captured["request"] = request
-            return LLMResponse(text="done", provider=request.provider, model=request.model)
+            return LLMResponse(
+                text="done", provider=request.provider, model=request.model
+            )
 
     monkeypatch.setattr("prompt_hardener.llm_client._CLIENT", _FakeClient())
 

@@ -39,7 +39,15 @@ class SpecDiff:
 # Comparison logic
 # ---------------------------------------------------------------------------
 
-_SCALAR_FIELDS = ["version", "type", "name", "description", "user_input_description", "has_persistent_memory", "scope"]
+_SCALAR_FIELDS = [
+    "version",
+    "type",
+    "name",
+    "description",
+    "user_input_description",
+    "has_persistent_memory",
+    "scope",
+]
 
 
 def compute_diff(before, after):
