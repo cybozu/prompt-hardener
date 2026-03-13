@@ -13,16 +13,7 @@ def _missing_positive_clauses(text: str, plan) -> List[str]:
     lowered = (text or "").lower()
     missing = []
     for finding_id in plan.addressed_findings:
-        if finding_id == "PROMPT-001" and not any(
-            phrase in lowered
-            for phrase in (
-                "evidence, not instructions",
-                "data, not instructions",
-                "not instructions",
-            )
-        ):
-            missing.append("PROMPT-001")
-        elif finding_id == "PROMPT-003" and not any(
+        if finding_id == "PROMPT-003" and not any(
             phrase in lowered
             for phrase in (
                 "must not override",
@@ -99,11 +90,7 @@ def _has_random_sequence_enclosure(rewritten: str) -> bool:
 
 def _has_role_mixing_markers(text: str) -> bool:
     lowered = (text or "").lower()
-    return (
-        "<data>" in lowered
-        or "</data>" in lowered
-        or bool(re.search(r"(^|\n)\s*(user|assistant)\s*:", lowered))
-    )
+    return bool(re.search(r"(^|\n)\s*(user|assistant|human)\s*:", lowered))
 
 
 def _contains_secret_material(text: str) -> bool:

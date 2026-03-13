@@ -28,16 +28,15 @@
     {
       "id": "F001",
       "rule_id": "PROMPT-001",
-      "title": "Untrusted data source 'customer_uploads' without instruction/data boundary",
+      "title": "System prompt embeds untrusted or runtime content",
       "severity": "high",
       "layer": "prompt",
-      "description": "Data source 'customer_uploads' has trust_level 'untrusted' but the system prompt does not contain instruction/data boundary markers to separate retrieved content from instructions.",
+      "description": "The system prompt appears to contain user content, retrieved/context content, or runtime placeholders. The trusted system channel should contain policy text only.",
       "evidence": [
-        "data_sources[0].trust_level = 'untrusted'",
-        "system_prompt does not contain boundary markers (e.g., delimiters, 'BEGIN DATA'/'END DATA')"
+        "system_prompt contains embedded conversation/context marker near: '===BEGIN RETRIEVED CONTENT==='"
       ],
-      "spec_path": "data_sources[0]",
-      "recommendation": "Add explicit instruction/data boundary markers in the system prompt to separate retrieved content from system instructions."
+      "spec_path": "system_prompt",
+      "recommendation": "Remove user, retrieved, and runtime-injected content from the system prompt. Pass that content through the appropriate message, context, or tool/result channel instead."
     },
     {
       "id": "F002",
@@ -78,13 +77,14 @@
   "attack_paths": [
     {
       "id": "AP001",
-      "name": "Prompt Injection via User Input",
+      "name": "Prompt injection via mixed trusted and untrusted prompt channels",
       "severity": "high",
-      "description": "Attacker can inject malicious instructions through an untrusted data source or user content that is not clearly demoted to data.",
+      "description": "Untrusted or runtime content embedded inside the system prompt collapses the trust boundary between policy and attacker-controlled input, allowing injected text to be interpreted as trusted instructions.",
       "steps": [
-        "Craft malicious content containing injected instructions",
-        "Submit it through an untrusted content path",
-        "Agent interprets the content as instructions instead of data"
+        "Attacker-controlled or runtime content is embedded into the system prompt",
+        "Model receives mixed policy text and untrusted content in one trusted channel",
+        "Injected text inherits the authority of system instructions",
+        "Agent follows attacker-controlled instructions"
       ],
       "related_findings": ["F001", "F003"]
     }
@@ -94,8 +94,8 @@
       "id": "RF001",
       "finding_id": "F001",
       "layer": "prompt",
-      "title": "Add instruction/data boundary markers",
-      "description": "Include explicit delimiters separating untrusted content from system instructions.",
+      "title": "Remove user, retrieved, and runtime-injected content from the system prompt",
+      "description": "Remove user, retrieved, and runtime-injected content from the system prompt. Pass that content through the appropriate message, context, or tool/result channel instead.",
       "priority": "high",
       "effort": "low"
     },

@@ -38,7 +38,7 @@ def _derive_attack_paths(findings, spec):
     counter = 0
 
     # Group findings by rule for combined attack paths
-    untrusted_data_findings = [f for f in findings if f.rule_id == "PROMPT-001"]
+    system_prompt_mixing_findings = [f for f in findings if f.rule_id == "PROMPT-001"]
     tool_findings = [
         f for f in findings if f.rule_id in ("TOOL-001", "TOOL-003", "TOOL-004")
     ]
@@ -51,26 +51,26 @@ def _derive_attack_paths(findings, spec):
     tenant_isolation_findings = [f for f in findings if f.rule_id == "ARCH-006"]
     provenance_findings = [f for f in findings if f.rule_id == "ARCH-008"]
 
-    if untrusted_data_findings:
+    if system_prompt_mixing_findings:
         counter += 1
         paths.append(
             AttackPath(
                 id="path-%03d" % counter,
-                name="Indirect prompt injection via untrusted data source",
+                name="Prompt injection via mixed trusted and untrusted prompt channels",
                 severity="high",
                 description=(
-                    "An attacker can inject malicious instructions through an untrusted "
-                    "data source. Without instruction/data boundaries, injected content "
-                    "may be interpreted as system instructions."
+                    "Untrusted or runtime content embedded inside the system prompt "
+                    "collapses the trust boundary between policy and attacker-controlled "
+                    "input, allowing injected text to be interpreted as trusted "
+                    "instructions."
                 ),
                 steps=[
-                    "Attacker crafts content containing injected instructions",
-                    "Content is ingested through an untrusted data source",
-                    "RAG retrieval or data processing includes the malicious content",
-                    "Without boundary markers, injected content is treated as instructions",
+                    "Attacker-controlled or runtime content is embedded into the system prompt",
+                    "Model receives mixed policy text and untrusted content in one trusted channel",
+                    "Injected text inherits the authority of system instructions",
                     "Agent follows attacker-controlled instructions",
                 ],
-                related_findings=[f.id for f in untrusted_data_findings],
+                related_findings=[f.id for f in system_prompt_mixing_findings],
             )
         )
 

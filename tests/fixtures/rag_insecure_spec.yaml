@@ -5,6 +5,9 @@ description: "Intentionally weak RAG spec for testing"
 
 system_prompt: |
   Answer questions using the provided documents.
+  ===BEGIN RETRIEVED CONTENT===
+  {{retrieved_context}}
+  ===END RETRIEVED CONTENT===
 
 provider:
   api: openai

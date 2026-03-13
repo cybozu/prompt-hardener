@@ -16,7 +16,7 @@ Prompt Hardener applies defense techniques to strengthen system prompts against 
 
 Techniques are used by prompt-layer `remediate` and by the legacy `evaluate` / `improve` commands via the `-a` / `--apply-techniques` flag.
 
-For `remediate`, omitting `-a` lets the planner choose a minimal relevant subset from the static findings and agent context. `random_sequence_enclosure` is not auto-selected; request it explicitly if you want enclosure-based hardening.
+For `remediate`, omitting `-a` lets the planner choose a minimal relevant subset from the static findings and agent context. `random_sequence_enclosure` is not auto-selected; request it explicitly if you want enclosure-based hardening. `spotlighting` is an optional hardening technique, not a static analyze requirement.
 
 ```bash
 # Let the planner choose techniques (default)

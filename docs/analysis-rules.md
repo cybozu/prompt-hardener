@@ -11,7 +11,6 @@ The analysis pipeline produces an `AnalyzeReport` containing:
 - **Attack paths** -- potential exploitation scenarios derived from findings
 - **Recommended fixes** -- actionable remediation guidance for each finding
 
-Static rules run without an LLM and check structural properties of the agent spec. Prompt-quality lint checks that do not map cleanly to security risk (for example, role clarity) SHOULD live in `validate`/`lint` and SHOULD NOT be scored as `analyze` findings.
 
 ## Static Rules
 
@@ -21,7 +20,7 @@ Prompt Hardener includes 19 built-in rules organized across three layers.
 
 | ID | Name | Severity | Applicable Types |
 |----|------|----------|------------------|
-| PROMPT-001 | Untrusted data without instruction boundary | high | rag, agent, mcp-agent |
+| PROMPT-001 | Untrusted or runtime content embedded in system prompt | high | chatbot, rag, agent, mcp-agent |
 | PROMPT-002 | Sensitive material embedded in system prompt | high | chatbot, rag, agent, mcp-agent |
 | PROMPT-003 | No instruction to treat user input as untrusted | medium | chatbot, rag, agent, mcp-agent |
 
@@ -57,13 +56,13 @@ Prompt Hardener includes 19 built-in rules organized across three layers.
 
 ### Rule Details
 
-#### PROMPT-001: Untrusted data without instruction boundary
+#### PROMPT-001: Untrusted or runtime content embedded in system prompt
 
-**Check:** If untrusted data sources (`trust_level: untrusted`) exist in `data_sources` or `mcp_servers`, verifies that the system prompt contains instruction/data boundary markers (e.g., `---BEGIN RETRIEVED CONTENT---` / `---END RETRIEVED CONTENT---`, XML-like tags, code blocks, `[INST]` tags, or separator lines).
+**Check:** Detects when `system_prompt` contains user content, retrieved/context content, or runtime placeholders instead of trusted policy text only. This includes role transcripts such as `User:` / `Assistant:`, retrieved-content wrappers such as `BEGIN RETRIEVED CONTENT` or `<data>`, and placeholders such as `{{user_input}}`.
 
-**Detection condition:** Untrusted source exists AND no boundary markers found in the system prompt.
+**Detection condition:** The system prompt contains embedded conversation/context markers or runtime-injected content patterns.
 
-**Recommendation:** Add explicit instruction/data boundary markers (e.g., `---BEGIN RETRIEVED CONTENT---` / `---END RETRIEVED CONTENT---`) to separate retrieved content from system instructions.
+**Recommendation:** Remove user, retrieved, and runtime-injected content from the system prompt. Pass that content through the appropriate message, context, or tool/result channel instead.
 
 #### PROMPT-002: Sensitive material embedded in system prompt
 
@@ -237,7 +236,7 @@ The table below shows which rules apply to each agent type.
 
 | Rule | chatbot | rag | agent | mcp-agent |
 |------|:-------:|:---:|:-----:|:---------:|
-| PROMPT-001 | | x | x | x |
+| PROMPT-001 | x | x | x | x |
 | PROMPT-002 | x | x | x | x |
 | PROMPT-003 | x | x | x | x |
 | TOOL-001 | | | x | x |
