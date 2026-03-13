@@ -114,10 +114,10 @@ policies:
 effect: write  # confidence: high — explicit file mutation in implementation
 impact: high  # confidence: medium — inferred from billing mutation path
 execution_identity: unknown  # TODO: Set to user/service/mixed -> enables TOOL-004 (high)
-source: unknown  # TODO: Set to local/third_party/mcp -> enables ARCH-009 (high)
+source: unknown  # TODO: Set to local/third_party/mcp -> enables ARCH-008 (high)
 trust_level: untrusted  # safe default — set to trusted only if the source is controlled
-# version: "<version>"  # TODO: Needed for ARCH-009 when source is third_party or unknown
-# content_hash: "sha256:..."  # TODO: Needed for ARCH-009 when source is third_party or unknown
+# version: "<version>"  # TODO: Needed for ARCH-008 when source is third_party or unknown
+# content_hash: "sha256:..."  # TODO: Needed for ARCH-008 when source is third_party or unknown
 ```
 
 ### Minimal Type Skeletons
@@ -345,7 +345,7 @@ security analysis rules in Prompt Hardener.
 
 ### tools[<N>].effect
 - **Current value**: `unknown`
-- **Why it matters**: Enables **TOOL-006** (critical) and sharpens **TOOL-001** / **ARCH-003**.
+- **Why it matters**: Enables **TOOL-006** (critical) and sharpens **TOOL-001** / **ARCH-002**.
 - **How to resolve**: Set `read`, `write`, `delete`, or `external_send`.
 
 ## High Priority
@@ -357,32 +357,32 @@ security analysis rules in Prompt Hardener.
 
 ### tools[<N>].source
 - **Current value**: `unknown`
-- **Why it matters**: Enables provenance checks for **ARCH-009** (high).
+- **Why it matters**: Enables provenance checks for **ARCH-008** (high).
 - **How to resolve**: Set `local`, `third_party`, or `mcp`.
 
 ### tools[<N>].version
 - **Current value**: not defined
-- **Why it matters**: Needed for **ARCH-009** when the tool is third-party.
+- **Why it matters**: Needed for **ARCH-008** when the tool is third-party.
 - **How to resolve**: Provide the pinned tool or package version.
 
 ### tools[<N>].content_hash
 - **Current value**: not defined
-- **Why it matters**: Needed for **ARCH-009** when the tool is third-party.
+- **Why it matters**: Needed for **ARCH-008** when the tool is third-party.
 - **How to resolve**: Provide a trusted checksum or digest.
 
 ### mcp_servers[<N>].source
 - **Current value**: `unknown`
-- **Why it matters**: Enables **ARCH-009** (high).
+- **Why it matters**: Enables **ARCH-008** (high).
 - **How to resolve**: Set `first_party`, `third_party`, or `unknown` only if ownership cannot be established.
 
 ### mcp_servers[<N>].version
 - **Current value**: not defined
-- **Why it matters**: Needed for **ARCH-009** when the server is not first-party.
+- **Why it matters**: Needed for **ARCH-008** when the server is not first-party.
 - **How to resolve**: Provide the pinned server version.
 
 ### mcp_servers[<N>].content_hash
 - **Current value**: not defined
-- **Why it matters**: Needed for **ARCH-009** when the server is not first-party.
+- **Why it matters**: Needed for **ARCH-008** when the server is not first-party.
 - **How to resolve**: Provide a trusted checksum or digest.
 
 ### policies.escalation_rules
@@ -402,12 +402,12 @@ security analysis rules in Prompt Hardener.
 
 ### has_persistent_memory
 - **Current value**: `unknown`
-- **Why it matters**: Enables **ARCH-005** and **ARCH-007**.
+- **Why it matters**: Enables **ARCH-004** and **ARCH-006**.
 - **How to resolve**: Confirm whether state persists across sessions.
 
 ### scope
 - **Current value**: `unknown`
-- **Why it matters**: Enables **ARCH-006** and **ARCH-007**.
+- **Why it matters**: Enables **ARCH-005** and **ARCH-006**.
 - **How to resolve**: Set `single_user`, `shared_workspace`, or `multi_tenant`.
 
 ## Medium Priority
@@ -419,22 +419,22 @@ security analysis rules in Prompt Hardener.
 
 ### policies.max_tool_calls
 - **Current value**: not defined
-- **Why it matters**: Helps satisfy **ARCH-008** (medium).
+- **Why it matters**: Helps satisfy **ARCH-007** (medium).
 - **How to resolve**: Set a maximum number of tool calls per task/session.
 
 ### policies.max_steps
 - **Current value**: not defined
-- **Why it matters**: Helps satisfy **ARCH-008** (medium).
+- **Why it matters**: Helps satisfy **ARCH-007** (medium).
 - **How to resolve**: Set a maximum autonomous step count.
 
 ### policies.rate_limits
 - **Current value**: not defined
-- **Why it matters**: Helps satisfy **ARCH-008** (medium).
+- **Why it matters**: Helps satisfy **ARCH-007** (medium).
 - **How to resolve**: Define call-rate ceilings such as `"10 calls/minute"`.
 
 ### policies.cost_budget
 - **Current value**: not defined
-- **Why it matters**: Helps satisfy **ARCH-008** (medium).
+- **Why it matters**: Helps satisfy **ARCH-007** (medium).
 - **How to resolve**: Define a spend ceiling such as `"$1.00/session"`.
 
 ### tools[<N>].parameters.properties.<dangerous_param>
@@ -444,7 +444,7 @@ security analysis rules in Prompt Hardener.
 
 ### policies.data_boundaries
 - **Current value**: does not mention tenant isolation or memory protections
-- **Why it matters**: Improves **ARCH-005** / **ARCH-007** evidence quality.
+- **Why it matters**: Improves **ARCH-004** / **ARCH-006** evidence quality.
 - **How to resolve**: Add explicit memory-poisoning and tenant-isolation controls when applicable.
 
 ### user_input_description

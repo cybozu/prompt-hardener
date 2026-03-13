@@ -92,7 +92,7 @@ Each tool supports optional security metadata:
 | `version` | free-form string | Version identifier for pinning third-party tools |
 | `content_hash` | free-form string (e.g. `sha256:...`) | Integrity hash for provenance verification |
 
-These fields enable deeper analysis. For example, tools with `impact: high` trigger TOOL-003 if no escalation rule covers them, tools with `execution_identity: service` trigger TOOL-004 if unrestricted, and tools with `source: third_party` without `version`/`content_hash` trigger ARCH-009.
+These fields enable deeper analysis. For example, tools with `impact: high` trigger TOOL-003 if no escalation rule covers them, tools with `execution_identity: service` trigger TOOL-004 if unrestricted, and tools with `source: third_party` without `version`/`content_hash` trigger ARCH-008.
 
 **`policies`** -- Security policies controlling tool access, escalation, and execution budgets:
 
@@ -116,7 +116,7 @@ policies:
   cost_budget: "$1.00/session" # cost budget limit
 ```
 
-Execution budget fields (`max_tool_calls`, `max_steps`, `rate_limits`, `cost_budget`) are checked by ARCH-008. Agents with tools but no explicit budget or rate limit will be flagged.
+Execution budget fields (`max_tool_calls`, `max_steps`, `rate_limits`, `cost_budget`) are checked by ARCH-007. Agents with tools but no explicit budget or rate limit will be flagged.
 
 **`data_sources`** -- Data sources with trust levels (recommended for `rag`):
 
@@ -170,15 +170,15 @@ Each MCP server supports optional provenance metadata:
 | `version` | free-form string | Version identifier for pinning |
 | `content_hash` | free-form string (e.g. `sha256:...`) | Integrity hash for provenance verification |
 
-MCP servers without `source: first_party` and missing `version`/`content_hash` are treated as unverified external components and flagged by ARCH-009.
+MCP servers without `source: first_party` and missing `version`/`content_hash` are treated as unverified external components and flagged by ARCH-008.
 
-**`has_persistent_memory`** -- Whether the agent stores state across sessions. When set to `"true"`, ARCH-005 checks that the system prompt or `policies.data_boundaries` includes memory poisoning protections:
+**`has_persistent_memory`** -- Whether the agent stores state across sessions. When set to `"true"`, ARCH-004 checks that the system prompt or `policies.data_boundaries` includes memory poisoning protections:
 
 ```yaml
 has_persistent_memory: "true"   # "true" | "false" | "unknown"
 ```
 
-**`scope`** -- Isolation scope of this agent's operations. When set to `"multi_tenant"` with sensitive tools present, ARCH-006 flags cross-tenant data exposure risks. Additionally, ARCH-007 checks for tenant isolation evidence when multi-tenant agents have persistent memory or confidential/internal data:
+**`scope`** -- Isolation scope of this agent's operations. When set to `"multi_tenant"` with sensitive tools present, ARCH-005 flags cross-tenant data exposure risks. Additionally, ARCH-006 checks for tenant isolation evidence when multi-tenant agents have persistent memory or confidential/internal data:
 
 ```yaml
 scope: multi_tenant             # single_user | shared_workspace | multi_tenant | unknown

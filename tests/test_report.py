@@ -79,7 +79,7 @@ class TestAnalyzeRendering:
         assert "HIGH" in output
         assert "## Findings" in output
         assert "PROMPT-001" in output
-        assert "TOOL-001" in output
+        assert "TOOL-003" in output
         assert "## Attack Paths" in output
         assert "## Recommended Fixes" in output
         assert "critical" in output

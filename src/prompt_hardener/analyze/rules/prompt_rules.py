@@ -5,17 +5,16 @@ import re
 from prompt_hardener.analyze.report import Finding
 from prompt_hardener.analyze.rules import rule
 
-# Patterns that indicate instruction/data boundary markers in a system prompt
-_BOUNDARY_PATTERNS = [
-    r"BEGIN\s+(DATA|RETRIEVED|CONTEXT|DOCUMENT)",
-    r"END\s+(DATA|RETRIEVED|CONTEXT|DOCUMENT)",
-    r"---+\s*(BEGIN|END)",
-    r"<\s*(context|data|document|retrieved)",
-    r"```",
-    r"\[INST\]",
-    r"\[/INST\]",
-    r"<\|.*?\|>",
-    r"={3,}",
+# Patterns that indicate untrusted or runtime content has been embedded into the
+# trusted system prompt channel.
+_SYSTEM_PROMPT_CONTENT_PATTERNS = [
+    r"(^|\n)\s*(user|assistant|human)\s*:",
+    r"begin\s+(data|retrieved|context|document)",
+    r"end\s+(data|retrieved|context|document)",
+    r"<\s*(context|data|document|retrieved)\b",
+    r"\{\{\s*[^}]*?(user|query|question|input|context|document|retrieved)[^}]*\}\}",
+    r"\$\{\s*[^}]*?(user|query|question|input|context|document|retrieved)[^}]*\}",
+    r"\{(user|query|question|input|context|document|retrieved)[^}]*\}",
 ]
 
 # Patterns that detect sensitive material embedded in the system prompt
@@ -69,60 +68,53 @@ def _has_pattern(text, patterns):
 
 @rule(
     id="PROMPT-001",
-    name="Untrusted data without instruction boundary",
+    name="Untrusted or runtime content embedded in system prompt",
     layer="prompt",
     severity="high",
-    types=["rag", "agent", "mcp-agent"],
-    description="Untrusted data_source or mcp_server exists but the system prompt lacks instruction/data boundary markers.",
+    types=["chatbot", "rag", "agent", "mcp-agent"],
+    description=(
+        "System prompt contains untrusted, user, retrieved, or runtime-injected "
+        "content instead of trusted policy text only."
+    ),
 )
 def check_untrusted_data_boundary(spec):
     # type: (AgentSpec) -> List[Finding]
     findings = []
+    system_prompt = spec.system_prompt or ""
+    matched = None
+    for pattern in _SYSTEM_PROMPT_CONTENT_PATTERNS:
+        match = re.search(pattern, system_prompt, re.IGNORECASE)
+        if match:
+            matched = match.group(0).strip()
+            break
 
-    untrusted_sources = []
-    for i, ds in enumerate(spec.data_sources or []):
-        if ds.trust_level == "untrusted":
-            untrusted_sources.append((i, ds.name, "data_sources[%d]" % i))
-
-    for i, ms in enumerate(spec.mcp_servers or []):
-        if ms.trust_level == "untrusted":
-            untrusted_sources.append((i, ms.name, "mcp_servers[%d]" % i))
-
-    if not untrusted_sources:
+    if matched is None:
         return findings
 
-    has_boundary = _has_pattern(spec.system_prompt, _BOUNDARY_PATTERNS)
-    if has_boundary:
-        return findings
-
-    for _, name, path in untrusted_sources:
-        findings.append(
-            Finding(
-                id="",  # assigned by engine
-                rule_id="PROMPT-001",
-                title="Untrusted data source '%s' without instruction/data boundary"
-                % name,
-                severity="high",
-                layer="prompt",
-                description=(
-                    "Data source '%s' has trust_level 'untrusted' but the system prompt "
-                    "does not contain instruction/data boundary markers to separate "
-                    "retrieved content from instructions." % name
-                ),
-                evidence=[
-                    "%s.trust_level = 'untrusted'" % path,
-                    "system_prompt does not contain boundary markers "
-                    "(e.g., delimiters, 'BEGIN DATA'/'END DATA')",
-                ],
-                spec_path=path,
-                recommendation=(
-                    "Add explicit instruction/data boundary markers in the system prompt "
-                    "to separate retrieved content from system instructions. Use delimiters "
-                    "like '---BEGIN RETRIEVED CONTENT---' / '---END RETRIEVED CONTENT---'."
-                ),
-            )
+    findings.append(
+        Finding(
+            id="",  # assigned by engine
+            rule_id="PROMPT-001",
+            title="System prompt embeds untrusted or runtime content",
+            severity="high",
+            layer="prompt",
+            description=(
+                "The system prompt appears to contain user content, retrieved/context "
+                "content, or runtime placeholders. The trusted system channel should "
+                "contain policy text only."
+            ),
+            evidence=[
+                "system_prompt contains embedded conversation/context marker near: '%s'"
+                % matched[:60]
+            ],
+            spec_path="system_prompt",
+            recommendation=(
+                "Remove user, retrieved, and runtime-injected content from the system "
+                "prompt. Pass that content through the appropriate message, context, "
+                "or tool/result channel instead."
+            ),
         )
-
+    )
     return findings
 
 
@@ -183,7 +175,7 @@ def check_sensitive_material(spec):
 
 
 @rule(
-    id="PROMPT-004",
+    id="PROMPT-003",
     name="No instruction to treat user input as untrusted",
     layer="prompt",
     severity="medium",
@@ -201,7 +193,7 @@ def check_untrusted_input_instruction(spec):
     findings.append(
         Finding(
             id="",
-            rule_id="PROMPT-004",
+            rule_id="PROMPT-003",
             title="System prompt lacks untrusted user input handling instruction",
             severity="medium",
             layer="prompt",

@@ -16,7 +16,7 @@ Prompt Hardener applies defense techniques to strengthen system prompts against 
 
 Techniques are used by prompt-layer `remediate` and by the legacy `evaluate` / `improve` commands via the `-a` / `--apply-techniques` flag.
 
-For `remediate`, omitting `-a` lets the planner choose a minimal relevant subset from the static findings and agent context. `random_sequence_enclosure` is not auto-selected; request it explicitly if you want enclosure-based hardening.
+For `remediate`, omitting `-a` lets the planner choose a minimal relevant subset from the static findings and agent context. `random_sequence_enclosure` is not auto-selected; request it explicitly if you want enclosure-based hardening. `spotlighting` is an optional hardening technique, not a static analyze requirement.
 
 ```bash
 # Let the planner choose techniques (default)
@@ -251,7 +251,7 @@ Prevents sensitive information from being hardcoded in prompts, where it could b
 
 - The prompt is reviewed for hardcoded sensitive data: API keys, passwords, personal information, internal system details, or confidential business information.
 - Any sensitive data found is removed and replaced with generic references.
-- This is also checked by the static analysis rule `PROMPT-002` ("Weak secrets protection"), which looks for explicit protection instructions like "do not reveal" or "never disclose" in the system prompt.
+- This is also checked by the static analysis rule `PROMPT-002` ("Sensitive material embedded in system prompt"), which looks for hardcoded secrets, private keys, internal URLs, and other sensitive material in the system prompt.
 
 ### Evaluation criteria
 

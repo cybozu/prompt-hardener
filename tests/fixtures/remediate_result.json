@@ -10,10 +10,10 @@
   },
   "remediation": {
     "prompt": {
-      "changes": "Added role boundary instructions and data separation markers",
+      "changes": "Added role boundary instructions and stronger instruction-defense wording",
       "rewrite_applied": true,
-      "techniques_selected": ["instruction_defense", "role_consistency", "spotlighting"],
-      "techniques_applied": ["instruction_defense", "role_consistency", "spotlighting"]
+      "techniques_selected": ["instruction_defense", "role_consistency"],
+      "techniques_applied": ["instruction_defense", "role_consistency"]
     },
     "tool": {
       "recommendations": [
@@ -44,7 +44,7 @@
   "summary": {
     "risk_level": "high",
     "key_findings": [
-      "Prompt remediation applied (3 techniques)",
+      "Prompt remediation applied (2 techniques)",
       "1 critical/high tool recommendations",
       "1 critical/high architecture recommendations"
     ]

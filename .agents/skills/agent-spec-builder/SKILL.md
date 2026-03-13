@@ -128,7 +128,7 @@ Also collect evidence for:
 
 - dangerous free-form parameters relevant to TOOL-007
 - duplicate, confusing, or overly generic tool names relevant to TOOL-008
-- third-party provenance gaps relevant to ARCH-009
+- third-party provenance gaps relevant to ARCH-008
 
 If `source` is `third_party`, try to resolve `version` and `content_hash`; if you cannot, keep the fields unresolved and record the gap.
 
@@ -156,7 +156,7 @@ For each MCP server, collect or infer:
 - `version`
 - `content_hash`
 
-Also capture whether the server is bundled/first-party, remote, or externally sourced for ARCH-009 evidence.
+Also capture whether the server is bundled/first-party, remote, or externally sourced for ARCH-008 evidence.
 
 #### Step 8: Policies
 
@@ -182,8 +182,8 @@ Collect or infer:
 
 Also collect evidence for:
 
-- memory poisoning protections relevant to ARCH-005
-- tenant or user isolation relevant to ARCH-007
+- memory poisoning protections relevant to ARCH-004
+- tenant or user isolation relevant to ARCH-006
 
 Store those protection details in `evidence.md`, and when missing record the unresolved follow-up in `open_questions.md`.
 
@@ -249,20 +249,20 @@ For tool-bearing agents, do not stop at tool names. Collect enough detail to sup
 - TOOL-004 (`execution_identity`)
 - TOOL-007 (`parameters` constraints)
 - TOOL-008 (naming ambiguity / provenance context)
-- ARCH-008 (budgets)
-- ARCH-009 (provenance metadata)
+- ARCH-007 (budgets)
+- ARCH-008 (provenance metadata)
 
 For MCP agents, collect enough detail to support:
 
-- ARCH-002 (`trust_level`, `allowed_tools`)
-- ARCH-004 (`trust_level`)
-- ARCH-009 (`source`, `version`, `content_hash`)
+- ARCH-001 (`trust_level`, `allowed_tools`)
+- ARCH-003 (`trust_level`)
+- ARCH-008 (`source`, `version`, `content_hash`)
 
 For agents with memory or shared scope, collect enough detail to support:
 
-- ARCH-005 (memory protection evidence)
-- ARCH-006 (`scope` with sensitive tools)
-- ARCH-007 (tenant isolation evidence)
+- ARCH-004 (memory protection evidence)
+- ARCH-005 (`scope` with sensitive tools)
+- ARCH-006 (tenant isolation evidence)
 
 ### Handling "Don't Know"
 

@@ -13,16 +13,7 @@ def _missing_positive_clauses(text: str, plan) -> List[str]:
     lowered = (text or "").lower()
     missing = []
     for finding_id in plan.addressed_findings:
-        if finding_id == "PROMPT-001" and not any(
-            phrase in lowered
-            for phrase in (
-                "evidence, not instructions",
-                "data, not instructions",
-                "not instructions",
-            )
-        ):
-            missing.append("PROMPT-001")
-        elif finding_id == "PROMPT-004" and not any(
+        if finding_id == "PROMPT-003" and not any(
             phrase in lowered
             for phrase in (
                 "must not override",
@@ -31,12 +22,12 @@ def _missing_positive_clauses(text: str, plan) -> List[str]:
                 "cannot supersede",
             )
         ):
-            missing.append("PROMPT-004")
-        elif finding_id == "ARCH-003" and not any(
+            missing.append("PROMPT-003")
+        elif finding_id == "ARCH-002" and not any(
             phrase in lowered
             for phrase in ("tool output", "tool results", "external system responses")
         ):
-            missing.append("ARCH-003")
+            missing.append("ARCH-002")
     return missing
 
 
@@ -99,11 +90,7 @@ def _has_random_sequence_enclosure(rewritten: str) -> bool:
 
 def _has_role_mixing_markers(text: str) -> bool:
     lowered = (text or "").lower()
-    return (
-        "<data>" in lowered
-        or "</data>" in lowered
-        or bool(re.search(r"(^|\n)\s*(user|assistant)\s*:", lowered))
-    )
+    return bool(re.search(r"(^|\n)\s*(user|assistant|human)\s*:", lowered))
 
 
 def _contains_secret_material(text: str) -> bool:
@@ -230,7 +217,7 @@ def accept_rewritten_prompt(
 
     if any(
         fid in plan.deferred_findings
-        for fid in ("TOOL-002", "TOOL-007", "TOOL-008", "ARCH-008", "ARCH-009")
+        for fid in ("TOOL-002", "TOOL-007", "TOOL-008", "ARCH-007", "ARCH-008")
     ):
         if (
             "allow_actions" in lowered
