@@ -1,73 +1,68 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version tag (e.g. v0.4.0)"
+        description: "Existing release version tag to publish (e.g. v0.5.0)"
         required: true
-        type: string
-      target_ref:
-        description: "Git ref to release from (branch/sha). Default: main"
-        required: false
-        default: "main"
         type: string
 
 concurrency:
-  group: release-${{ github.repository }}
+  group: release-${{ github.repository }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
-  contents: write          # create/push tags, create GitHub Release
+  contents: write          # create/update GitHub Release
 
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Validate version format
+      - name: Resolve release tag
+        id: release_tag
         shell: bash
         run: |
           set -euo pipefail
-          v="${{ inputs.version }}"
+
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            v="${GITHUB_REF_NAME}"
+          else
+            v="${{ inputs.version }}"
+          fi
+
           if [[ ! "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([\-+].*)?$ ]]; then
             echo "Invalid version: $v"
             echo "Expected semver like v0.4.0 (optionally with -rc.1, +meta)"
             exit 1
           fi
+          echo "tag=$v" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout target ref
+      - name: Checkout release tag
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ inputs.target_ref }}
+          ref: refs/tags/${{ steps.release_tag.outputs.tag }}
           fetch-depth: 0
 
-      - name: Fail if tag already exists
+      - name: Verify tag exists
         shell: bash
         run: |
           set -euo pipefail
-          tag="${{ inputs.version }}"
-          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-            echo "Tag already exists locally: ${tag}"
-            exit 1
-          fi
-          # remote check
-          if git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
-            echo "Tag already exists on origin: ${tag}"
+          tag="${{ steps.release_tag.outputs.tag }}"
+
+          if ! git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag does not exist locally after checkout: ${tag}"
             exit 1
           fi
 
-      - name: Create & push git tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag="${{ inputs.version }}"
-          sha="$(git rev-parse HEAD)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git tag -a "$tag" -m "Release $tag" "$sha"
-          git push origin "refs/tags/$tag"
+          if ! git ls-remote --tags origin "refs/tags/${tag}" | grep -q .; then
+            echo "Tag does not exist on origin: ${tag}"
+            exit 1
+          fi
 
       - name: Build Python package (wheel)
         shell: bash
@@ -80,8 +75,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
-          prerelease: ${{ contains(inputs.version, '-rc.') || contains(inputs.version, '-beta') || contains(inputs.version, '-alpha') }}
-          tag_name: ${{ inputs.version }}
+          prerelease: ${{ contains(steps.release_tag.outputs.tag, '-rc.') || contains(steps.release_tag.outputs.tag, '-beta') || contains(steps.release_tag.outputs.tag, '-alpha') }}
+          tag_name: ${{ steps.release_tag.outputs.tag }}
           generate_release_notes: true
           draft: false
           files: |
