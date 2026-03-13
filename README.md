@@ -193,6 +193,8 @@ At minimum, you describe:
 - the provider/model
 - optional tools, policies, data sources, or MCP servers depending on agent type
 
+If writing the spec from scratch is the bottleneck, we also provide [`agent-spec-builder`](./.agents/skills/agent-spec-builder/SKILL.md), an Agent Skill. It helps create a first draft that you can refine into `agent_spec.yaml` and then validate with Prompt Hardener.
+
 For complete field definitions and full examples, see [docs/agent-spec.md](./docs/agent-spec.md).
 
 ## Included examples
