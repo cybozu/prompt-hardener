@@ -11,11 +11,11 @@ requires-python = ">=3.10"
 license = { text = "Apache 2.0" }
 dependencies = [
   "requests==2.32.5",
-  "openai==2.21.0",
+  "openai==2.23.0",
   "argparse==1.4.0",
   "gradio==6.8.0",
   "anthropic==0.83.0",
-  "boto3==1.42.50",
+  "boto3==1.42.55",
   "pyyaml==6.0.3",
   "jsonschema==4.26.0",
 ]
@@ -23,7 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest==9.0.2",
-  "ruff==0.15.1",
+  "ruff==0.15.2",
 ]
 
 [project.scripts]
