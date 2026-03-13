@@ -1,89 +1,109 @@
 # Prompt Hardener
 
-Prompt Hardener analyzes **prompt-injection-originated risk in LLM-based agents and applications**.
+Prompt Hardener analyzes **prompt-injection risk in LLM-based agents and applications**.
 
-Define your system in a unified specification (`agent_spec.yaml`), then run a multi-layer security pipeline that:
+It gives you a single workflow to:
 
-- analyzes structural risks across prompts, context sources, and tools  
-- validates behavior with adversarial attack scenarios  
-- proposes mitigations across **prompt, policy, and architecture layers**
+- describe your system in `agent_spec.yaml`
+- run deterministic security analysis across prompt, tool, and architecture layers
+- generate mitigations
+- validate defenses with adversarial attack simulation
+- export results as Markdown, HTML, or JSON
 
-Prompt Hardener helps developers and security engineers understand **how prompt injection could affect their system and how to reduce that risk**.
+Prompt Hardener is designed for developers and security engineers who want to understand **how prompt injection can affect an agent** and **how to reduce that risk**.
 
-## Features
+## Why use it?
 
-| Feature | Description |
-|---------|-------------|
-| Agent Specification | Unified YAML format for chatbot, RAG, agent, and MCP-agent types |
-| Layered Analysis | Deterministic static rules across prompt, tool, and architecture layers |
-| Conservative Remediation | Three-layer remediation with planner-driven constrained prompt rewriting |
-| Attack Simulation | Scenario-based adversarial testing from a built-in catalog |
-| Hardening Techniques | Spotlighting, Random Sequence Enclosure, Instruction Defense, and more |
-| Multi-format Reports | Markdown, HTML, and JSON reports for CI/CD integration |
-| Web UI | Gradio-based interface for interactive experimentation |
+- **One spec for multiple agent types**: chatbot, RAG, tool-calling agent, and MCP agent
+- **Deterministic first**: `init`, `validate`, `analyze`, `report`, and `diff` do not require an LLM API key
+- **Layered security view**: inspect prompt, tool, and architecture risks separately
+- **Practical remediation**: get recommended fixes for prompts, policies, tools, and trust boundaries
+- **Attack validation**: test your spec against built-in adversarial scenarios
+- **CI-friendly output**: export Markdown, HTML, or JSON
+- **Interactive UI**: explore the workflow from a local Gradio app
 
-## Getting Started
+## Quick start
 
-### API Keys
+The fastest way to try Prompt Hardener is to use one of the included example specs.
 
-Most of the standard workflow does **not** require an API key. `init`, `validate`, `analyze`, `report`, and `diff` are deterministic commands.
-
-LLM credentials are only needed for LLM-backed operations:
-
-- prompt-layer `remediate`
-- `simulate`
-
-Prompt Hardener supports **OpenAI**, **Anthropic Claude** and **AWS Bedrock (Claude v3 or newer)** APIs for LLM-backed commands.
-
-You must set at least one of the following environment variables before using those commands:
+### 1) Install
 
 ```bash
-# For OpenAI API (e.g., GPT-4, GPT-4o)
-export OPENAI_API_KEY=...
-
-# For Claude API (e.g., Claude 3.7 Sonnet)
-export ANTHROPIC_API_KEY=...
-
-# For Bedrock API (e.g., anthropic.claude-3-5-sonnet-20240620-v1:0)
-# Option 1: Use AWS Profile (recommended)
-aws configure --profile my-profile
-# Then use --aws-profile my-profile in the command
-
-# Option 2: Use environment variables
-export AWS_ACCESS_KEY_ID=...
-export AWS_SECRET_ACCESS_KEY=...
-export AWS_SESSION_TOKEN=...
-```
-
-You can add these lines to your shell profile (e.g., `.bashrc`, `.zshrc`) to make them persistent.
-
-### Installation
-
-```bash
-# Option 1 (Recommended): Install as a CLI tool using uv
-uv tool install \
-  https://github.com/cybozu/prompt-hardener/releases/download/vX.Y.Z/prompt_hardener-X.Y.Z-py3-none-any.whl
-
-# Option 2: Development / editable install
+# Option 1: Install from source
 git clone https://github.com/cybozu/prompt-hardener.git
 cd prompt-hardener
 
 uv venv
 source .venv/bin/activate
 uv pip install -e .
+
+# Option 2: Install as a CLI tool using uv
+uv tool install \
+  https://github.com/cybozu/prompt-hardener/releases/download/vX.Y.Z/prompt_hardener-X.Y.Z-py3-none-any.whl
 ```
 
-## Workflow
+### 2) Analyze an example spec
 
-Prompt Hardener follows a structured security pipeline:
+```bash
+cp examples/chatbot-minimal/agent_spec.yaml ./agent_spec.yaml
 
+prompt-hardener validate agent_spec.yaml
+prompt-hardener analyze agent_spec.yaml --format markdown
 ```
+
+That gives you a complete static analysis run without setting any API credentials.
+
+### 3) Export a shareable report
+
+```bash
+prompt-hardener analyze agent_spec.yaml -o analyze.json
+prompt-hardener report analyze.json -f html -o report.html
+```
+
+## When do you need LLM API keys?
+
+Most of the workflow is deterministic.
+
+| Command | API key required? | Notes |
+|---|---|---|
+| `init` | No | Generate a starter `agent_spec.yaml` |
+| `validate` | No | Schema + semantic validation |
+| `analyze` | No | Static rule-based analysis |
+| `report` | No | Render JSON results as Markdown / HTML / JSON |
+| `diff` | No | Compare two specs |
+| `remediate` | Sometimes | Prompt-layer remediation needs an LLM; `--layers tool architecture` stays deterministic |
+| `simulate` | Yes | Attack simulation is LLM-backed |
+
+Prompt Hardener supports these providers for LLM-backed commands:
+
+- OpenAI
+- Anthropic Claude
+- AWS Bedrock (Claude v3 or newer)
+
+### Example environment variables
+
+```bash
+# OpenAI
+export OPENAI_API_KEY=...
+
+# Anthropic Claude
+export ANTHROPIC_API_KEY=...
+
+# AWS Bedrock (alternative: use an AWS profile)
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...
+```
+
+## Your first real workflow
+
+Once you are ready to analyze your own system, the standard workflow is:
+
+```text
 init -> validate -> analyze -> remediate -> simulate -> report -> diff
 ```
 
-### 1. init
-
-Generate an `agent_spec.yaml` from a built-in template.
+### Create a starter spec
 
 ```bash
 prompt-hardener init --type chatbot -o agent_spec.yaml
@@ -92,31 +112,27 @@ prompt-hardener init --type agent -o agent_spec.yaml
 prompt-hardener init --type mcp-agent -o agent_spec.yaml
 ```
 
-Edit the generated file to describe your agent, then validate it.
+Edit the generated file to match your system, then run the rest of the pipeline.
 
-### 2. validate
-
-Run schema and semantic validation on your spec.
+### Validate
 
 ```bash
 prompt-hardener validate agent_spec.yaml
 ```
 
-### 3. analyze
-
-Run deterministic static rule-based analysis.
+### Analyze
 
 ```bash
 prompt-hardener analyze agent_spec.yaml --format markdown
 ```
 
-Use `--layers prompt tool architecture` to filter which layers to analyze. See `prompt-hardener analyze --help` for all options.
+To limit analysis to specific layers:
 
-See [docs/analysis-rules.md](./docs/analysis-rules.md) for the full static rule catalog and scoring details.
+```bash
+prompt-hardener analyze agent_spec.yaml --layers prompt tool architecture
+```
 
-### 4. remediate
-
-Generate actionable remediations across three layers. The prompt layer uses planner-driven constrained rewriting with deterministic acceptance.
+### Remediate
 
 ```bash
 prompt-hardener remediate agent_spec.yaml \
@@ -125,195 +141,124 @@ prompt-hardener remediate agent_spec.yaml \
   -rd ./reports
 ```
 
-Options: `--layers`, `--apply-techniques`. See `prompt-hardener remediate --help`.
-
-If you run only `--layers tool architecture`, remediation stays deterministic and does not make LLM calls.
-
-### 5. simulate
-
-Run attack scenarios from the built-in catalog against your agent spec.
+If you only want deterministic remediation suggestions for non-prompt layers:
 
 ```bash
-prompt-hardener simulate agent_spec.yaml \
-  -ea openai -em gpt-4o-mini \
-  -o simulation_results.json
+prompt-hardener remediate agent_spec.yaml \
+  --layers tool architecture \
+  -ea openai -em gpt-4o-mini
 ```
 
-Filter by category or layer:
+### Simulate attacks
 
 ```bash
-prompt-hardener simulate agent_spec.yaml \
+prompt-hardener simulate hardened.yaml \
+  -ea openai -em gpt-4o-mini \
+  -o simulation.json
+```
+
+Filter simulation by category or layer when you want a focused test:
+
+```bash
+prompt-hardener simulate hardened.yaml \
   -ea openai -em gpt-4o-mini \
   --categories "persona_switch,prompt_leaking" \
-  --layers "prompt,tool"
+  --layers "prompt,tool" \
+  -o simulation.json
 ```
 
-See `prompt-hardener simulate --help` for all options including separate attack/judge models.
-
-### 6. report
-
-Generate a formatted report from any JSON output (analyze, remediate, or simulate).
+### Compare before and after
 
 ```bash
-prompt-hardener report results.json -f markdown
-prompt-hardener report results.json -f html -o report.html
+prompt-hardener diff agent_spec.yaml hardened.yaml
 ```
 
-### 7. diff
+## Supported agent types
 
-Compare two agent specs to see what changed (useful for before/after remediation).
-
-```bash
-prompt-hardener diff before.yaml after.yaml
-prompt-hardener diff before.yaml after.yaml -f markdown
-```
-
-## Agent Specification (agent_spec.yaml)
-
-The agent specification is a YAML file that describes the agent under test. It is the single input for the standard command workflow. Four agent types are supported:
-
-| Type | Description | Analyzed Layers |
-|------|-------------|-----------------|
+| Type | Description | Analyzed layers |
+|---|---|---|
 | `chatbot` | Simple conversational bots | prompt |
 | `rag` | Retrieval-augmented generation systems | prompt, architecture |
 | `agent` | Tool-calling agents | prompt, tool, architecture |
-| `mcp-agent` | MCP server-connected agents | prompt, tool, architecture |
+| `mcp-agent` | MCP-connected agents | prompt, tool, architecture |
 
-See [docs/agent-spec.md](./docs/agent-spec.md) for field requirements, detailed field descriptions, and full examples for each agent type.
+## What goes into `agent_spec.yaml`?
 
-## Attack Simulation
+`agent_spec.yaml` is the single input to the main workflow.
 
-Run adversarial attack scenarios against your agent spec to validate prompt injection defenses. The built-in catalog covers 13 categories across three layers (prompt, tool, architecture), including persona switching, prompt leaking, function call hijacking, data source poisoning, and more.
+At minimum, you describe:
 
-You can also create custom scenarios using YAML files.
+- the agent type
+- the system prompt
+- the provider/model
+- optional tools, policies, data sources, or MCP servers depending on agent type
 
-See [docs/attack-simulation.md](./docs/attack-simulation.md) for the full catalog, how simulation works, and how to write custom scenarios.
+If writing the spec from scratch is the bottleneck, we also provide [`agent-spec-builder`](./.agents/skills/agent-spec-builder/SKILL.md), an Agent Skill. It helps create a first draft that you can refine into `agent_spec.yaml` and then validate with Prompt Hardener.
 
-## Hardening Techniques
+For complete field definitions and full examples, see [docs/agent-spec.md](./docs/agent-spec.md).
 
-Prompt Hardener supports five prompt-layer hardening techniques: **Spotlighting**, **Random Sequence Enclosure**, **Instruction Defense**, **Role Consistency**, and **Secrets Exclusion**.
+## Included examples
 
-See [docs/techniques.md](./docs/techniques.md) for how each technique works, evaluation criteria, and examples.
+Use these to understand the spec format and try the tool quickly:
 
-## Layered Remediation
+- `examples/chatbot-minimal`
+- `examples/rag-internal-assistant`
+- `examples/agent-basic`
 
-The `remediate` command applies fixes across three layers:
+## Hardening techniques
 
-| Layer | What It Does | Requires LLM |
-|-------|-------------|--------------|
-| **Prompt** | Uses a planner-driven constrained rewrite. Selected techniques are normally required for an accepted rewrite. | Yes |
-| **Tool** | Analyzes tool definitions and policies. Recommends adding parameter validation, restricting allowed actions, and tightening schemas. | No |
-| **Architecture** | Reviews data sources, trust boundaries, and escalation rules. Recommends trust level adjustments, data boundary enforcement, and escalation policies. | No |
+Prompt-layer remediation can apply these techniques:
 
-## Reporting
+- `spotlighting`
+- `random_sequence_enclosure`
+- `instruction_defense`
+- `role_consistency`
+- `secrets_exclusion`
 
-After each command (`analyze`, `remediate`, `simulate`), results are output as JSON. Use the `report` command to convert them:
+See [docs/techniques.md](./docs/techniques.md) for details and examples.
+
+## Attack simulation
+
+The simulator runs adversarial scenarios against your spec so you can validate defenses, not just lint configuration.
+
+See [docs/attack-simulation.md](./docs/attack-simulation.md) for the built-in catalog and custom scenario format.
+
+## Reports
+
+After `analyze`, `remediate`, or `simulate`, you can render JSON results into a friendlier format:
 
 ```bash
-# Markdown to stdout
 prompt-hardener report results.json -f markdown
-
-# HTML file
 prompt-hardener report results.json -f html -o report.html
 ```
 
-Reports include:
-- Findings with severity levels and recommended fixes
-- Layer-by-layer scores
-- Attack simulation results (blocked/succeeded stats)
-
-## Web UI (Gradio)
+## Web UI
 
 ```bash
 prompt-hardener webui
 ```
 
-Then visit http://localhost:7860 to use Prompt Hardener interactively:
+Then open `http://localhost:7860` in your browser.
 
-<img width="1255" height="785" alt="Screenshot 2026-03-12 at 15 41 35" src="https://github.com/user-attachments/assets/2a1483db-07b5-43b2-9694-2eed526bb4b7" />
+## Documentations
 
+- Rule catalog: [docs/analysis-rules.md](./docs/analysis-rules.md)
+- Agent spec reference: [docs/agent-spec.md](./docs/agent-spec.md)
+- Attack simulation: [docs/attack-simulation.md](./docs/attack-simulation.md)
+- Techniques: [docs/techniques.md](./docs/techniques.md)
+- Tutorials: [docs/tutorials.md](./docs/tutorials.md)
 
-## Tutorials
+## Legacy commands
 
-Step-by-step walkthroughs for hardening a chatbot and a tool-calling agent:
+`evaluate` and `improve` are still available for backward compatibility with v0.4.0 workflows.
 
-[docs/tutorials.md](./docs/tutorials.md)
-
-## Legacy Commands (v0.4.0 Compatible)
-
-The `evaluate` and `improve` commands from v0.4.0 are still supported for backward compatibility. New users should use the workflow above.
-
-<details>
-<summary>Arguments Overview for evaluate Command</summary>
-
-| Argument                   | Short | Type        | Required | Default             | Description                                                                                                              |
-| -------------------------- | ----- | ----------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `--target-prompt-path`     | `-t`  | `str`       | Yes    | -                   | Path to the file containing the target system prompt (Chat Completion message format, JSON).                             |
-| `--input-mode`             |       | `str`       | No     | `chat`              | Prompt format type: `chat` for role-based messages, `completion` for single prompt string.                               |
-| `--input-format`           |       | `str`       | No     | `openai`            | Input message format to parse: `openai`, `claude`, or `bedrock`.                                                         |
-| `--eval-api-mode`          | `-ea` | `str`       | Yes    | -                   | LLM API used for evaluation (`openai`, `claude` or `bedrock`).                                                           |
-| `--eval-model`             | `-em` | `str`       | Yes    | -                   | Model name used for evaluation (e.g., `gpt-4o-mini`, `claude-3-7-sonnet-latest`).                        |
-| `--aws-region`             | `-ar` | `str`       | No     | `us-east-1`         | AWS region for Bedrock API mode.                                                                 |
-| `--aws-profile`            | `-ap` | `str`       | No     | `None`              | AWS profile name for Bedrock API mode.                             |
-| `--user-input-description` | `-ui` | `str`       | No     | `None`              | Description of user input fields.                   |
-| `--output-path`            | `-o`  | `str`       | No    | -                   | File path to write the evaluation result as JSON.                                                                        |
-| `--apply-techniques`       | `-a`  | `list[str]` | No     | All techniques      | Defense techniques to apply.                                                                         |
-| `--report-dir`             | `-rd` | `str`       | No     | `None`              | Directory to write evaluation report files.                            |
-
-Example:
+New users should start with the spec-based workflow above. For legacy usage details, run:
 
 ```bash
-prompt-hardener evaluate \
-  --input-mode chat \
-  --input-format openai \
-  --target-prompt-path path/to/prompt.json \
-  --eval-api-mode openai \
-  --eval-model gpt-4o-mini \
-  --output-path path/to/evaluation.json
+prompt-hardener evaluate --help
+prompt-hardener improve --help
 ```
 
-</details>
+## License
 
-<details>
-<summary>Arguments Overview for improve Command</summary>
-
-| Argument                   | Short | Type        | Required | Default             | Description                                                                                                              |
-| -------------------------- | ----- | ----------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `--target-prompt-path`     | `-t`  | `str`       | Yes    | -                   | Path to the file containing the target system prompt (Chat Completion message format, JSON).                             |
-| `--input-mode`             |       | `str`       | No     | `chat`              | Prompt format type: `chat` for role-based messages, `completion` for single prompt string.                               |
-| `--input-format`           |       | `str`       | No     | `openai`            | Input message format to parse: `openai`, `claude`, or `bedrock`.                                                         |
-| `--eval-api-mode`          | `-ea` | `str`       | Yes    | -                   | LLM API used for evaluation and improvement.                                           |
-| `--eval-model`             | `-em` | `str`       | Yes    | -                   | Model name used for evaluation and improvement.                        |
-| `--attack-api-mode`        | `-aa` | `str`       | No     | `--eval-api-mode`   | LLM API used for executing attacks.                                                     |
-| `--attack-model`           | `-am` | `str`       | No     | `--eval-model`      | Model used to generate and run attacks.                                               |
-| `--judge-api-mode`         | `-ja` | `str`       | No     | `--eval-api-mode`   | LLM API used for attack judging.                                 |
-| `--judge-model`            | `-jm` | `str`       | No     | `--eval-model`      | Model used to judge injection success.                     |
-| `--aws-region`             | `-ar` | `str`       | No     | `us-east-1`         | AWS region for Bedrock API mode.                                                                 |
-| `--aws-profile`            | `-ap` | `str`       | No     | `None`              | AWS profile name for Bedrock API mode.                             |
-| `--user-input-description` | `-ui` | `str`       | No     | `None`              | Description of user input fields.                   |
-| `--output-path`            | `-o`  | `str`       | No    | -                   | File path to write the final improved prompt as JSON.                                                                    |
-| `--max-iterations`         | `-n`  | `int`       | No     | `3`                 | Maximum number of improvement iterations.                                                                                |
-| `--threshold`              |       | `float`     | No     | `8.5`               | Score threshold (0-10) to stop refinement early.                                                 |
-| `--apply-techniques`       | `-a`  | `list[str]` | No     | All techniques      | Defense techniques to apply.                                                                         |
-| `--test-after`             | `-ta` | `flag`      | No     | `False`             | Run prompt injection test after improvement.                             |
-| `--test-separator`         | `-ts` | `str`       | No     | `None`              | Optional string to prepend to each attack payload.                         |
-| `--tools-path`             | `-tp` | `str`       | No     | `None`              | Path to JSON file defining available tools for attack testing.                      |
-| `--report-dir`             | `-rd` | `str`       | No     | `None`              | Directory to write report files.  |
-
-Example:
-
-```bash
-prompt-hardener improve \
-  --input-mode chat \
-  --input-format openai \
-  --target-prompt-path path/to/prompt.json \
-  --eval-api-mode openai \
-  --eval-model gpt-4o-mini \
-  --output-path path/to/hardened.json \
-  --user-input-description Comments \
-  --max-iterations 3 \
-  --test-after \
-  --report-dir ~/Downloads
-```
-
-</details>
+Apache-2.0
