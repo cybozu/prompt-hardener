@@ -25,7 +25,7 @@ def _has_write_or_delete_tools(spec):
 
 
 @rule(
-    id="ARCH-002",
+    id="ARCH-001",
     name="Untrusted MCP server with broad access",
     layer="architecture",
     severity="high",
@@ -48,7 +48,7 @@ def check_untrusted_mcp_broad_access(spec):
         findings.append(
             Finding(
                 id="",
-                rule_id="ARCH-002",
+                rule_id="ARCH-001",
                 title="Untrusted MCP server '%s' without tool restrictions" % ms.name,
                 severity="high",
                 layer="architecture",
@@ -89,7 +89,7 @@ _TOOL_RESULT_PATTERNS = [
 
 
 @rule(
-    id="ARCH-003",
+    id="ARCH-002",
     name="No output boundary for tool results",
     layer="architecture",
     severity="medium",
@@ -117,7 +117,7 @@ def check_tool_result_boundary(spec):
     findings.append(
         Finding(
             id="",
-            rule_id="ARCH-003",
+            rule_id="ARCH-002",
             title="No instructions for handling tool result trustworthiness",
             severity=severity,
             layer="architecture",
@@ -144,7 +144,7 @@ def check_tool_result_boundary(spec):
 
 
 @rule(
-    id="ARCH-004",
+    id="ARCH-003",
     name="Data source or MCP server with unknown trust level",
     layer="architecture",
     severity="medium",
@@ -160,7 +160,7 @@ def check_unknown_trust_level(spec):
             findings.append(
                 Finding(
                     id="",
-                    rule_id="ARCH-004",
+                    rule_id="ARCH-003",
                     title="Data source '%s' has unknown trust level" % ds.name,
                     severity="medium",
                     layer="architecture",
@@ -186,7 +186,7 @@ def check_unknown_trust_level(spec):
             findings.append(
                 Finding(
                     id="",
-                    rule_id="ARCH-004",
+                    rule_id="ARCH-003",
                     title="MCP server '%s' has unknown trust level" % ms.name,
                     severity="medium",
                     layer="architecture",
@@ -224,7 +224,7 @@ _MEMORY_PROTECTION_PATTERNS = [
 
 
 @rule(
-    id="ARCH-005",
+    id="ARCH-004",
     name="Persistent memory without poisoning protection",
     layer="architecture",
     severity="high",
@@ -261,7 +261,7 @@ def check_memory_poisoning(spec):
     findings.append(
         Finding(
             id="",
-            rule_id="ARCH-005",
+            rule_id="ARCH-004",
             title="Persistent memory without poisoning protection",
             severity="high",
             layer="architecture",
@@ -288,7 +288,7 @@ def check_memory_poisoning(spec):
 
 
 @rule(
-    id="ARCH-006",
+    id="ARCH-005",
     name="Broad scope with sensitive tools",
     layer="architecture",
     severity="high",
@@ -308,7 +308,7 @@ def check_broad_scope_sensitive_tools(spec):
     findings.append(
         Finding(
             id="",
-            rule_id="ARCH-006",
+            rule_id="ARCH-005",
             title="Multi-tenant agent with sensitive tools",
             severity="high",
             layer="architecture",
@@ -348,7 +348,7 @@ _TENANT_ISOLATION_PATTERNS = [
 
 
 @rule(
-    id="ARCH-007",
+    id="ARCH-006",
     name="Multi-tenant retrieval or memory without tenant isolation",
     layer="architecture",
     severity="high",
@@ -393,7 +393,7 @@ def check_multi_tenant_isolation(spec):
     findings.append(
         Finding(
             id="",
-            rule_id="ARCH-007",
+            rule_id="ARCH-006",
             title="Multi-tenant retrieval or memory without tenant isolation",
             severity="high",
             layer="architecture",
@@ -427,7 +427,7 @@ _BUDGET_PATTERNS = [
 
 
 @rule(
-    id="ARCH-008",
+    id="ARCH-007",
     name="No explicit budget or rate limit for autonomous tool use",
     layer="architecture",
     severity="medium",
@@ -464,7 +464,7 @@ def check_tool_budget(spec):
     findings.append(
         Finding(
             id="",
-            rule_id="ARCH-008",
+            rule_id="ARCH-007",
             title="No explicit budget or rate limit for %d tools" % len(spec.tools),
             severity="medium",
             layer="architecture",
@@ -491,7 +491,7 @@ def check_tool_budget(spec):
 
 
 @rule(
-    id="ARCH-009",
+    id="ARCH-008",
     name="Unverified third-party tool or prompt provenance",
     layer="architecture",
     severity="high",
@@ -516,7 +516,7 @@ def check_third_party_provenance(spec):
         findings.append(
             Finding(
                 id="",
-                rule_id="ARCH-009",
+                rule_id="ARCH-008",
                 title="Third-party tool '%s' without provenance verification"
                 % tool.name,
                 severity="high",
@@ -556,7 +556,7 @@ def check_third_party_provenance(spec):
         findings.append(
             Finding(
                 id="",
-                rule_id="ARCH-009",
+                rule_id="ARCH-008",
                 title="MCP server '%s' without provenance verification" % ms.name,
                 severity="high",
                 layer="architecture",

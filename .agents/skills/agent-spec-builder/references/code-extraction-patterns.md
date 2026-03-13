@@ -352,8 +352,8 @@ namespace per tenant
 tenant isolation
 ```
 
-If memory exists but protection evidence is absent, record an ARCH-005 follow-up.
-If multi-tenant scope exists with memory or sensitive data but isolation evidence is absent, record an ARCH-007 follow-up.
+If memory exists but protection evidence is absent, record an ARCH-004 follow-up.
+If multi-tenant scope exists with memory or sensitive data but isolation evidence is absent, record an ARCH-006 follow-up.
 
 ---
 

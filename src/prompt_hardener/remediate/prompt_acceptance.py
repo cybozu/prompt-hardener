@@ -22,7 +22,7 @@ def _missing_positive_clauses(text: str, plan) -> List[str]:
             )
         ):
             missing.append("PROMPT-001")
-        elif finding_id == "PROMPT-004" and not any(
+        elif finding_id == "PROMPT-003" and not any(
             phrase in lowered
             for phrase in (
                 "must not override",
@@ -31,12 +31,12 @@ def _missing_positive_clauses(text: str, plan) -> List[str]:
                 "cannot supersede",
             )
         ):
-            missing.append("PROMPT-004")
-        elif finding_id == "ARCH-003" and not any(
+            missing.append("PROMPT-003")
+        elif finding_id == "ARCH-002" and not any(
             phrase in lowered
             for phrase in ("tool output", "tool results", "external system responses")
         ):
-            missing.append("ARCH-003")
+            missing.append("ARCH-002")
     return missing
 
 
@@ -230,7 +230,7 @@ def accept_rewritten_prompt(
 
     if any(
         fid in plan.deferred_findings
-        for fid in ("TOOL-002", "TOOL-007", "TOOL-008", "ARCH-008", "ARCH-009")
+        for fid in ("TOOL-002", "TOOL-007", "TOOL-008", "ARCH-007", "ARCH-008")
     ):
         if (
             "allow_actions" in lowered

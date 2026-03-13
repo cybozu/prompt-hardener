@@ -183,7 +183,7 @@ def check_sensitive_material(spec):
 
 
 @rule(
-    id="PROMPT-004",
+    id="PROMPT-003",
     name="No instruction to treat user input as untrusted",
     layer="prompt",
     severity="medium",
@@ -201,7 +201,7 @@ def check_untrusted_input_instruction(spec):
     findings.append(
         Finding(
             id="",
-            rule_id="PROMPT-004",
+            rule_id="PROMPT-003",
             title="System prompt lacks untrusted user input handling instruction",
             severity="medium",
             layer="prompt",

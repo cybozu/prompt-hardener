@@ -302,7 +302,7 @@ class TestToolLayer:
             ),
             Finding(
                 id="f2",
-                rule_id="ARCH-001",
+                rule_id="ARCH-002",
                 title="Arch issue",
                 severity="medium",
                 layer="architecture",
@@ -423,7 +423,7 @@ class TestArchLayer:
         findings = [
             Finding(
                 id="f1",
-                rule_id="ARCH-001",
+                rule_id="ARCH-002",
                 title="Missing boundary",
                 severity="high",
                 layer="architecture",
@@ -516,14 +516,14 @@ class TestPromptPlan:
         assert "instruction_defense" not in plan.selected_techniques
         assert "random_sequence_enclosure" not in plan.selected_techniques
 
-    def test_prompt_004_alone_does_not_select_instruction_defense(self):
+    def test_prompt_003_alone_does_not_select_instruction_defense(self):
         from prompt_hardener.remediate.prompt_plan import build_prompt_hardening_plan
 
         spec = _make_spec(agent_type="chatbot")
         findings = [
             Finding(
                 id="f1",
-                rule_id="PROMPT-004",
+                rule_id="PROMPT-003",
                 title="No user-input boundary",
                 severity="medium",
                 layer="prompt",
@@ -572,7 +572,7 @@ class TestPromptPlan:
             ),
             Finding(
                 id="f2",
-                rule_id="PROMPT-004",
+                rule_id="PROMPT-003",
                 title="Override",
                 severity="medium",
                 layer="prompt",
@@ -641,7 +641,7 @@ class TestPromptAcceptance:
             rewritten_system_prompt="You are helpful. Prompt Attack Detected.",
             plan=PromptHardeningPlan(
                 mode="rewrite",
-                addressed_findings=["PROMPT-004"],
+                addressed_findings=["PROMPT-003"],
                 selected_techniques=["instruction_defense"],
             ),
         )
@@ -711,7 +711,7 @@ class TestPromptAcceptance:
             ),
             plan=PromptHardeningPlan(
                 mode="rewrite",
-                addressed_findings=["PROMPT-001", "PROMPT-004"],
+                addressed_findings=["PROMPT-001", "PROMPT-003"],
                 selected_techniques=[
                     "spotlighting",
                     "instruction_defense",
@@ -926,7 +926,7 @@ class TestPromptLayer:
             ),
             Finding(
                 id="f2",
-                rule_id="PROMPT-004",
+                rule_id="PROMPT-003",
                 title="Override",
                 severity="medium",
                 layer="prompt",
@@ -1338,7 +1338,7 @@ class TestEngine:
             ),
             Finding(
                 id="f2",
-                rule_id="PROMPT-004",
+                rule_id="PROMPT-003",
                 title="Override",
                 severity="medium",
                 layer="prompt",

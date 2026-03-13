@@ -15,7 +15,7 @@ def test_field_catalog_tracks_current_rule_inventory():
     current_rules = [
         "PROMPT-001",
         "PROMPT-002",
-        "PROMPT-004",
+        "PROMPT-003",
         "TOOL-001",
         "TOOL-002",
         "TOOL-003",
@@ -24,6 +24,7 @@ def test_field_catalog_tracks_current_rule_inventory():
         "TOOL-006",
         "TOOL-007",
         "TOOL-008",
+        "ARCH-001",
         "ARCH-002",
         "ARCH-003",
         "ARCH-004",
@@ -31,13 +32,12 @@ def test_field_catalog_tracks_current_rule_inventory():
         "ARCH-006",
         "ARCH-007",
         "ARCH-008",
-        "ARCH-009",
     ]
 
     for rule_id in current_rules:
         assert rule_id in text
 
-    for deprecated_rule in ["PROMPT-003", "ARCH-001"]:
+    for deprecated_rule in ["PROMPT-004", "ARCH-009"]:
         assert deprecated_rule not in text
 
 
@@ -52,7 +52,7 @@ def test_output_templates_cover_provenance_and_budget_fields():
         "max_steps",
         "rate_limits",
         "cost_budget",
-        "ARCH-009",
+        "ARCH-008",
         "tools[<N>].parameters.properties.<dangerous_param>",
     ]
 
@@ -89,8 +89,8 @@ def test_skill_is_self_contained_and_tracks_expanded_scan_targets():
         "dangerous free-form parameters relevant to TOOL-007",
         "duplicate, confusing, or overly generic tool names relevant to TOOL-008",
         "policies.max_tool_calls",
-        "memory poisoning protections relevant to ARCH-005",
-        "tenant or user isolation relevant to ARCH-007",
+        "memory poisoning protections relevant to ARCH-004",
+        "tenant or user isolation relevant to ARCH-006",
     ]
 
     for snippet in required_snippets:

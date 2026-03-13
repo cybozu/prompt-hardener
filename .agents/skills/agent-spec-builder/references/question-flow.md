@@ -161,7 +161,7 @@ Use one prompt for non-MCP agents and the next available prompt index for MCP ag
 Extract:
 
 - `has_persistent_memory`
-- evidence for ARCH-005 in `evidence.md`
+- evidence for ARCH-004 in `evidence.md`
 
 ### Q9/Q10: Scope And Tenant Isolation
 
@@ -173,7 +173,7 @@ Extract:
 
 - `scope`
 - tenant-isolation evidence for `evidence.md`
-- if missing, add follow-up note tied to ARCH-007
+- if missing, add follow-up note tied to ARCH-006
 
 ### Q10: User Input Description
 
