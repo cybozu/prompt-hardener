@@ -132,8 +132,7 @@ def instantiate_templates(surface, findings_by_rule):
                 impact=_impact_for_tool(tool),
                 description=(
                     "A crafted user message can steer the model into invoking '%s' "
-                    "without the intended approval or distrust checks."
-                    % tool.name
+                    "without the intended approval or distrust checks." % tool.name
                 ),
                 preconditions=[
                     "The attacker can send a user message to the agent",
@@ -193,8 +192,7 @@ def instantiate_templates(surface, findings_by_rule):
                 )
                 description = (
                     "Untrusted retrieved content from '%s' can be treated as "
-                    "instructions and shape the model response."
-                    % data_source.name
+                    "instructions and shape the model response." % data_source.name
                 )
                 evidence = [
                     "Data source '%s' is untrusted or unknown" % data_source.name,
@@ -217,18 +215,17 @@ def instantiate_templates(surface, findings_by_rule):
                         % (data_source.name, tool.name)
                     )
                     evidence.append(
-                        "Tool '%s' can change state or act with privilege"
-                        % tool.name
+                        "Tool '%s' can change state or act with privilege" % tool.name
                     )
-                    mitigations.append(
-                        "Add escalation coverage for '%s'" % tool.name
-                    )
+                    mitigations.append("Add escalation coverage for '%s'" % tool.name)
                     blockers = _blockers(surface, tool)
                 paths.append(
                     PathDraft(
                         category="retrieved_content_tool_misuse",
                         title=title,
-                        entrypoint=PathNode(type="entrypoint", name="retrieved_content"),
+                        entrypoint=PathNode(
+                            type="entrypoint", name="retrieved_content"
+                        ),
                         chain=chain,
                         target=target,
                         impact=impact,
@@ -271,8 +268,7 @@ def instantiate_templates(surface, findings_by_rule):
                     impact=_impact_for_tool(tool),
                     description=(
                         "A malicious tool result can be reinterpreted as instructions, "
-                        "leading the model to call '%s'."
-                        % tool.name
+                        "leading the model to call '%s'." % tool.name
                     ),
                     preconditions=[
                         "At least one tool returns content that the model consumes",
@@ -359,7 +355,9 @@ def instantiate_templates(surface, findings_by_rule):
     # 5. Multi-tenant cross-tenant access
     if surface.scope == "multi_tenant" and not surface.controls.has_tenant_isolation:
         for tool in dangerous_tools or surface.tools:
-            if not (tool.can_modify_state or tool.can_read_data or tool.has_service_identity):
+            if not (
+                tool.can_modify_state or tool.can_read_data or tool.has_service_identity
+            ):
                 continue
             missing_controls = ["missing tenant isolation"]
             if not surface.controls.has_escalation_for(tool.name):
@@ -380,8 +378,7 @@ def instantiate_templates(surface, findings_by_rule):
                     impact=impact,
                     description=(
                         "In multi-tenant scope, '%s' can operate across tenant "
-                        "boundaries without explicit isolation controls."
-                        % tool.name
+                        "boundaries without explicit isolation controls." % tool.name
                     ),
                     preconditions=[
                         "The agent serves more than one tenant",
@@ -447,7 +444,9 @@ def instantiate_templates(surface, findings_by_rule):
                 inferred_hops=1 if sink_tool else 0,
                 boundary_crossings=1,
                 metadata={
-                    "exposures": "service identity" if sink_tool and sink_tool.has_service_identity else "",
+                    "exposures": "service identity"
+                    if sink_tool and sink_tool.has_service_identity
+                    else "",
                     "missing_controls": "missing distrust instruction",
                 },
             )
@@ -481,8 +480,7 @@ def instantiate_templates(surface, findings_by_rule):
                     impact=_impact_for_tool(tool),
                     description=(
                         "An untrusted MCP server without tool restrictions can "
-                        "influence the model and reach '%s'."
-                        % tool.name
+                        "influence the model and reach '%s'." % tool.name
                     ),
                     preconditions=[
                         "The MCP server can return attacker-influenced content",
@@ -516,7 +514,10 @@ def instantiate_templates(surface, findings_by_rule):
             )
 
     # 8. System prompt leakage
-    if findings_by_rule.get("PROMPT-002") and not surface.controls.has_user_input_distrust:
+    if (
+        findings_by_rule.get("PROMPT-002")
+        and not surface.controls.has_user_input_distrust
+    ):
         paths.append(
             PathDraft(
                 category="system_prompt_leakage",

@@ -31,7 +31,9 @@ def _canonical_key(path):
 
 
 def _merge_drafts(existing, incoming):
-    existing.preconditions = sorted(set(existing.preconditions + incoming.preconditions))
+    existing.preconditions = sorted(
+        set(existing.preconditions + incoming.preconditions)
+    )
     existing.blockers = sorted(set(existing.blockers + incoming.blockers))
     existing.evidence = sorted(set(existing.evidence + incoming.evidence))
     existing.related_findings = sorted(
@@ -45,7 +47,11 @@ def _merge_drafts(existing, incoming):
             set(
                 filter(
                     None,
-                    (existing.metadata.get("exposures", "") + "|" + incoming.metadata.get("exposures", "")).split("|"),
+                    (
+                        existing.metadata.get("exposures", "")
+                        + "|"
+                        + incoming.metadata.get("exposures", "")
+                    ).split("|"),
                 )
             )
         )
@@ -90,7 +96,10 @@ def _validate_path(graph, path):
     if path.chain:
         first = path.chain[0]
         if not graph.has_edge(
-            _node_kind(path.entrypoint), path.entrypoint.name, _node_kind(first), first.name
+            _node_kind(path.entrypoint),
+            path.entrypoint.name,
+            _node_kind(first),
+            first.name,
         ):
             return False
     if len(path.chain) > 1:

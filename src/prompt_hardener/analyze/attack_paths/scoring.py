@@ -1,6 +1,5 @@
 """Scoring for enumerated attack paths."""
 
-
 IMPACT_SCORES = {
     "destructive action": 40,
     "confidential data exfiltration": 35,
@@ -68,7 +67,9 @@ def score_path(path):
     score += _sum_unique(path.impact, IMPACT_SCORES)
     score += _sum_unique(path.metadata.get("exposures", "").split("|"), EXPOSURE_SCORES)
     score += ENTRYPOINT_SCORES.get(path.entrypoint.name, 0)
-    score += _sum_unique(path.metadata.get("missing_controls", "").split("|"), CONTROL_WEAKNESS_SCORES)
+    score += _sum_unique(
+        path.metadata.get("missing_controls", "").split("|"), CONTROL_WEAKNESS_SCORES
+    )
 
     propagation = max(0, len(path.chain) - 1) * 5
     propagation += max(0, path.boundary_crossings) * 5

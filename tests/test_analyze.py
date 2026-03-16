@@ -1211,7 +1211,10 @@ class TestMarkdownRenderer:
         assert '<a id="recommended-fixes"></a>' in md
         assert "## Recommended Fixes" in md
         assert "### Attack Path Summary" in md
-        assert "| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |" in md
+        assert (
+            "| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |"
+            in md
+        )
 
 
 # =========================================================================
@@ -1304,7 +1307,10 @@ class TestAttackPathEnumeration:
         report = run_analyze(os.path.join(FIXTURES_DIR, "agent_confidential_spec.yaml"))
         scores = [path.score for path in report.attack_paths]
         assert scores == sorted(scores, reverse=True)
-        assert all(path.severity in ("low", "medium", "high", "critical") for path in report.attack_paths)
+        assert all(
+            path.severity in ("low", "medium", "high", "critical")
+            for path in report.attack_paths
+        )
 
 
 # =========================================================================

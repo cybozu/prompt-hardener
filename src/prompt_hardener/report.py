@@ -178,9 +178,11 @@ def _attack_path_steps(path):
     steps = path.get("steps") or []
     if steps:
         return steps
-    values = [_attack_path_entry_name(path)] + _attack_path_chain_names(path) + [
-        _attack_path_target_name(path)
-    ]
+    values = (
+        [_attack_path_entry_name(path)]
+        + _attack_path_chain_names(path)
+        + [_attack_path_target_name(path)]
+    )
     return [value for value in values if value]
 
 
@@ -244,8 +246,7 @@ def _render_analyze_contents_markdown(lines, findings, attack_paths, fixes):
             % _analyze_section_anchor("attack_path_summary")
         )
         lines.append(
-            "  - [Ranked Paths](#%s)"
-            % _analyze_section_anchor("ranked_paths")
+            "  - [Ranked Paths](#%s)" % _analyze_section_anchor("ranked_paths")
         )
         for index, attack_path in enumerate(attack_paths, 1):
             lines.append(
@@ -257,8 +258,7 @@ def _render_analyze_contents_markdown(lines, findings, attack_paths, fixes):
             )
     if fixes:
         lines.append(
-            "- [Recommended Fixes](#%s)"
-            % _analyze_section_anchor("recommended_fixes")
+            "- [Recommended Fixes](#%s)" % _analyze_section_anchor("recommended_fixes")
         )
     lines.append("")
 
@@ -307,9 +307,9 @@ def _render_analyze_contents_html(findings, attack_paths, fixes):
             % _analyze_section_anchor("recommended_fixes")
         )
 
-    return (
-        '<nav class="contents" id="%s"><h2>Contents</h2><ul>%s</ul></nav>'
-        % (_analyze_section_anchor("contents"), "".join(items))
+    return '<nav class="contents" id="%s"><h2>Contents</h2><ul>%s</ul></nav>' % (
+        _analyze_section_anchor("contents"),
+        "".join(items),
     )
 
 
@@ -472,8 +472,12 @@ def render_analyze_markdown(data):
         lines.append(_md_anchor_tag(_analyze_section_anchor("ranked_paths")))
         lines.append("### Ranked Paths")
         lines.append("")
-        lines.append("| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |")
-        lines.append("|------|----------|-------|-------|-------|-----|--------|------------|")
+        lines.append(
+            "| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |"
+        )
+        lines.append(
+            "|------|----------|-------|-------|-------|-----|--------|------------|"
+        )
         for index, attack_path in enumerate(attack_paths, 1):
             lines.append(
                 "| %d | %s | %s | [%s](#%s) | %s | %s | %s | %s |"
@@ -494,7 +498,9 @@ def render_analyze_markdown(data):
         lines.append("")
 
         for index, attack_path in enumerate(attack_paths, 1):
-            lines.append(_md_anchor_tag(_analyze_attack_path_anchor(attack_path, index)))
+            lines.append(
+                _md_anchor_tag(_analyze_attack_path_anchor(attack_path, index))
+            )
             lines.append("### %s" % _attack_path_title(attack_path))
             lines.append("")
             lines.append("- **Severity:** %s" % attack_path.get("severity", ""))
@@ -502,7 +508,9 @@ def render_analyze_markdown(data):
             lines.append("- **Confidence:** %s" % attack_path.get("confidence", ""))
             if attack_path.get("category"):
                 lines.append("- **Category:** %s" % attack_path.get("category", ""))
-            lines.append("- **Path:** %s" % " -> ".join(_attack_path_steps(attack_path)))
+            lines.append(
+                "- **Path:** %s" % " -> ".join(_attack_path_steps(attack_path))
+            )
             lines.append("")
             lines.append(attack_path.get("description", ""))
             lines.append("")
@@ -764,11 +772,13 @@ def render_analyze_html(data):
                 _esc(attack_path.get("severity", "")),
                 _esc(attack_path.get("score", 0)),
                 _esc(attack_path.get("confidence", "")),
-                "<p><strong>Category:</strong> %s</p>" % _esc(attack_path.get("category", ""))
+                "<p><strong>Category:</strong> %s</p>"
+                % _esc(attack_path.get("category", ""))
                 if attack_path.get("category")
                 else "",
                 _esc(attack_path.get("description", "")),
-                "<p><strong>Path:</strong> %s</p>" % _esc(" -> ".join(_attack_path_steps(attack_path))),
+                "<p><strong>Path:</strong> %s</p>"
+                % _esc(" -> ".join(_attack_path_steps(attack_path))),
                 steps_html + extra_sections,
             )
 

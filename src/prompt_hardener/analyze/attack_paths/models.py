@@ -1,7 +1,7 @@
 """Internal data models for attack path enumeration."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 @dataclass(frozen=True)
@@ -173,6 +173,8 @@ def node_to_step_text(node: PathNode) -> str:
     return "%s: %s" % (kind, node.name)
 
 
-def path_nodes_to_steps(entrypoint: PathNode, chain: List[PathNode], target: PathNode) -> List[str]:
+def path_nodes_to_steps(
+    entrypoint: PathNode, chain: List[PathNode], target: PathNode
+) -> List[str]:
     nodes = [entrypoint] + list(chain) + [target]
     return [node_to_step_text(node) for node in nodes]
