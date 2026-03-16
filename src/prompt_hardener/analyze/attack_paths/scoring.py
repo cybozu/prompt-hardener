@@ -5,6 +5,8 @@ IMPACT_SCORES = {
     "confidential data exfiltration": 35,
     "cross-tenant exposure": 30,
     "unauthorized write": 30,
+    "unauthorized external send": 30,
+    "unauthorized action": 20,
     "persistent poisoning": 25,
     "prompt leak": 20,
 }

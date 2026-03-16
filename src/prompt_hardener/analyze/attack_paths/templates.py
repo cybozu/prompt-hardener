@@ -70,11 +70,11 @@ def _related_finding_ids(findings_by_rule, category):
 def _impact_for_tool(tool):
     if tool.effect == "delete":
         return ["destructive action"]
+    if tool.can_egress:
+        return ["unauthorized external send"]
     if tool.can_modify_state:
         return ["unauthorized write"]
-    if tool.can_egress:
-        return ["unauthorized write"]
-    return ["unauthorized write"]
+    return ["unauthorized action"]
 
 
 def _target_for_tool(tool):
