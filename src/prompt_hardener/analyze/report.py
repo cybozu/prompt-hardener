@@ -1,7 +1,7 @@
 """Data classes for analyze report output."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -20,11 +20,24 @@ class Finding:
 @dataclass
 class AttackPath:
     id: str
-    name: str
+    title: str
+    category: str
     severity: str
+    score: int
+    confidence: str
+    entrypoint: Dict[str, str]
     description: str
-    steps: List[str] = field(default_factory=list)
+    chain: List[Dict[str, str]] = field(default_factory=list)
+    target: Dict[str, str] = field(default_factory=dict)
+    impact: List[str] = field(default_factory=list)
+    preconditions: List[str] = field(default_factory=list)
+    blockers: List[str] = field(default_factory=list)
+    evidence: List[str] = field(default_factory=list)
     related_findings: List[str] = field(default_factory=list)
+    recommended_mitigations: List[str] = field(default_factory=list)
+    # Temporary compatibility fields for one release cycle.
+    name: Optional[str] = None
+    steps: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -101,11 +114,23 @@ class AnalyzeReport:
             "attack_paths": [
                 {
                     "id": ap.id,
-                    "name": ap.name,
+                    "title": ap.title,
+                    "category": ap.category,
                     "severity": ap.severity,
-                    "description": ap.description,
-                    "steps": list(ap.steps),
+                    "score": ap.score,
+                    "confidence": ap.confidence,
+                    "entrypoint": dict(ap.entrypoint),
+                    "chain": [dict(node) for node in ap.chain],
+                    "target": dict(ap.target),
+                    "impact": list(ap.impact),
+                    "preconditions": list(ap.preconditions),
+                    "blockers": list(ap.blockers),
+                    "evidence": list(ap.evidence),
                     "related_findings": list(ap.related_findings),
+                    "recommended_mitigations": list(ap.recommended_mitigations),
+                    "description": ap.description,
+                    "name": ap.name or ap.title,
+                    "steps": list(ap.steps),
                 }
                 for ap in self.attack_paths
             ],

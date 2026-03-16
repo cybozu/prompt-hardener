@@ -81,6 +81,9 @@ class TestAnalyzeRendering:
         assert "PROMPT-001" in output
         assert "TOOL-003" in output
         assert "## Attack Paths" in output
+        assert "### Attack Path Summary" in output
+        assert "### Ranked Paths" in output
+        assert "Confidence" in output
         assert "## Recommended Fixes" in output
         assert "critical" in output
 
@@ -92,6 +95,8 @@ class TestAnalyzeRendering:
         assert "PROMPT-001" in output
         assert "severity-critical" in output
         assert "risk-high" in output
+        assert "Attack Path Summary" in output
+        assert "Ranked Paths" in output
 
     def test_markdown_no_findings(self):
         data = {

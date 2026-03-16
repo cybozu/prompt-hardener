@@ -1,5 +1,6 @@
 """Report subcommand: render analyze/simulate/remediate JSON results as formatted reports."""
 
+from collections import Counter
 import html
 import json
 
@@ -116,6 +117,52 @@ def _risk_badge_html(risk_level):
     )
 
 
+def _attack_path_title(path):
+    return path.get("title") or path.get("name", "")
+
+
+def _attack_path_entry_name(path):
+    entrypoint = path.get("entrypoint") or {}
+    if isinstance(entrypoint, dict):
+        return entrypoint.get("name", "")
+    return ""
+
+
+def _attack_path_target_name(path):
+    target = path.get("target") or {}
+    if isinstance(target, dict):
+        return target.get("name", "")
+    return ""
+
+
+def _attack_path_chain_names(path):
+    chain = path.get("chain") or []
+    if chain and isinstance(chain[0], dict):
+        return [node.get("name", "") for node in chain]
+    steps = path.get("steps") or []
+    return [step for step in steps[1:-1]]
+
+
+def _attack_path_steps(path):
+    steps = path.get("steps") or []
+    if steps:
+        return steps
+    values = [_attack_path_entry_name(path)] + _attack_path_chain_names(path) + [
+        _attack_path_target_name(path)
+    ]
+    return [value for value in values if value]
+
+
+def _attack_path_impacts(path):
+    impact = path.get("impact") or []
+    if impact:
+        return impact
+    severity = path.get("severity", "")
+    if severity:
+        return [severity]
+    return []
+
+
 # ---------------------------------------------------------------------------
 # Type detection
 # ---------------------------------------------------------------------------
@@ -221,25 +268,101 @@ def render_analyze_markdown(data):
                 lines.append("**Recommendation:** %s" % rec)
                 lines.append("")
 
-    # Attack Paths
     attack_paths = data.get("attack_paths", [])
     if attack_paths:
         lines.append("## Attack Paths")
         lines.append("")
-        for ap in attack_paths:
-            lines.append("### %s" % ap.get("name", ""))
+        severity_counts = Counter(ap.get("severity", "") for ap in attack_paths)
+        entry_counts = Counter(
+            _attack_path_entry_name(ap)
+            for ap in attack_paths
+            if _attack_path_entry_name(ap)
+        )
+        impact_counts = Counter()
+        for attack_path in attack_paths:
+            impact_counts.update(_attack_path_impacts(attack_path))
+
+        lines.append("### Attack Path Summary")
+        lines.append("")
+        lines.append("| Metric | Value |")
+        lines.append("|--------|-------|")
+        lines.append("| Total Paths | %d |" % len(attack_paths))
+        for severity in ["critical", "high", "medium", "low"]:
+            if severity_counts.get(severity, 0):
+                lines.append(
+                    "| %s Paths | %d |"
+                    % (severity.capitalize(), severity_counts.get(severity, 0))
+                )
+        if entry_counts:
+            lines.append(
+                "| Top Entrypoints | %s |"
+                % ", ".join(
+                    "%s (%d)" % (name, count)
+                    for name, count in entry_counts.most_common(3)
+                )
+            )
+        if impact_counts:
+            lines.append(
+                "| Top Impacts | %s |"
+                % ", ".join(
+                    "%s (%d)" % (name, count)
+                    for name, count in impact_counts.most_common(3)
+                )
+            )
+        lines.append("")
+
+        lines.append("### Ranked Paths")
+        lines.append("")
+        lines.append("| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |")
+        lines.append("|------|----------|-------|-------|-------|-----|--------|------------|")
+        for index, attack_path in enumerate(attack_paths, 1):
+            lines.append(
+                "| %d | %s | %s | %s | %s | %s | %s | %s |"
+                % (
+                    index,
+                    attack_path.get("severity", ""),
+                    attack_path.get("score", 0),
+                    _md_table_text(_attack_path_title(attack_path)),
+                    _md_table_text(_attack_path_entry_name(attack_path) or "-"),
+                    _md_table_text(
+                        " -> ".join(_attack_path_chain_names(attack_path)) or "-"
+                    ),
+                    _md_table_text(_attack_path_target_name(attack_path) or "-"),
+                    _md_table_text(attack_path.get("confidence", "")),
+                )
+            )
+        lines.append("")
+
+        for attack_path in attack_paths:
+            lines.append("### %s" % _attack_path_title(attack_path))
             lines.append("")
-            lines.append("- **Severity:** %s" % ap.get("severity", ""))
+            lines.append("- **Severity:** %s" % attack_path.get("severity", ""))
+            lines.append("- **Score:** %s" % attack_path.get("score", 0))
+            lines.append("- **Confidence:** %s" % attack_path.get("confidence", ""))
+            if attack_path.get("category"):
+                lines.append("- **Category:** %s" % attack_path.get("category", ""))
+            lines.append("- **Path:** %s" % " -> ".join(_attack_path_steps(attack_path)))
             lines.append("")
-            lines.append(ap.get("description", ""))
+            lines.append(attack_path.get("description", ""))
             lines.append("")
-            steps = ap.get("steps", [])
-            if steps:
-                lines.append("**Steps:**")
-                for i, step in enumerate(steps, 1):
-                    lines.append("%d. %s" % (i, step))
+
+            impacts = _attack_path_impacts(attack_path)
+            if impacts:
+                lines.append("**Impact:** %s" % ", ".join(impacts))
                 lines.append("")
-            related = ap.get("related_findings", [])
+            for label, key in [
+                ("Preconditions", "preconditions"),
+                ("Evidence", "evidence"),
+                ("Blockers / Existing Controls", "blockers"),
+                ("Recommended Mitigations", "recommended_mitigations"),
+            ]:
+                values = attack_path.get(key, [])
+                if values:
+                    lines.append("**%s:**" % label)
+                    for value in values:
+                        lines.append("- %s" % value)
+                    lines.append("")
+            related = attack_path.get("related_findings", [])
             if related:
                 lines.append("**Related Findings:** %s" % ", ".join(related))
                 lines.append("")
@@ -355,28 +478,129 @@ def render_analyze_html(data):
         )
 
     # Attack Paths
+    attack_paths = data.get("attack_paths", [])
     attack_paths_html = ""
-    for ap in data.get("attack_paths", []):
-        steps_html = ""
-        for step in ap.get("steps", []):
-            steps_html += "<li>%s</li>" % _esc(step)
-        if steps_html:
-            steps_html = "<ol>%s</ol>" % steps_html
+    if attack_paths:
+        severity_counts = Counter(ap.get("severity", "") for ap in attack_paths)
+        entry_counts = Counter(
+            _attack_path_entry_name(ap)
+            for ap in attack_paths
+            if _attack_path_entry_name(ap)
+        )
+        impact_counts = Counter()
+        for attack_path in attack_paths:
+            impact_counts.update(_attack_path_impacts(attack_path))
+
+        summary_rows = "<tr><th>Metric</th><th>Value</th></tr>"
+        summary_rows += "<tr><td>Total Paths</td><td>%d</td></tr>" % len(attack_paths)
+        for severity in ["critical", "high", "medium", "low"]:
+            if severity_counts.get(severity, 0):
+                summary_rows += "<tr><td>%s Paths</td><td>%d</td></tr>" % (
+                    _esc(severity.capitalize()),
+                    severity_counts.get(severity, 0),
+                )
+        if entry_counts:
+            summary_rows += "<tr><td>Top Entrypoints</td><td>%s</td></tr>" % _esc(
+                ", ".join(
+                    "%s (%d)" % (name, count)
+                    for name, count in entry_counts.most_common(3)
+                )
+            )
+        if impact_counts:
+            summary_rows += "<tr><td>Top Impacts</td><td>%s</td></tr>" % _esc(
+                ", ".join(
+                    "%s (%d)" % (name, count)
+                    for name, count in impact_counts.most_common(3)
+                )
+            )
+
+        ranked_rows = (
+            "<tr><th>Rank</th><th>Severity</th><th>Score</th><th>Title</th>"
+            "<th>Entry</th><th>Via</th><th>Target</th><th>Confidence</th></tr>"
+        )
+        for index, attack_path in enumerate(attack_paths, 1):
+            ranked_rows += (
+                "<tr>"
+                "<td>%d</td>"
+                '<td><span class="%s">%s</span></td>'
+                "<td>%s</td>"
+                "<td>%s</td>"
+                "<td>%s</td>"
+                "<td>%s</td>"
+                "<td>%s</td>"
+                "<td>%s</td>"
+                "</tr>"
+            ) % (
+                index,
+                _severity_class(attack_path.get("severity", "")),
+                _esc(attack_path.get("severity", "")),
+                _esc(attack_path.get("score", 0)),
+                _esc(_attack_path_title(attack_path)),
+                _esc(_attack_path_entry_name(attack_path) or "-"),
+                _esc(" -> ".join(_attack_path_chain_names(attack_path)) or "-"),
+                _esc(_attack_path_target_name(attack_path) or "-"),
+                _esc(attack_path.get("confidence", "")),
+            )
 
         attack_paths_html += (
-            '<div class="section">'
-            "<h3>%s</h3>"
-            '<p><span class="%s">Severity: %s</span></p>'
-            "<p>%s</p>"
-            "%s"
-            "</div>"
-        ) % (
-            _esc(ap.get("name", "")),
-            _severity_class(ap.get("severity", "")),
-            _esc(ap.get("severity", "")),
-            _esc(ap.get("description", "")),
-            steps_html,
-        )
+            '<div class="section"><h3>Attack Path Summary</h3><table>%s</table></div>'
+            '<div class="section"><h3>Ranked Paths</h3><table>%s</table></div>'
+        ) % (summary_rows, ranked_rows)
+
+        for attack_path in attack_paths:
+            steps_html = "".join(
+                "<li>%s</li>" % _esc(step) for step in _attack_path_steps(attack_path)
+            )
+            if steps_html:
+                steps_html = "<ol>%s</ol>" % steps_html
+
+            extra_sections = ""
+            impacts = _attack_path_impacts(attack_path)
+            if impacts:
+                extra_sections += "<p><strong>Impact:</strong> %s</p>" % _esc(
+                    ", ".join(impacts)
+                )
+            for label, key in [
+                ("Preconditions", "preconditions"),
+                ("Evidence", "evidence"),
+                ("Blockers / Existing Controls", "blockers"),
+                ("Recommended Mitigations", "recommended_mitigations"),
+            ]:
+                values = attack_path.get(key, [])
+                if values:
+                    items = "".join("<li>%s</li>" % _esc(value) for value in values)
+                    extra_sections += "<p><strong>%s:</strong></p><ul>%s</ul>" % (
+                        _esc(label),
+                        items,
+                    )
+            related = attack_path.get("related_findings", [])
+            if related:
+                extra_sections += "<p><strong>Related Findings:</strong> %s</p>" % _esc(
+                    ", ".join(related)
+                )
+
+            attack_paths_html += (
+                '<div class="section">'
+                "<h3>%s</h3>"
+                '<p><span class="%s">Severity: %s</span> | Score: %s | Confidence: %s</p>'
+                "%s"
+                "<p>%s</p>"
+                "%s"
+                "%s"
+                "</div>"
+            ) % (
+                _esc(_attack_path_title(attack_path)),
+                _severity_class(attack_path.get("severity", "")),
+                _esc(attack_path.get("severity", "")),
+                _esc(attack_path.get("score", 0)),
+                _esc(attack_path.get("confidence", "")),
+                "<p><strong>Category:</strong> %s</p>" % _esc(attack_path.get("category", ""))
+                if attack_path.get("category")
+                else "",
+                _esc(attack_path.get("description", "")),
+                "<p><strong>Path:</strong> %s</p>" % _esc(" -> ".join(_attack_path_steps(attack_path))),
+                steps_html + extra_sections,
+            )
 
     # Recommended Fixes
     fixes_rows = ""

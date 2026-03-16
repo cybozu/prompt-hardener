@@ -1,0 +1,51 @@
+version: "1.0"
+type: agent
+name: "Confidential Data Agent"
+description: "Agent with confidential data and egress capability"
+
+system_prompt: |
+  You are an operations assistant.
+  Help the user with data export tasks.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+tools:
+  - name: fetch_customer_record
+    description: "Read a customer record"
+    effect: read
+    impact: medium
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        customer_id:
+          type: string
+      required: [customer_id]
+  - name: export_report
+    description: "Send a report to an external system"
+    effect: external_send
+    impact: high
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        destination:
+          type: string
+        content:
+          type: string
+      required: [destination, content]
+
+data_sources:
+  - name: payroll_db
+    type: database
+    trust_level: trusted
+    sensitivity: confidential
+
+policies:
+  allowed_actions:
+    - fetch_customer_record
+    - export_report
+
+user_input_description: "Support requests via chat"

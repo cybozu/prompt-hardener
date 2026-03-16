@@ -77,16 +77,58 @@
   "attack_paths": [
     {
       "id": "AP001",
-      "name": "Prompt injection via mixed trusted and untrusted prompt channels",
+      "title": "Prompt injection via mixed trusted and untrusted prompt channels",
+      "category": "retrieved_content_tool_misuse",
       "severity": "high",
-      "description": "Untrusted or runtime content embedded inside the system prompt collapses the trust boundary between policy and attacker-controlled input, allowing injected text to be interpreted as trusted instructions.",
-      "steps": [
-        "Attacker-controlled or runtime content is embedded into the system prompt",
-        "Model receives mixed policy text and untrusted content in one trusted channel",
-        "Injected text inherits the authority of system instructions",
-        "Agent follows attacker-controlled instructions"
+      "score": 76,
+      "confidence": "high",
+      "entrypoint": {
+        "type": "entrypoint",
+        "name": "retrieved_content"
+      },
+      "chain": [
+        {
+          "type": "asset",
+          "name": "public_uploads"
+        },
+        {
+          "type": "control",
+          "name": "llm"
+        },
+        {
+          "type": "capability",
+          "name": "delete_account"
+        }
       ],
-      "related_findings": ["F001", "F003"]
+      "target": {
+        "type": "asset",
+        "name": "backend_state"
+      },
+      "impact": [
+        "destructive action"
+      ],
+      "preconditions": [
+        "The agent retrieves content from 'public_uploads'"
+      ],
+      "blockers": [],
+      "evidence": [
+        "Data source 'public_uploads' is untrusted or unknown",
+        "Tool 'delete_account' can change state or act with privilege"
+      ],
+      "related_findings": ["F001", "F003"],
+      "recommended_mitigations": [
+        "Mark retrieved content as untrusted data in prompt/policies",
+        "Add escalation coverage for 'delete_account'"
+      ],
+      "description": "Untrusted or runtime content embedded inside the system prompt collapses the trust boundary between policy and attacker-controlled input, allowing injected text to be interpreted as trusted instructions.",
+      "name": "Prompt injection via mixed trusted and untrusted prompt channels",
+      "steps": [
+        "entrypoint: retrieved_content",
+        "asset: public_uploads",
+        "control: llm",
+        "capability: delete_account",
+        "asset: backend_state"
+      ]
     }
   ],
   "recommended_fixes": [

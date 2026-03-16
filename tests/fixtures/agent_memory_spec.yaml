@@ -1,0 +1,32 @@
+version: "1.0"
+type: agent
+name: "Memory Agent"
+description: "Agent with persistent memory and a privileged tool"
+
+system_prompt: |
+  You are a long-term assistant.
+  Remember useful context for future conversations.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+tools:
+  - name: delete_account
+    description: "Delete a user account permanently"
+    effect: delete
+    impact: high
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        user_id:
+          type: string
+      required: [user_id]
+
+policies:
+  allowed_actions:
+    - delete_account
+
+has_persistent_memory: "true"
+user_input_description: "User requests via chat"
