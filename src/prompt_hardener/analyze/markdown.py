@@ -1,16 +1,169 @@
 """Render AnalyzeReport as Markdown."""
 
+from collections import Counter
+import re
+
+
+_SECTION_ANCHORS = {
+    "contents": "contents",
+    "summary": "summary",
+    "findings": "findings",
+    "attack_paths": "attack-paths",
+    "attack_path_summary": "attack-path-summary",
+    "ranked_paths": "ranked-paths",
+    "recommended_fixes": "recommended-fixes",
+}
+
+
+def _slugify(text):
+    value = re.sub(r"[^a-z0-9]+", "-", str(text).strip().lower()).strip("-")
+    return value or "item"
+
+
+def _anchor_tag(anchor_id):
+    return '<a id="%s"></a>' % anchor_id
+
+
+def _section_anchor(name):
+    return _SECTION_ANCHORS[name]
+
+
+def _finding_anchor(finding, index):
+    preferred = getattr(finding, "id", None) or getattr(finding, "rule_id", None)
+    if preferred:
+        return "finding-%s" % _slugify(preferred)
+    return "finding-%s-%d" % (_slugify(getattr(finding, "title", "")), index)
+
+
+def _attack_path_anchor(path, index):
+    preferred = (
+        getattr(path, "id", None)
+        or getattr(path, "title", None)
+        or getattr(path, "name", None)
+    )
+    if preferred:
+        return "attack-path-%s" % _slugify(preferred)
+    return "attack-path-%d" % index
+
+
+def _render_contents(lines, findings, attack_paths, recommended_fixes):
+    lines.append(_anchor_tag(_section_anchor("contents")))
+    lines.append("## Contents")
+    lines.append("")
+    lines.append("- [Summary](#%s)" % _section_anchor("summary"))
+    if findings:
+        lines.append("- [Findings](#%s)" % _section_anchor("findings"))
+        for index, finding in enumerate(findings, 1):
+            lines.append(
+                "  - [%s: %s](#%s)"
+                % (finding.rule_id, finding.title, _finding_anchor(finding, index))
+            )
+    if attack_paths:
+        lines.append("- [Attack Paths](#%s)" % _section_anchor("attack_paths"))
+        lines.append(
+            "  - [Attack Path Summary](#%s)" % _section_anchor("attack_path_summary")
+        )
+        lines.append("  - [Ranked Paths](#%s)" % _section_anchor("ranked_paths"))
+        for index, attack_path in enumerate(attack_paths, 1):
+            lines.append(
+                "  - [%s](#%s)"
+                % (_path_title(attack_path), _attack_path_anchor(attack_path, index))
+            )
+    if recommended_fixes:
+        lines.append(
+            "- [Recommended Fixes](#%s)" % _section_anchor("recommended_fixes")
+        )
+    lines.append("")
+
+
+def _path_title(path):
+    return getattr(path, "title", None) or getattr(path, "name", "")
+
+
+def _path_entry_name(path):
+    entrypoint = getattr(path, "entrypoint", None) or {}
+    if isinstance(entrypoint, dict):
+        return entrypoint.get("name", "")
+    return ""
+
+
+def _path_target_name(path):
+    target = getattr(path, "target", None) or {}
+    if isinstance(target, dict):
+        return target.get("name", "")
+    return ""
+
+
+def _path_chain_names(path):
+    chain = getattr(path, "chain", None) or []
+    if chain and isinstance(chain[0], dict):
+        return [node.get("name", "") for node in chain]
+    steps = getattr(path, "steps", None) or []
+    return [step for step in steps[1:-1]]
+
+
+def _path_impacts(path):
+    impact = getattr(path, "impact", None) or []
+    if impact:
+        return impact
+    severity = getattr(path, "severity", "")
+    if severity:
+        return [severity]
+    return []
+
+
+def _path_steps(path):
+    steps = getattr(path, "steps", None) or []
+    if steps:
+        return steps
+    entry = _path_entry_name(path)
+    chain = _path_chain_names(path)
+    target = _path_target_name(path)
+    return [value for value in [entry] + chain + [target] if value]
+
+
+def _render_attack_path_summary(lines, attack_paths):
+    lines.append(_anchor_tag(_section_anchor("attack_path_summary")))
+    severity_counts = Counter(path.severity for path in attack_paths)
+    entry_counts = Counter(
+        _path_entry_name(path) for path in attack_paths if _path_entry_name(path)
+    )
+    impact_counts = Counter()
+    for path in attack_paths:
+        impact_counts.update(_path_impacts(path))
+
+    lines.append("### Attack Path Summary")
+    lines.append("")
+    lines.append("| Metric | Value |")
+    lines.append("|--------|-------|")
+    lines.append("| Total Paths | %d |" % len(attack_paths))
+    for severity in ["critical", "high", "medium", "low"]:
+        if severity_counts.get(severity, 0):
+            lines.append(
+                "| %s Paths | %d |"
+                % (severity.capitalize(), severity_counts.get(severity, 0))
+            )
+    if entry_counts:
+        top_entries = ", ".join(
+            "%s (%d)" % (name, count) for name, count in entry_counts.most_common(3)
+        )
+        lines.append("| Top Entrypoints | %s |" % top_entries)
+    if impact_counts:
+        top_impacts = ", ".join(
+            "%s (%d)" % (name, count) for name, count in impact_counts.most_common(3)
+        )
+        lines.append("| Top Impacts | %s |" % top_impacts)
+    lines.append("")
+
 
 def render_markdown(report):
     # type: (AnalyzeReport) -> str
     """Convert an AnalyzeReport to a Markdown string."""
     lines = []
 
-    # Title
     lines.append("# Prompt Hardener Analysis Report")
     lines.append("")
 
-    # Metadata
     m = report.metadata
     lines.append("**Agent:** %s (type: %s)" % (m.agent_name, m.agent_type))
     lines.append("**Generated:** %s" % m.timestamp)
@@ -20,7 +173,13 @@ def render_markdown(report):
     )
     lines.append("")
 
-    # Summary
+    _render_contents(
+        lines,
+        report.findings,
+        report.attack_paths,
+        report.recommended_fixes,
+    )
+
     s = report.summary
     risk_badge = {
         "low": "LOW",
@@ -29,6 +188,7 @@ def render_markdown(report):
         "critical": "CRITICAL",
     }.get(s.risk_level, s.risk_level.upper())
 
+    lines.append(_anchor_tag(_section_anchor("summary")))
     lines.append("## Summary")
     lines.append("")
     lines.append("| Metric | Value |")
@@ -50,64 +210,131 @@ def render_markdown(report):
         lines.append(" (%s)" % ", ".join(parts))
     lines.append("")
 
-    # Findings
     if report.findings:
+        lines.append(_anchor_tag(_section_anchor("findings")))
         lines.append("## Findings")
         lines.append("")
-        for f in report.findings:
-            lines.append("### %s: %s" % (f.rule_id, f.title))
+        for index, finding in enumerate(report.findings, 1):
+            lines.append(_anchor_tag(_finding_anchor(finding, index)))
+            lines.append("### %s: %s" % (finding.rule_id, finding.title))
             lines.append("")
-            lines.append("- **Severity:** %s" % f.severity)
-            lines.append("- **Layer:** %s" % f.layer)
-            lines.append("- **Spec Path:** `%s`" % f.spec_path)
+            lines.append("- **Severity:** %s" % finding.severity)
+            lines.append("- **Layer:** %s" % finding.layer)
+            lines.append("- **Spec Path:** `%s`" % finding.spec_path)
             lines.append("")
-            lines.append(f.description)
+            lines.append(finding.description)
             lines.append("")
-            if f.evidence:
+            if finding.evidence:
                 lines.append("**Evidence:**")
-                for e in f.evidence:
-                    lines.append("- %s" % e)
+                for evidence in finding.evidence:
+                    lines.append("- %s" % evidence)
                 lines.append("")
-            if f.recommendation:
-                lines.append("**Recommendation:** %s" % f.recommendation)
+            if finding.recommendation:
+                lines.append("**Recommendation:** %s" % finding.recommendation)
                 lines.append("")
 
-    # Attack Paths
     if report.attack_paths:
+        lines.append(_anchor_tag(_section_anchor("attack_paths")))
         lines.append("## Attack Paths")
         lines.append("")
-        for ap in report.attack_paths:
-            lines.append("### %s" % ap.name)
-            lines.append("")
-            lines.append("- **Severity:** %s" % ap.severity)
-            lines.append("")
-            lines.append(ap.description)
-            lines.append("")
-            if ap.steps:
-                lines.append("**Steps:**")
-                for i, step in enumerate(ap.steps, 1):
-                    lines.append("%d. %s" % (i, step))
-                lines.append("")
-            if ap.related_findings:
-                lines.append(
-                    "**Related Findings:** %s" % ", ".join(ap.related_findings)
+        _render_attack_path_summary(lines, report.attack_paths)
+
+        lines.append(_anchor_tag(_section_anchor("ranked_paths")))
+        lines.append("### Ranked Paths")
+        lines.append("")
+        lines.append(
+            "| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |"
+        )
+        lines.append(
+            "|------|----------|-------|-------|-------|-----|--------|------------|"
+        )
+        for index, attack_path in enumerate(report.attack_paths, 1):
+            via = " -> ".join(_path_chain_names(attack_path)) or "-"
+            lines.append(
+                "| %d | %s | %d | [%s](#%s) | %s | %s | %s | %s |"
+                % (
+                    index,
+                    attack_path.severity,
+                    getattr(attack_path, "score", 0),
+                    _path_title(attack_path),
+                    _attack_path_anchor(attack_path, index),
+                    _path_entry_name(attack_path) or "-",
+                    via,
+                    _path_target_name(attack_path) or "-",
+                    getattr(attack_path, "confidence", ""),
                 )
+            )
+        lines.append("")
+
+        for index, attack_path in enumerate(report.attack_paths, 1):
+            lines.append(_anchor_tag(_attack_path_anchor(attack_path, index)))
+            lines.append("### %s" % _path_title(attack_path))
+            lines.append("")
+            lines.append("- **Severity:** %s" % getattr(attack_path, "severity", ""))
+            lines.append("- **Score:** %s" % getattr(attack_path, "score", 0))
+            lines.append(
+                "- **Confidence:** %s" % getattr(attack_path, "confidence", "")
+            )
+            category = getattr(attack_path, "category", "")
+            if category:
+                lines.append("- **Category:** %s" % category)
+            lines.append("- **Path:** %s" % " -> ".join(_path_steps(attack_path)))
+            lines.append("")
+            lines.append(attack_path.description)
+            lines.append("")
+            impacts = _path_impacts(attack_path)
+            if impacts:
+                lines.append("**Impact:** %s" % ", ".join(impacts))
+                lines.append("")
+            preconditions = getattr(attack_path, "preconditions", []) or []
+            if preconditions:
+                lines.append("**Preconditions:**")
+                for item in preconditions:
+                    lines.append("- %s" % item)
+                lines.append("")
+            evidence_items = getattr(attack_path, "evidence", []) or []
+            if evidence_items:
+                lines.append("**Evidence:**")
+                for item in evidence_items:
+                    lines.append("- %s" % item)
+                lines.append("")
+            blockers = getattr(attack_path, "blockers", []) or []
+            if blockers:
+                lines.append("**Blockers / Existing Controls:**")
+                for item in blockers:
+                    lines.append("- %s" % item)
+                lines.append("")
+            mitigations = getattr(attack_path, "recommended_mitigations", []) or []
+            if mitigations:
+                lines.append("**Recommended Mitigations:**")
+                for item in mitigations:
+                    lines.append("- %s" % item)
+                lines.append("")
+            related_findings = getattr(attack_path, "related_findings", []) or []
+            if related_findings:
+                lines.append("**Related Findings:** %s" % ", ".join(related_findings))
                 lines.append("")
 
-    # Recommended Fixes
     if report.recommended_fixes:
+        lines.append(_anchor_tag(_section_anchor("recommended_fixes")))
         lines.append("## Recommended Fixes")
         lines.append("")
         lines.append("| Priority | Layer | Title | Effort |")
         lines.append("|----------|-------|-------|--------|")
-        for rf in sorted(
+        for recommended_fix in sorted(
             report.recommended_fixes,
-            key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
-                x.priority, 4
+            key=lambda item: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
+                item.priority, 4
             ),
         ):
             lines.append(
-                "| %s | %s | %s | %s |" % (rf.priority, rf.layer, rf.title, rf.effort)
+                "| %s | %s | %s | %s |"
+                % (
+                    recommended_fix.priority,
+                    recommended_fix.layer,
+                    recommended_fix.title,
+                    recommended_fix.effort,
+                )
             )
         lines.append("")
 

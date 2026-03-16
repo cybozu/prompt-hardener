@@ -1,0 +1,38 @@
+version: "1.0"
+type: mcp-agent
+name: "Broad MCP Agent"
+description: "MCP agent with an untrusted server that can reach all tools"
+
+system_prompt: |
+  You are a coding assistant with MCP tools.
+  Help with development tasks.
+
+provider:
+  api: claude
+  model: claude-sonnet-4-20250514
+
+tools:
+  - name: write_file
+    description: "Write a file in the repository"
+    effect: write
+    impact: high
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        path:
+          type: string
+        contents:
+          type: string
+      required: [path, contents]
+
+policies:
+  allowed_actions:
+    - write_file
+
+mcp_servers:
+  - name: third_party_bridge
+    trust_level: untrusted
+    source: third_party
+
+user_input_description: "Developer queries via IDE chat"

@@ -77,10 +77,37 @@ class TestAnalyzeRendering:
         assert "# Prompt Hardener Analysis Report" in output
         assert "Customer Support Agent" in output
         assert "HIGH" in output
+        assert "## Contents" in output
+        assert "- [Summary](#summary)" in output
+        assert "- [Findings](#findings)" in output
+        assert (
+            "  - [PROMPT-001: System prompt embeds untrusted or runtime content](#finding-f001)"
+            in output
+        )
+        assert "- [Attack Paths](#attack-paths)" in output
+        assert "  - [Attack Path Summary](#attack-path-summary)" in output
+        assert "  - [Ranked Paths](#ranked-paths)" in output
+        assert (
+            "  - [Prompt injection via mixed trusted and untrusted prompt channels](#attack-path-ap001)"
+            in output
+        )
+        assert "- [Recommended Fixes](#recommended-fixes)" in output
+        assert '<a id="summary"></a>' in output
         assert "## Findings" in output
         assert "PROMPT-001" in output
         assert "TOOL-003" in output
+        assert '<a id="finding-f001"></a>' in output
         assert "## Attack Paths" in output
+        assert '<a id="attack-path-summary"></a>' in output
+        assert "### Attack Path Summary" in output
+        assert "### Ranked Paths" in output
+        assert (
+            "[Prompt injection via mixed trusted and untrusted prompt channels](#attack-path-ap001)"
+            in output
+        )
+        assert '<a id="attack-path-ap001"></a>' in output
+        assert "Confidence" in output
+        assert '<a id="recommended-fixes"></a>' in output
         assert "## Recommended Fixes" in output
         assert "critical" in output
 
@@ -89,9 +116,40 @@ class TestAnalyzeRendering:
         assert "<html>" in output
         assert "Prompt Hardener Analysis Report" in output
         assert "Customer Support Agent" in output
+        assert '<nav class="contents" id="contents">' in output
+        assert '<a href="#summary">Summary</a>' in output
+        assert '<a href="#findings">Findings</a>' in output
+        assert (
+            '<a href="#finding-f001">PROMPT-001: System prompt embeds untrusted or runtime content</a>'
+            in output
+        )
+        assert '<a href="#attack-paths">Attack Paths</a>' in output
+        assert '<a href="#attack-path-summary">Attack Path Summary</a>' in output
+        assert '<a href="#ranked-paths">Ranked Paths</a>' in output
+        assert (
+            '<a href="#attack-path-ap001">Prompt injection via mixed trusted and untrusted prompt channels</a>'
+            in output
+        )
         assert "PROMPT-001" in output
+        assert '<h2 id="summary">Summary</h2>' in output
+        assert '<h2 id="findings">Findings</h2>' in output
+        assert (
+            '<h3 id="finding-f001">PROMPT-001: System prompt embeds untrusted or runtime content</h3>'
+            in output
+        )
         assert "severity-critical" in output
         assert "risk-high" in output
+        assert '<h2 id="attack-paths">Attack Paths</h2>' in output
+        assert "Attack Path Summary" in output
+        assert "Ranked Paths" in output
+        assert (
+            '<td><a href="#attack-path-ap001">Prompt injection via mixed trusted and untrusted prompt channels</a></td>'
+            in output
+        )
+        assert (
+            '<h3 id="attack-path-ap001">Prompt injection via mixed trusted and untrusted prompt channels</h3>'
+            in output
+        )
 
     def test_markdown_no_findings(self):
         data = {
@@ -115,7 +173,39 @@ class TestAnalyzeRendering:
         }
         output = render_analyze_markdown(data)
         assert "# Prompt Hardener Analysis Report" in output
+        assert "## Contents" in output
+        assert "- [Summary](#summary)" in output
+        assert "- [Findings](#findings)" not in output
+        assert "- [Attack Paths](#attack-paths)" not in output
+        assert "- [Recommended Fixes](#recommended-fixes)" not in output
         assert "## Findings" not in output
+
+    def test_html_no_findings(self):
+        data = {
+            "metadata": {
+                "agent_name": "Bot",
+                "agent_type": "chatbot",
+                "timestamp": "",
+                "tool_version": "",
+                "rules_version": "",
+                "rules_evaluated": 0,
+            },
+            "summary": {
+                "risk_level": "low",
+                "overall_score": 9.5,
+                "scores_by_layer": {},
+                "finding_counts": {"total": 0},
+            },
+            "findings": [],
+            "attack_paths": [],
+            "recommended_fixes": [],
+        }
+        output = render_analyze_html(data)
+        assert '<nav class="contents" id="contents">' in output
+        assert '<a href="#summary">Summary</a>' in output
+        assert '<a href="#findings">' not in output
+        assert '<a href="#attack-paths">' not in output
+        assert '<a href="#recommended-fixes">' not in output
 
 
 # =========================================================================

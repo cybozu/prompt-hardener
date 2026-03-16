@@ -1,0 +1,34 @@
+version: "1.0"
+type: agent
+name: "Multi Tenant Agent"
+description: "Agent serving multiple tenants without explicit isolation"
+
+system_prompt: |
+  You are a tenant operations assistant.
+  Help users manage workspace records.
+
+provider:
+  api: openai
+  model: gpt-4o-mini
+
+tools:
+  - name: update_workspace_record
+    description: "Update a workspace record"
+    effect: write
+    impact: high
+    execution_identity: service
+    parameters:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        record_id:
+          type: string
+      required: [tenant_id, record_id]
+
+policies:
+  allowed_actions:
+    - update_workspace_record
+
+scope: multi_tenant
+user_input_description: "Tenant admin chat requests"

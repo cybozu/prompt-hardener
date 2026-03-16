@@ -9,6 +9,8 @@ from unittest.mock import patch
 import jsonschema
 
 from prompt_hardener.agent_spec import dict_to_agent_spec, load_yaml
+from prompt_hardener.analyze.attack_paths.graph import build_attack_graph
+from prompt_hardener.analyze.attack_paths.normalize import normalize_spec
 from prompt_hardener.analyze.engine import run_analyze
 from prompt_hardener.analyze.markdown import render_markdown
 from prompt_hardener.analyze.report import (
@@ -1120,10 +1122,25 @@ class TestReportSerialization:
             attack_paths=[
                 AttackPath(
                     id="path-001",
-                    name="Test attack path",
+                    title="Test attack path",
+                    category="unauthorized_tool_execution",
                     severity="high",
+                    score=75,
+                    confidence="high",
+                    entrypoint={"type": "entrypoint", "name": "user_message"},
+                    chain=[
+                        {"type": "control", "name": "llm"},
+                        {"type": "capability", "name": "delete_account"},
+                    ],
+                    target={"type": "asset", "name": "backend_state"},
+                    impact=["destructive action"],
+                    preconditions=["The attacker can send a user message"],
+                    blockers=[],
+                    evidence=["Tool is high impact"],
+                    recommended_mitigations=["Add escalation coverage"],
                     description="Attack description",
-                    steps=["Step 1", "Step 2"],
+                    name="Test attack path",
+                    steps=["entrypoint: user_message", "control: llm"],
                     related_findings=["finding-001"],
                 ),
             ],
@@ -1148,6 +1165,8 @@ class TestReportSerialization:
         assert len(d["findings"]) == 1
         assert d["findings"][0]["id"] == "finding-001"
         assert len(d["attack_paths"]) == 1
+        assert d["attack_paths"][0]["title"] == "Test attack path"
+        assert d["attack_paths"][0]["name"] == "Test attack path"
         assert len(d["recommended_fixes"]) == 1
 
     def test_to_dict_validates_against_schema(self):
@@ -1170,15 +1189,132 @@ class TestMarkdownRenderer:
         md = render_markdown(report)
         assert "# Prompt Hardener Analysis Report" in md
         assert "Test Agent" in md
+        assert "## Contents" in md
+        assert "- [Summary](#summary)" in md
+        assert "- [Findings](#findings)" in md
+        assert "  - [PROMPT-001: Test finding](#finding-finding-001)" in md
+        assert "- [Attack Paths](#attack-paths)" in md
+        assert "  - [Attack Path Summary](#attack-path-summary)" in md
+        assert "  - [Ranked Paths](#ranked-paths)" in md
+        assert "  - [Test attack path](#attack-path-path-001)" in md
+        assert "- [Recommended Fixes](#recommended-fixes)" in md
+        assert '<a id="summary"></a>' in md
         assert "## Summary" in md
+        assert '<a id="finding-finding-001"></a>' in md
         assert "## Findings" in md
         assert "PROMPT-001" in md
+        assert '<a id="attack-path-summary"></a>' in md
         assert "## Attack Paths" in md
+        assert '<a id="ranked-paths"></a>' in md
+        assert "[Test attack path](#attack-path-path-001)" in md
+        assert '<a id="attack-path-path-001"></a>' in md
+        assert '<a id="recommended-fixes"></a>' in md
         assert "## Recommended Fixes" in md
+        assert "### Attack Path Summary" in md
+        assert (
+            "| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |"
+            in md
+        )
 
 
 # =========================================================================
-# Group 8: Engine Integration
+# Group 8: Attack Path Enumeration
+# =========================================================================
+
+
+class TestAttackPathInternals:
+    def test_normalize_spec_derives_predicates(self):
+        spec = _load_spec("agent_high_impact_spec.yaml")
+        surface = normalize_spec(spec)
+
+        assert surface.controls.has_user_input_distrust is False
+        assert surface.controls.has_budget_limits is False
+        assert any(tool.can_egress for tool in surface.tools)
+        assert any(tool.has_service_identity for tool in surface.tools)
+        assert any(tool.is_high_impact for tool in surface.tools)
+
+    def test_build_attack_graph_contains_expected_edges(self):
+        spec = _load_spec("agent_confidential_spec.yaml")
+        graph = build_attack_graph(normalize_spec(spec))
+
+        assert graph.has_node("entrypoint", "user_message")
+        assert graph.has_node("asset", "payroll_db")
+        assert graph.has_node("asset", "external_channel")
+        assert graph.has_edge("control", "llm", "asset", "payroll_db")
+        assert graph.has_edge("asset", "payroll_db", "capability", "export_report")
+        assert graph.has_edge(
+            "capability", "export_report", "asset", "external_channel"
+        )
+
+
+class TestAttackPathEnumeration:
+    def test_run_analyze_outputs_rich_attack_paths(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "agent_high_impact_spec.yaml"))
+
+        assert report.attack_paths
+        attack_path = report.attack_paths[0]
+        assert attack_path.title
+        assert attack_path.category
+        assert attack_path.entrypoint["type"] == "entrypoint"
+        assert isinstance(attack_path.chain, list)
+        assert attack_path.target["type"] == "asset"
+        assert attack_path.impact
+        assert attack_path.name == attack_path.title
+        assert attack_path.steps
+
+    def test_rag_insecure_generates_retrieved_content_path(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "rag_insecure_spec.yaml"))
+        categories = [path.category for path in report.attack_paths]
+        assert "retrieved_content_tool_misuse" in categories
+
+    def test_agent_high_impact_generates_unauthorized_tool_and_tool_output_paths(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "agent_high_impact_spec.yaml"))
+        categories = {path.category for path in report.attack_paths}
+        assert "unauthorized_tool_execution" in categories
+        assert "tool_output_secondary_tool_misuse" in categories
+
+    def test_confidential_fixture_generates_exfiltration_path(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "agent_confidential_spec.yaml"))
+        categories = {path.category for path in report.attack_paths}
+        assert "confidential_data_exfiltration" in categories
+
+    def test_multi_tenant_fixture_generates_cross_tenant_path(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "agent_multi_tenant_spec.yaml"))
+        categories = {path.category for path in report.attack_paths}
+        assert "cross_tenant_access" in categories
+
+    def test_memory_fixture_generates_persistent_poisoning_path(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "agent_memory_spec.yaml"))
+        categories = {path.category for path in report.attack_paths}
+        assert "persistent_memory_poisoning" in categories
+
+    def test_broad_mcp_fixture_generates_mcp_trust_abuse_path(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "mcp_agent_broad_spec.yaml"))
+        categories = {path.category for path in report.attack_paths}
+        assert "mcp_trust_abuse" in categories
+
+    def test_prompt_leak_fixture_generates_system_prompt_leakage_path(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "prompt_leak_spec.yaml"))
+        categories = {path.category for path in report.attack_paths}
+        assert "system_prompt_leakage" in categories
+
+    def test_restricted_mcp_fixture_does_not_generate_mcp_trust_abuse_path(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "mcp_agent_spec.yaml"))
+        categories = {path.category for path in report.attack_paths}
+        assert "mcp_trust_abuse" not in categories
+
+    def test_attack_paths_are_sorted_by_score(self):
+        report = run_analyze(os.path.join(FIXTURES_DIR, "agent_confidential_spec.yaml"))
+        scores = [path.score for path in report.attack_paths]
+        assert scores == sorted(scores, reverse=True)
+        assert all(
+            path.severity in ("low", "medium", "high", "critical")
+            for path in report.attack_paths
+        )
+
+
+# =========================================================================
+# Group 9: Engine Integration
 # =========================================================================
 
 
@@ -1222,7 +1358,7 @@ class TestEngineIntegration:
 
 
 # =========================================================================
-# Group 9: Example-based Tests
+# Group 10: Example-based Tests
 # =========================================================================
 
 
@@ -1252,7 +1388,7 @@ class TestExampleAnalysis:
 
 
 # =========================================================================
-# Group 10: Static-only Analyze
+# Group 11: Static-only Analyze
 # =========================================================================
 
 

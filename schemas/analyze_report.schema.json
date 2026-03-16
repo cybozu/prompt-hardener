@@ -124,23 +124,86 @@
     },
     "attack_path": {
       "type": "object",
-      "required": ["id", "name", "severity", "description"],
+      "required": [
+        "id",
+        "title",
+        "category",
+        "severity",
+        "score",
+        "confidence",
+        "entrypoint",
+        "chain",
+        "target",
+        "impact",
+        "preconditions",
+        "blockers",
+        "evidence",
+        "related_findings",
+        "recommended_mitigations",
+        "description"
+      ],
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
         "severity": {
           "type": "string",
           "enum": ["low", "medium", "high", "critical"]
         },
-        "description": { "type": "string" },
-        "steps": {
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "entrypoint": { "$ref": "#/$defs/path_node" },
+        "chain": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/path_node" }
+        },
+        "target": { "$ref": "#/$defs/path_node" },
+        "impact": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "preconditions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blockers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "evidence": {
           "type": "array",
           "items": { "type": "string" }
         },
         "related_findings": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "recommended_mitigations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "description": { "type": "string" },
+        "name": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" }
         }
+      },
+      "additionalProperties": false
+    },
+    "path_node": {
+      "type": "object",
+      "required": ["type", "name"],
+      "properties": {
+        "type": { "type": "string" },
+        "name": { "type": "string" }
       },
       "additionalProperties": false
     },
