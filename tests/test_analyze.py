@@ -1189,10 +1189,26 @@ class TestMarkdownRenderer:
         md = render_markdown(report)
         assert "# Prompt Hardener Analysis Report" in md
         assert "Test Agent" in md
+        assert "## Contents" in md
+        assert "- [Summary](#summary)" in md
+        assert "- [Findings](#findings)" in md
+        assert "  - [PROMPT-001: Test finding](#finding-finding-001)" in md
+        assert "- [Attack Paths](#attack-paths)" in md
+        assert "  - [Attack Path Summary](#attack-path-summary)" in md
+        assert "  - [Ranked Paths](#ranked-paths)" in md
+        assert "  - [Test attack path](#attack-path-path-001)" in md
+        assert "- [Recommended Fixes](#recommended-fixes)" in md
+        assert '<a id="summary"></a>' in md
         assert "## Summary" in md
+        assert '<a id="finding-finding-001"></a>' in md
         assert "## Findings" in md
         assert "PROMPT-001" in md
+        assert '<a id="attack-path-summary"></a>' in md
         assert "## Attack Paths" in md
+        assert '<a id="ranked-paths"></a>' in md
+        assert "[Test attack path](#attack-path-path-001)" in md
+        assert '<a id="attack-path-path-001"></a>' in md
+        assert '<a id="recommended-fixes"></a>' in md
         assert "## Recommended Fixes" in md
         assert "### Attack Path Summary" in md
         assert "| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |" in md

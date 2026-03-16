@@ -3,6 +3,7 @@
 from collections import Counter
 import html
 import json
+import re
 
 # ---------------------------------------------------------------------------
 # Shared HTML styles (reused from gen_report.py pattern)
@@ -69,7 +70,37 @@ th {
 .risk-high { background-color: #f57c00; }
 .risk-medium { background-color: #fbc02d; color: #333; }
 .risk-low { background-color: #388e3c; }
+nav.contents {
+    margin: 24px 0 32px;
+    padding: 16px 20px;
+    background: #f7fbff;
+    border: 1px solid #cfe3f5;
+    border-radius: 8px;
+}
+nav.contents h2 {
+    margin-top: 0;
+}
+nav.contents ul {
+    margin: 0;
+    padding-left: 20px;
+}
+nav.contents li {
+    margin: 6px 0;
+}
+a {
+    color: #005a99;
+}
 """
+
+_ANALYZE_SECTION_ANCHORS = {
+    "contents": "contents",
+    "summary": "summary",
+    "findings": "findings",
+    "attack_paths": "attack-paths",
+    "attack_path_summary": "attack-path-summary",
+    "ranked_paths": "ranked-paths",
+    "recommended_fixes": "recommended-fixes",
+}
 
 
 def _esc(text):
@@ -163,6 +194,125 @@ def _attack_path_impacts(path):
     return []
 
 
+def _slugify(text):
+    value = re.sub(r"[^a-z0-9]+", "-", str(text).strip().lower()).strip("-")
+    return value or "item"
+
+
+def _analyze_section_anchor(name):
+    return _ANALYZE_SECTION_ANCHORS[name]
+
+
+def _analyze_finding_anchor(finding, index):
+    preferred = finding.get("id") or finding.get("rule_id")
+    if preferred:
+        return "finding-%s" % _slugify(preferred)
+    return "finding-%s-%d" % (_slugify(finding.get("title", "")), index)
+
+
+def _analyze_attack_path_anchor(path, index):
+    preferred = path.get("id") or path.get("title") or path.get("name")
+    if preferred:
+        return "attack-path-%s" % _slugify(preferred)
+    return "attack-path-%d" % index
+
+
+def _md_anchor_tag(anchor_id):
+    return '<a id="%s"></a>' % anchor_id
+
+
+def _render_analyze_contents_markdown(lines, findings, attack_paths, fixes):
+    lines.append(_md_anchor_tag(_analyze_section_anchor("contents")))
+    lines.append("## Contents")
+    lines.append("")
+    lines.append("- [Summary](#%s)" % _analyze_section_anchor("summary"))
+    if findings:
+        lines.append("- [Findings](#%s)" % _analyze_section_anchor("findings"))
+        for index, finding in enumerate(findings, 1):
+            lines.append(
+                "  - [%s: %s](#%s)"
+                % (
+                    finding.get("rule_id", ""),
+                    finding.get("title", ""),
+                    _analyze_finding_anchor(finding, index),
+                )
+            )
+    if attack_paths:
+        lines.append("- [Attack Paths](#%s)" % _analyze_section_anchor("attack_paths"))
+        lines.append(
+            "  - [Attack Path Summary](#%s)"
+            % _analyze_section_anchor("attack_path_summary")
+        )
+        lines.append(
+            "  - [Ranked Paths](#%s)"
+            % _analyze_section_anchor("ranked_paths")
+        )
+        for index, attack_path in enumerate(attack_paths, 1):
+            lines.append(
+                "  - [%s](#%s)"
+                % (
+                    _attack_path_title(attack_path),
+                    _analyze_attack_path_anchor(attack_path, index),
+                )
+            )
+    if fixes:
+        lines.append(
+            "- [Recommended Fixes](#%s)"
+            % _analyze_section_anchor("recommended_fixes")
+        )
+    lines.append("")
+
+
+def _render_analyze_contents_html(findings, attack_paths, fixes):
+    items = ['<li><a href="#%s">Summary</a></li>' % _analyze_section_anchor("summary")]
+
+    if findings:
+        finding_items = "".join(
+            '<li><a href="#%s">%s: %s</a></li>'
+            % (
+                _analyze_finding_anchor(finding, index),
+                _esc(finding.get("rule_id", "")),
+                _esc(finding.get("title", "")),
+            )
+            for index, finding in enumerate(findings, 1)
+        )
+        items.append(
+            '<li><a href="#%s">Findings</a><ul>%s</ul></li>'
+            % (_analyze_section_anchor("findings"), finding_items)
+        )
+
+    if attack_paths:
+        attack_path_items = [
+            '<li><a href="#%s">Attack Path Summary</a></li>'
+            % _analyze_section_anchor("attack_path_summary"),
+            '<li><a href="#%s">Ranked Paths</a></li>'
+            % _analyze_section_anchor("ranked_paths"),
+        ]
+        attack_path_items.extend(
+            '<li><a href="#%s">%s</a></li>'
+            % (
+                _analyze_attack_path_anchor(attack_path, index),
+                _esc(_attack_path_title(attack_path)),
+            )
+            for index, attack_path in enumerate(attack_paths, 1)
+        )
+        items.append(
+            '<li><a href="#%s">Attack Paths</a><ul>%s</ul></li>'
+            % (_analyze_section_anchor("attack_paths"), "".join(attack_path_items))
+        )
+
+    if fixes:
+        items.append(
+            '<li><a href="#%s">Recommended Fixes</a></li>'
+            % _analyze_section_anchor("recommended_fixes")
+        )
+
+    return (
+        '<nav class="contents" id="%s"><h2>Contents</h2><ul>%s</ul></nav>'
+        % (_analyze_section_anchor("contents"), "".join(items))
+    )
+
+
 # ---------------------------------------------------------------------------
 # Type detection
 # ---------------------------------------------------------------------------
@@ -219,9 +369,15 @@ def render_analyze_markdown(data):
     )
     lines.append("")
 
+    findings = data.get("findings", [])
+    attack_paths = data.get("attack_paths", [])
+    fixes = data.get("recommended_fixes", [])
+    _render_analyze_contents_markdown(lines, findings, attack_paths, fixes)
+
     # Summary
     s = data.get("summary", {})
     risk_level = s.get("risk_level", "unknown")
+    lines.append(_md_anchor_tag(_analyze_section_anchor("summary")))
     lines.append("## Summary")
     lines.append("")
     lines.append("| Metric | Value |")
@@ -244,11 +400,12 @@ def render_analyze_markdown(data):
     lines.append("")
 
     # Findings
-    findings = data.get("findings", [])
     if findings:
+        lines.append(_md_anchor_tag(_analyze_section_anchor("findings")))
         lines.append("## Findings")
         lines.append("")
-        for f in findings:
+        for index, f in enumerate(findings, 1):
+            lines.append(_md_anchor_tag(_analyze_finding_anchor(f, index)))
             lines.append("### %s: %s" % (f.get("rule_id", ""), f.get("title", "")))
             lines.append("")
             lines.append("- **Severity:** %s" % f.get("severity", ""))
@@ -268,8 +425,8 @@ def render_analyze_markdown(data):
                 lines.append("**Recommendation:** %s" % rec)
                 lines.append("")
 
-    attack_paths = data.get("attack_paths", [])
     if attack_paths:
+        lines.append(_md_anchor_tag(_analyze_section_anchor("attack_paths")))
         lines.append("## Attack Paths")
         lines.append("")
         severity_counts = Counter(ap.get("severity", "") for ap in attack_paths)
@@ -282,6 +439,7 @@ def render_analyze_markdown(data):
         for attack_path in attack_paths:
             impact_counts.update(_attack_path_impacts(attack_path))
 
+        lines.append(_md_anchor_tag(_analyze_section_anchor("attack_path_summary")))
         lines.append("### Attack Path Summary")
         lines.append("")
         lines.append("| Metric | Value |")
@@ -311,18 +469,20 @@ def render_analyze_markdown(data):
             )
         lines.append("")
 
+        lines.append(_md_anchor_tag(_analyze_section_anchor("ranked_paths")))
         lines.append("### Ranked Paths")
         lines.append("")
         lines.append("| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |")
         lines.append("|------|----------|-------|-------|-------|-----|--------|------------|")
         for index, attack_path in enumerate(attack_paths, 1):
             lines.append(
-                "| %d | %s | %s | %s | %s | %s | %s | %s |"
+                "| %d | %s | %s | [%s](#%s) | %s | %s | %s | %s |"
                 % (
                     index,
                     attack_path.get("severity", ""),
                     attack_path.get("score", 0),
                     _md_table_text(_attack_path_title(attack_path)),
+                    _analyze_attack_path_anchor(attack_path, index),
                     _md_table_text(_attack_path_entry_name(attack_path) or "-"),
                     _md_table_text(
                         " -> ".join(_attack_path_chain_names(attack_path)) or "-"
@@ -333,7 +493,8 @@ def render_analyze_markdown(data):
             )
         lines.append("")
 
-        for attack_path in attack_paths:
+        for index, attack_path in enumerate(attack_paths, 1):
+            lines.append(_md_anchor_tag(_analyze_attack_path_anchor(attack_path, index)))
             lines.append("### %s" % _attack_path_title(attack_path))
             lines.append("")
             lines.append("- **Severity:** %s" % attack_path.get("severity", ""))
@@ -368,8 +529,8 @@ def render_analyze_markdown(data):
                 lines.append("")
 
     # Recommended Fixes
-    fixes = data.get("recommended_fixes", [])
     if fixes:
+        lines.append(_md_anchor_tag(_analyze_section_anchor("recommended_fixes")))
         lines.append("## Recommended Fixes")
         lines.append("")
         lines.append("| Priority | Layer | Title | Effort |")
@@ -444,8 +605,9 @@ def render_analyze_html(data):
     summary_html += "</p>"
 
     # Findings
+    findings = data.get("findings", [])
     findings_html = ""
-    for f in data.get("findings", []):
+    for index, f in enumerate(findings, 1):
         evidence_html = ""
         for e in f.get("evidence", []):
             evidence_html += "<li>%s</li>" % _esc(e)
@@ -454,13 +616,14 @@ def render_analyze_html(data):
 
         findings_html += (
             '<div class="section">'
-            "<h3>%s: %s</h3>"
+            '<h3 id="%s">%s: %s</h3>'
             '<p><span class="%s">Severity: %s</span> | Layer: %s | Spec Path: <code>%s</code></p>'
             "<p>%s</p>"
             "%s"
             "%s"
             "</div>"
         ) % (
+            _analyze_finding_anchor(f, index),
             _esc(f.get("rule_id", "")),
             _esc(f.get("title", "")),
             _severity_class(f.get("severity", "")),
@@ -524,7 +687,7 @@ def render_analyze_html(data):
                 "<td>%d</td>"
                 '<td><span class="%s">%s</span></td>'
                 "<td>%s</td>"
-                "<td>%s</td>"
+                '<td><a href="#%s">%s</a></td>'
                 "<td>%s</td>"
                 "<td>%s</td>"
                 "<td>%s</td>"
@@ -535,6 +698,7 @@ def render_analyze_html(data):
                 _severity_class(attack_path.get("severity", "")),
                 _esc(attack_path.get("severity", "")),
                 _esc(attack_path.get("score", 0)),
+                _analyze_attack_path_anchor(attack_path, index),
                 _esc(_attack_path_title(attack_path)),
                 _esc(_attack_path_entry_name(attack_path) or "-"),
                 _esc(" -> ".join(_attack_path_chain_names(attack_path)) or "-"),
@@ -543,11 +707,16 @@ def render_analyze_html(data):
             )
 
         attack_paths_html += (
-            '<div class="section"><h3>Attack Path Summary</h3><table>%s</table></div>'
-            '<div class="section"><h3>Ranked Paths</h3><table>%s</table></div>'
-        ) % (summary_rows, ranked_rows)
+            '<div class="section"><h3 id="%s">Attack Path Summary</h3><table>%s</table></div>'
+            '<div class="section"><h3 id="%s">Ranked Paths</h3><table>%s</table></div>'
+        ) % (
+            _analyze_section_anchor("attack_path_summary"),
+            summary_rows,
+            _analyze_section_anchor("ranked_paths"),
+            ranked_rows,
+        )
 
-        for attack_path in attack_paths:
+        for index, attack_path in enumerate(attack_paths, 1):
             steps_html = "".join(
                 "<li>%s</li>" % _esc(step) for step in _attack_path_steps(attack_path)
             )
@@ -581,7 +750,7 @@ def render_analyze_html(data):
 
             attack_paths_html += (
                 '<div class="section">'
-                "<h3>%s</h3>"
+                '<h3 id="%s">%s</h3>'
                 '<p><span class="%s">Severity: %s</span> | Score: %s | Confidence: %s</p>'
                 "%s"
                 "<p>%s</p>"
@@ -589,6 +758,7 @@ def render_analyze_html(data):
                 "%s"
                 "</div>"
             ) % (
+                _analyze_attack_path_anchor(attack_path, index),
                 _esc(_attack_path_title(attack_path)),
                 _severity_class(attack_path.get("severity", "")),
                 _esc(attack_path.get("severity", "")),
@@ -603,9 +773,10 @@ def render_analyze_html(data):
             )
 
     # Recommended Fixes
+    fixes = data.get("recommended_fixes", [])
     fixes_rows = ""
     for rf in sorted(
-        data.get("recommended_fixes", []),
+        fixes,
         key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
             x.get("priority", ""), 4
         ),
@@ -633,17 +804,23 @@ def render_analyze_html(data):
     return _wrap_html(
         "Prompt Hardener Analysis Report",
         (
+            "%s"
             '<div class="section"><h2>Metadata</h2>%s</div>'
-            '<div class="section"><h2>Summary</h2>%s</div>'
-            '<div class="section"><h2>Findings</h2>%s</div>'
-            '<div class="section"><h2>Attack Paths</h2>%s</div>'
-            '<div class="section"><h2>Recommended Fixes</h2>%s</div>'
+            '<div class="section"><h2 id="%s">Summary</h2>%s</div>'
+            '<div class="section"><h2 id="%s">Findings</h2>%s</div>'
+            '<div class="section"><h2 id="%s">Attack Paths</h2>%s</div>'
+            '<div class="section"><h2 id="%s">Recommended Fixes</h2>%s</div>'
         )
         % (
+            _render_analyze_contents_html(findings, attack_paths, fixes),
             meta_html,
+            _analyze_section_anchor("summary"),
             summary_html,
+            _analyze_section_anchor("findings"),
             findings_html or "<p>No findings.</p>",
+            _analyze_section_anchor("attack_paths"),
             attack_paths_html or "<p>No attack paths.</p>",
+            _analyze_section_anchor("recommended_fixes"),
             fixes_html or "<p>No recommended fixes.</p>",
         ),
     )

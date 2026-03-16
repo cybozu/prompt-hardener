@@ -1,6 +1,78 @@
 """Render AnalyzeReport as Markdown."""
 
 from collections import Counter
+import re
+
+
+_SECTION_ANCHORS = {
+    "contents": "contents",
+    "summary": "summary",
+    "findings": "findings",
+    "attack_paths": "attack-paths",
+    "attack_path_summary": "attack-path-summary",
+    "ranked_paths": "ranked-paths",
+    "recommended_fixes": "recommended-fixes",
+}
+
+
+def _slugify(text):
+    value = re.sub(r"[^a-z0-9]+", "-", str(text).strip().lower()).strip("-")
+    return value or "item"
+
+
+def _anchor_tag(anchor_id):
+    return '<a id="%s"></a>' % anchor_id
+
+
+def _section_anchor(name):
+    return _SECTION_ANCHORS[name]
+
+
+def _finding_anchor(finding, index):
+    preferred = getattr(finding, "id", None) or getattr(finding, "rule_id", None)
+    if preferred:
+        return "finding-%s" % _slugify(preferred)
+    return "finding-%s-%d" % (_slugify(getattr(finding, "title", "")), index)
+
+
+def _attack_path_anchor(path, index):
+    preferred = getattr(path, "id", None) or getattr(path, "title", None) or getattr(
+        path, "name", None
+    )
+    if preferred:
+        return "attack-path-%s" % _slugify(preferred)
+    return "attack-path-%d" % index
+
+
+def _render_contents(lines, findings, attack_paths, recommended_fixes):
+    lines.append(_anchor_tag(_section_anchor("contents")))
+    lines.append("## Contents")
+    lines.append("")
+    lines.append("- [Summary](#%s)" % _section_anchor("summary"))
+    if findings:
+        lines.append("- [Findings](#%s)" % _section_anchor("findings"))
+        for index, finding in enumerate(findings, 1):
+            lines.append(
+                "  - [%s: %s](#%s)"
+                % (finding.rule_id, finding.title, _finding_anchor(finding, index))
+            )
+    if attack_paths:
+        lines.append("- [Attack Paths](#%s)" % _section_anchor("attack_paths"))
+        lines.append(
+            "  - [Attack Path Summary](#%s)"
+            % _section_anchor("attack_path_summary")
+        )
+        lines.append("  - [Ranked Paths](#%s)" % _section_anchor("ranked_paths"))
+        for index, attack_path in enumerate(attack_paths, 1):
+            lines.append(
+                "  - [%s](#%s)"
+                % (_path_title(attack_path), _attack_path_anchor(attack_path, index))
+            )
+    if recommended_fixes:
+        lines.append(
+            "- [Recommended Fixes](#%s)" % _section_anchor("recommended_fixes")
+        )
+    lines.append("")
 
 
 def _path_title(path):
@@ -50,6 +122,7 @@ def _path_steps(path):
 
 
 def _render_attack_path_summary(lines, attack_paths):
+    lines.append(_anchor_tag(_section_anchor("attack_path_summary")))
     severity_counts = Counter(path.severity for path in attack_paths)
     entry_counts = Counter(_path_entry_name(path) for path in attack_paths if _path_entry_name(path))
     impact_counts = Counter()
@@ -97,6 +170,13 @@ def render_markdown(report):
     )
     lines.append("")
 
+    _render_contents(
+        lines,
+        report.findings,
+        report.attack_paths,
+        report.recommended_fixes,
+    )
+
     s = report.summary
     risk_badge = {
         "low": "LOW",
@@ -105,6 +185,7 @@ def render_markdown(report):
         "critical": "CRITICAL",
     }.get(s.risk_level, s.risk_level.upper())
 
+    lines.append(_anchor_tag(_section_anchor("summary")))
     lines.append("## Summary")
     lines.append("")
     lines.append("| Metric | Value |")
@@ -127,9 +208,11 @@ def render_markdown(report):
     lines.append("")
 
     if report.findings:
+        lines.append(_anchor_tag(_section_anchor("findings")))
         lines.append("## Findings")
         lines.append("")
-        for finding in report.findings:
+        for index, finding in enumerate(report.findings, 1):
+            lines.append(_anchor_tag(_finding_anchor(finding, index)))
             lines.append("### %s: %s" % (finding.rule_id, finding.title))
             lines.append("")
             lines.append("- **Severity:** %s" % finding.severity)
@@ -148,10 +231,12 @@ def render_markdown(report):
                 lines.append("")
 
     if report.attack_paths:
+        lines.append(_anchor_tag(_section_anchor("attack_paths")))
         lines.append("## Attack Paths")
         lines.append("")
         _render_attack_path_summary(lines, report.attack_paths)
 
+        lines.append(_anchor_tag(_section_anchor("ranked_paths")))
         lines.append("### Ranked Paths")
         lines.append("")
         lines.append("| Rank | Severity | Score | Title | Entry | Via | Target | Confidence |")
@@ -159,12 +244,13 @@ def render_markdown(report):
         for index, attack_path in enumerate(report.attack_paths, 1):
             via = " -> ".join(_path_chain_names(attack_path)) or "-"
             lines.append(
-                "| %d | %s | %d | %s | %s | %s | %s | %s |"
+                "| %d | %s | %d | [%s](#%s) | %s | %s | %s | %s |"
                 % (
                     index,
                     attack_path.severity,
                     getattr(attack_path, "score", 0),
                     _path_title(attack_path),
+                    _attack_path_anchor(attack_path, index),
                     _path_entry_name(attack_path) or "-",
                     via,
                     _path_target_name(attack_path) or "-",
@@ -173,7 +259,8 @@ def render_markdown(report):
             )
         lines.append("")
 
-        for attack_path in report.attack_paths:
+        for index, attack_path in enumerate(report.attack_paths, 1):
+            lines.append(_anchor_tag(_attack_path_anchor(attack_path, index)))
             lines.append("### %s" % _path_title(attack_path))
             lines.append("")
             lines.append(
@@ -230,6 +317,7 @@ def render_markdown(report):
                 lines.append("")
 
     if report.recommended_fixes:
+        lines.append(_anchor_tag(_section_anchor("recommended_fixes")))
         lines.append("## Recommended Fixes")
         lines.append("")
         lines.append("| Priority | Layer | Title | Effort |")
