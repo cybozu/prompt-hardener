@@ -1,6 +1,7 @@
 """Normalize AgentSpec into attack-path-friendly surfaces."""
 
 import re
+from typing import List
 
 from prompt_hardener.analyze.attack_paths.models import (
     NormalizedControls,
@@ -37,7 +38,7 @@ _RETRIEVED_CONTENT_PATTERNS = [
 ]
 
 
-def _contains_pattern(text: str, patterns: list[str]) -> bool:
+def _contains_pattern(text: str, patterns: List[str]) -> bool:
     return any(re.search(pattern, text) for pattern in patterns)
 
 
