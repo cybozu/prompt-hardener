@@ -55,6 +55,13 @@ jobs:
         with:
           bot-id: "BT01KNJSJ9PGFWK3H5T7NM3D4NSD"
 
+      - name: Export Takumi Guard index for uv
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${PIP_INDEX_URL:?PIP_INDEX_URL is not set}"
+          echo "UV_INDEX_URL=${PIP_INDEX_URL}" >> "$GITHUB_ENV"
+
       - name: Verify tag exists
         shell: bash
         run: |
