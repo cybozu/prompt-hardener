@@ -22,6 +22,53 @@ Prompt Hardener is designed for developers and security engineers who want to un
 - **CI-friendly output**: export Markdown, HTML, or JSON
 - **Interactive UI**: explore the workflow from a local Gradio app
 
+## Installation
+
+Choose the installation method that fits how you want to use Prompt Hardener.
+
+### Using [pipx](https://pipx.pypa.io/)
+
+Recommended when you want to install Prompt Hardener as an isolated CLI tool.
+
+```bash
+pipx install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
+```
+
+### Using [uv](https://docs.astral.sh/uv/)
+
+Recommended if you already use `uv` for Python tooling.
+
+```bash
+uv tool install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
+```
+
+### Using pip
+
+Use this if you prefer a standard Python environment.
+
+```bash
+pip install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
+
+# Or install the latest code from main
+pip install git+https://github.com/cybozu/prompt-hardener.git
+```
+
+> **Note**
+> If you see an `externally-managed-environment` error, use `pipx` or `uv`, or create a virtual environment first.
+
+### For development
+
+```bash
+git clone https://github.com/cybozu/prompt-hardener.git
+cd prompt-hardener
+uv sync --extra dev --frozen
+
+# Fallback if uv is unavailable
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+```
+
 ## Quick start
 
 The fastest way to try Prompt Hardener is to use one of the included example specs.
@@ -29,18 +76,11 @@ The fastest way to try Prompt Hardener is to use one of the included example spe
 ### 1) Install
 
 ```bash
-# Option 1: Install from source
-git clone https://github.com/cybozu/prompt-hardener.git
-cd prompt-hardener
-
-uv venv
-source .venv/bin/activate
-uv pip install -e .
-
-# Option 2: Install as a CLI tool using uv
-uv tool install \
-  https://github.com/cybozu/prompt-hardener/releases/download/vX.Y.Z/prompt_hardener-X.Y.Z-py3-none-any.whl
+# Install with uv
+uv tool install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
 ```
+
+If you prefer `pipx`, `pip`, or a development install, see [Installation](#installation).
 
 ### 2) Analyze an example spec
 
