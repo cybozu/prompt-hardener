@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     outputs:
       tag: ${{ steps.release_tag.outputs.tag }}
 
@@ -48,6 +49,11 @@ jobs:
         with:
           ref: refs/tags/${{ steps.release_tag.outputs.tag }}
           fetch-depth: 0
+
+      - name: Set up Takumi Guard for PyPI
+        uses: flatt-security/setup-takumi-guard-pypi@7d825811bb293b9e0230477165442580a0074280 # v1.0.0
+        with:
+          bot-id: "BT01KNJSJ9PGFWK3H5T7NM3D4NSD"
 
       - name: Verify tag exists
         shell: bash
