@@ -69,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade uv
-          uv build
+          uv build --no-sources
 
       # Create GitHub Release
       - name: Create GitHub Release
