@@ -3,6 +3,10 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+from prompt_hardener import __version__
+
+TOOL_VERSION = __version__
+
 
 @dataclass
 class ScenarioResult:
