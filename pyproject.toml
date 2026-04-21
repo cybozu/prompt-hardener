@@ -11,7 +11,7 @@ license = { text = "Apache 2.0" }
 dynamic = ["version"]
 dependencies = [
   "requests==2.32.5",
-  "openai==2.23.0",
+  "openai==2.30.0",
   "argparse==1.4.0",
   "gradio==6.8.0",
   "anthropic==0.83.0",
