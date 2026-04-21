@@ -3,6 +3,7 @@
 import hashlib
 from datetime import datetime, timezone
 
+from prompt_hardener import __version__ as TOOL_VERSION
 from prompt_hardener.agent_spec import load_and_validate
 from prompt_hardener.analyze.attack_paths import enumerate_attack_paths
 from prompt_hardener.analyze.report import (
@@ -15,7 +16,6 @@ from prompt_hardener.analyze.rules import _ensure_rules_loaded, get_rules
 from prompt_hardener.analyze.scoring import compute_scores
 from prompt_hardener.models import AgentSpec
 
-TOOL_VERSION = "0.5.0"
 RULES_VERSION = "1.0"
 
 

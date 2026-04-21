@@ -31,7 +31,7 @@ Choose the installation method that fits how you want to use Prompt Hardener.
 Recommended when you want to install Prompt Hardener as an isolated CLI tool.
 
 ```bash
-pipx install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
+pipx install https://github.com/cybozu/prompt-hardener/releases/download/v0.6.0/prompt_hardener-0.6.0-py3-none-any.whl
 ```
 
 ### Using [uv](https://docs.astral.sh/uv/)
@@ -39,7 +39,7 @@ pipx install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/
 Recommended if you already use `uv` for Python tooling.
 
 ```bash
-uv tool install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
+uv tool install https://github.com/cybozu/prompt-hardener/releases/download/v0.6.0/prompt_hardener-0.6.0-py3-none-any.whl
 ```
 
 ### Using pip
@@ -47,7 +47,7 @@ uv tool install https://github.com/cybozu/prompt-hardener/releases/download/v0.5
 Use this if you prefer a standard Python environment.
 
 ```bash
-pip install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
+pip install https://github.com/cybozu/prompt-hardener/releases/download/v0.6.0/prompt_hardener-0.6.0-py3-none-any.whl
 
 # Or install the latest code from main
 pip install git+https://github.com/cybozu/prompt-hardener.git
@@ -77,7 +77,7 @@ The fastest way to try Prompt Hardener is to use one of the included example spe
 
 ```bash
 # Install with uv
-uv tool install https://github.com/cybozu/prompt-hardener/releases/download/v0.5.0/prompt_hardener-0.5.0-py3-none-any.whl
+uv tool install https://github.com/cybozu/prompt-hardener/releases/download/v0.6.0/prompt_hardener-0.6.0-py3-none-any.whl
 ```
 
 If you prefer `pipx`, `pip`, or a development install, see [Installation](#installation).

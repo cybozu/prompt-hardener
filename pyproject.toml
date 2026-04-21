@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "prompt-hardener"
-version = "0.5.0"
 description = "Analyze prompt-injection risk in LLM-based agents and applications."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache 2.0" }
+dynamic = ["version"]
 dependencies = [
   "requests==2.32.5",
   "openai==2.23.0",
@@ -37,6 +37,9 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 prompt_hardener = ["schemas/*.json", "templates/*.yaml", "catalog/*.yaml"]
+
+[tool.setuptools.dynamic]
+version = {attr = "prompt_hardener.__version__"}
 
 [tool.uv]
 exclude-newer = "1 week"
