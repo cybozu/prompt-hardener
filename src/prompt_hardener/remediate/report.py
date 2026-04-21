@@ -27,6 +27,8 @@ class Recommendation:
 class PromptRemediation:
     changes: str  # text summary of changes
     rewrite_applied: bool = False
+    original_system_prompt: str = ""
+    updated_system_prompt: str = ""
     techniques_selected: List[str] = field(default_factory=list)
     techniques_applied: List[str] = field(default_factory=list)
     findings_addressed: List[str] = field(default_factory=list)  # rule_ids
@@ -39,6 +41,8 @@ class PromptRemediation:
         d = {
             "changes": self.changes,
             "rewrite_applied": self.rewrite_applied,
+            "original_system_prompt": self.original_system_prompt,
+            "updated_system_prompt": self.updated_system_prompt,
             "techniques_selected": list(self.techniques_selected),
             "techniques_applied": list(self.techniques_applied),
             "findings_addressed": list(self.findings_addressed),
