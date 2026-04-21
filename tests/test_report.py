@@ -353,8 +353,16 @@ class TestRemediateRendering:
             "remediation": {
                 "tool": {
                     "recommendations": [
-                        {"severity": "medium", "title": "Tool Medium", "description": "M"},
-                        {"severity": "critical", "title": "Tool Critical", "description": "C"},
+                        {
+                            "severity": "medium",
+                            "title": "Tool Medium",
+                            "description": "M",
+                        },
+                        {
+                            "severity": "critical",
+                            "title": "Tool Critical",
+                            "description": "C",
+                        },
                         {"severity": "high", "title": "Tool High", "description": "H"},
                         {"severity": "low", "title": "Tool Low", "description": "L"},
                     ]
@@ -362,8 +370,16 @@ class TestRemediateRendering:
                 "architecture": {
                     "recommendations": [
                         {"severity": "low", "title": "Arch Low", "description": "L"},
-                        {"severity": "critical", "title": "Arch Critical", "description": "C"},
-                        {"severity": "medium", "title": "Arch Medium", "description": "M"},
+                        {
+                            "severity": "critical",
+                            "title": "Arch Critical",
+                            "description": "C",
+                        },
+                        {
+                            "severity": "medium",
+                            "title": "Arch Medium",
+                            "description": "M",
+                        },
                         {"severity": "high", "title": "Arch High", "description": "H"},
                     ]
                 },
@@ -402,8 +418,16 @@ class TestRemediateRendering:
             "remediation": {
                 "tool": {
                     "recommendations": [
-                        {"severity": "medium", "title": "Tool Medium", "description": "M"},
-                        {"severity": "critical", "title": "Tool Critical", "description": "C"},
+                        {
+                            "severity": "medium",
+                            "title": "Tool Medium",
+                            "description": "M",
+                        },
+                        {
+                            "severity": "critical",
+                            "title": "Tool Critical",
+                            "description": "C",
+                        },
                         {"severity": "high", "title": "Tool High", "description": "H"},
                         {"severity": "low", "title": "Tool Low", "description": "L"},
                     ]
@@ -411,8 +435,16 @@ class TestRemediateRendering:
                 "architecture": {
                     "recommendations": [
                         {"severity": "low", "title": "Arch Low", "description": "L"},
-                        {"severity": "critical", "title": "Arch Critical", "description": "C"},
-                        {"severity": "medium", "title": "Arch Medium", "description": "M"},
+                        {
+                            "severity": "critical",
+                            "title": "Arch Critical",
+                            "description": "C",
+                        },
+                        {
+                            "severity": "medium",
+                            "title": "Arch Medium",
+                            "description": "M",
+                        },
                         {"severity": "high", "title": "Arch High", "description": "H"},
                     ]
                 },
