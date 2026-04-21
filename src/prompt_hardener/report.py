@@ -140,6 +140,19 @@ def _severity_class(severity):
     return "severity-%s" % severity
 
 
+def _severity_rank(severity):
+    # type: (str) -> int
+    return {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(severity, 4)
+
+
+def _sorted_recommendations(recommendations, severity_key="severity"):
+    # type: (list[dict], str) -> list[dict]
+    return sorted(
+        recommendations,
+        key=lambda item: _severity_rank(item.get(severity_key, "")),
+    )
+
+
 def _risk_badge_html(risk_level):
     # type: (str) -> str
     return '<span class="risk-badge risk-%s">%s</span>' % (
@@ -543,12 +556,7 @@ def render_analyze_markdown(data):
         lines.append("")
         lines.append("| Priority | Layer | Title | Effort |")
         lines.append("|----------|-------|-------|--------|")
-        for rf in sorted(
-            fixes,
-            key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
-                x.get("priority", ""), 4
-            ),
-        ):
+        for rf in _sorted_recommendations(fixes, severity_key="priority"):
             lines.append(
                 "| %s | %s | %s | %s |"
                 % (
@@ -785,12 +793,7 @@ def render_analyze_html(data):
     # Recommended Fixes
     fixes = data.get("recommended_fixes", [])
     fixes_rows = ""
-    for rf in sorted(
-        fixes,
-        key=lambda x: {"critical": 0, "high": 1, "medium": 2, "low": 3}.get(
-            x.get("priority", ""), 4
-        ),
-    ):
+    for rf in _sorted_recommendations(fixes, severity_key="priority"):
         fixes_rows += (
             "<tr>"
             '<td><span class="%s">%s</span></td>'
@@ -1110,7 +1113,7 @@ def render_remediate_markdown(data):
     # Tool recommendations
     tool_rem = rem.get("tool")
     if tool_rem:
-        recs = tool_rem.get("recommendations", [])
+        recs = _sorted_recommendations(tool_rem.get("recommendations", []))
         if recs:
             lines.append("## Tool Recommendations")
             lines.append("")
@@ -1128,7 +1131,7 @@ def render_remediate_markdown(data):
     # Architecture recommendations
     arch_rem = rem.get("architecture")
     if arch_rem:
-        recs = arch_rem.get("recommendations", [])
+        recs = _sorted_recommendations(arch_rem.get("recommendations", []))
         if recs:
             lines.append("## Architecture Recommendations")
             lines.append("")
@@ -1231,7 +1234,7 @@ def render_remediate_html(data):
     def _render_rec_section(title, section_data):
         if not section_data:
             return ""
-        recs = section_data.get("recommendations", [])
+        recs = _sorted_recommendations(section_data.get("recommendations", []))
         if not recs:
             return ""
         rows = ""
