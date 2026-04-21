@@ -7,6 +7,7 @@ from prompt_hardener.gen_report import (
     generate_improvement_report,
     generate_evaluation_report,
 )
+from prompt_hardener import get_version_display
 from prompt_hardener.prompt import (
     parse_prompt_input,
     write_prompt_output,
@@ -16,12 +17,19 @@ from prompt_hardener.prompt_improvement import run_improvement_loop
 from prompt_hardener.webui import launch_webui
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Analyze prompt-injection risk in agent specs with static rules, optional LLM-backed remediation, and attack simulation."
     )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=get_version_display(),
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    subparsers.add_parser("version", help="Show the prompt-hardener version")
     subparsers.add_parser("webui", help="Launch the web UI")
 
     # --- init subcommand ---
@@ -558,7 +566,7 @@ def parse_args() -> argparse.Namespace:
         help="Directory to write a full HTML and JSON report after execution.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validation: Ensure --input-format and --attack-api-mode are the same
     if (
@@ -901,8 +909,8 @@ def _prompt_input_to_agent_spec(prompt_input, args):
     )
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv=None) -> None:
+    args = parse_args(argv)
     if args.command == "init":
         run_init(args)
     elif args.command == "validate":
@@ -917,6 +925,8 @@ def main() -> None:
         run_report_cmd(args)
     elif args.command == "diff":
         run_diff_cmd(args)
+    elif args.command == "version":
+        print(get_version_display())
     elif args.command == "webui":
         print("\033[36m" + "Launching web UI..." + "\033[0m")
         launch_webui()

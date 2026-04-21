@@ -4,6 +4,7 @@ import hashlib
 from datetime import datetime, timezone
 from typing import Callable, List, Optional
 
+from prompt_hardener import __version__ as TOOL_VERSION
 from prompt_hardener.agent_spec import load_and_validate, write_updated_spec
 from prompt_hardener.analyze.engine import run_analyze
 from prompt_hardener.analyze.scoring import TYPE_LAYERS
@@ -11,9 +12,6 @@ from prompt_hardener.remediate.arch_layer import remediate_architecture
 from prompt_hardener.remediate.prompt_layer import remediate_prompt
 from prompt_hardener.remediate.report import RemediationReport
 from prompt_hardener.remediate.tool_layer import remediate_tool
-
-TOOL_VERSION = "0.5.0"
-
 
 def _compute_safe_spec_patches(spec):
     """Compute deterministic, safe patches for the agent spec.

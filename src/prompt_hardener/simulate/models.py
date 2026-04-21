@@ -3,8 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
-
-TOOL_VERSION = "0.5.0"
+from prompt_hardener import __version__ as TOOL_VERSION
 
 
 @dataclass

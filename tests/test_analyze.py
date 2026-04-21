@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import jsonschema
 
+from prompt_hardener import __version__ as PACKAGE_VERSION
 from prompt_hardener.agent_spec import dict_to_agent_spec, load_yaml
 from prompt_hardener.analyze.attack_paths.graph import build_attack_graph
 from prompt_hardener.analyze.attack_paths.normalize import normalize_spec
@@ -1086,7 +1087,7 @@ class TestReportSerialization:
     def _make_report(self):
         return AnalyzeReport(
             metadata=AnalyzeMetadata(
-                tool_version="0.5.0",
+                tool_version=PACKAGE_VERSION,
                 timestamp="2026-03-08T12:00:00Z",
                 agent_name="Test Agent",
                 agent_type="rag",
@@ -1160,7 +1161,7 @@ class TestReportSerialization:
     def test_to_dict_roundtrip(self):
         report = self._make_report()
         d = report.to_dict()
-        assert d["metadata"]["tool_version"] == "0.5.0"
+        assert d["metadata"]["tool_version"] == PACKAGE_VERSION
         assert d["summary"]["risk_level"] == "high"
         assert len(d["findings"]) == 1
         assert d["findings"][0]["id"] == "finding-001"

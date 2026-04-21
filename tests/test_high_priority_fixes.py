@@ -5,6 +5,7 @@ import os
 
 import pytest
 
+from prompt_hardener import __version__ as PACKAGE_VERSION
 from prompt_hardener.analyze.report import Finding
 from prompt_hardener.analyze.scoring import compute_scores
 from prompt_hardener.analyze.engine import run_analyze
@@ -111,7 +112,7 @@ class TestH2RemediationMetadataLayers:
 
         mock_analyze_report = AnalyzeReport(
             metadata=AnalyzeMetadata(
-                tool_version="0.5.0",
+                tool_version=PACKAGE_VERSION,
                 timestamp="2026-01-01T00:00:00Z",
                 agent_name="Test",
                 agent_type="agent",

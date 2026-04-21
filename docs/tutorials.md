@@ -81,7 +81,7 @@ Output:
 
 **Agent:** Comment Summarizer (type: chatbot)
 **Generated:** 2025-01-15T10:30:00Z
-**Tool Version:** 0.5.0 | **Rules Version:** 1.0 | **Rules Evaluated:** 3
+**Tool Version:** 0.6.0 | **Rules Version:** 1.0 | **Rules Evaluated:** 3
 
 ## Summary
 
@@ -267,7 +267,7 @@ Output:
 
 **Agent:** Customer Support Agent (type: agent)
 **Generated:** 2025-01-15T11:00:00Z
-**Tool Version:** 0.5.0 | **Rules Version:** 1.0 | **Rules Evaluated:** 8
+**Tool Version:** 0.6.0 | **Rules Version:** 1.0 | **Rules Evaluated:** 8
 
 ## Summary
 

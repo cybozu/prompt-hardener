@@ -10,6 +10,7 @@ from unittest.mock import patch
 import jsonschema
 import pytest
 
+from prompt_hardener import __version__ as PACKAGE_VERSION
 from prompt_hardener.analyze.report import Finding
 from prompt_hardener.llm.client import LLMClient
 from prompt_hardener.llm.types import LLMResponse
@@ -169,7 +170,7 @@ class TestRemediationReport:
     def test_empty_report(self):
         report = RemediationReport(
             metadata={
-                "tool_version": "0.5.0",
+                "tool_version": PACKAGE_VERSION,
                 "timestamp": "2025-01-01T00:00:00+00:00",
                 "agent_type": "chatbot",
             }
@@ -183,7 +184,7 @@ class TestRemediationReport:
     def test_report_with_prompt_only(self):
         report = RemediationReport(
             metadata={
-                "tool_version": "0.5.0",
+                "tool_version": PACKAGE_VERSION,
                 "timestamp": "t",
                 "agent_type": "chatbot",
             },
@@ -204,7 +205,11 @@ class TestRemediationReport:
 
     def test_report_with_all_layers(self):
         report = RemediationReport(
-            metadata={"tool_version": "0.5.0", "timestamp": "t", "agent_type": "agent"},
+            metadata={
+                "tool_version": PACKAGE_VERSION,
+                "timestamp": "t",
+                "agent_type": "agent",
+            },
             prompt=PromptRemediation(
                 changes="improved",
                 original_system_prompt="Before",
@@ -226,7 +231,11 @@ class TestRemediationReport:
 
     def test_summary_risk_level_from_recommendations(self):
         report = RemediationReport(
-            metadata={"tool_version": "0.5.0", "timestamp": "t", "agent_type": "agent"},
+            metadata={
+                "tool_version": PACKAGE_VERSION,
+                "timestamp": "t",
+                "agent_type": "agent",
+            },
             tool=[Recommendation(severity="critical", title="T", description="D")],
         )
         d = report.to_dict()
@@ -235,7 +244,7 @@ class TestRemediationReport:
     def test_summary_risk_level_low_when_no_recommendations(self):
         report = RemediationReport(
             metadata={
-                "tool_version": "0.5.0",
+                "tool_version": PACKAGE_VERSION,
                 "timestamp": "t",
                 "agent_type": "chatbot",
             },
@@ -1358,7 +1367,7 @@ class TestEngine:
             layers=["tool"],
         )
 
-        assert report.metadata["tool_version"] == "0.5.0"
+        assert report.metadata["tool_version"] == PACKAGE_VERSION
         assert "timestamp" in report.metadata
         assert report.metadata["agent_type"] == "agent"
         assert "agent_spec_digest" in report.metadata
@@ -1545,7 +1554,7 @@ class TestSchemaDriftGuard:
     def _build_sample_report():
         return RemediationReport(
             metadata={
-                "tool_version": "0.5.0",
+                "tool_version": PACKAGE_VERSION,
                 "timestamp": "2025-01-01T00:00:00+00:00",
                 "agent_type": "agent",
             },
