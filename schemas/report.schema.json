@@ -97,6 +97,14 @@
               "type": "boolean",
               "description": "Whether a rewritten system prompt was accepted and applied"
             },
+            "original_system_prompt": {
+              "type": "string",
+              "description": "System prompt before remediation"
+            },
+            "updated_system_prompt": {
+              "type": "string",
+              "description": "Final system prompt after remediation"
+            },
             "techniques_selected": {
               "type": "array",
               "items": { "type": "string" },

@@ -1096,6 +1096,16 @@ def render_remediate_markdown(data):
             for note in notes:
                 lines.append("- %s" % note)
             lines.append("")
+        if "original_system_prompt" in prompt_rem:
+            lines.append("### Original System Prompt")
+            lines.append("")
+            lines.append(_md_fenced_block(prompt_rem.get("original_system_prompt", "")))
+            lines.append("")
+        if "updated_system_prompt" in prompt_rem:
+            lines.append("### Updated System Prompt")
+            lines.append("")
+            lines.append(_md_fenced_block(prompt_rem.get("updated_system_prompt", "")))
+            lines.append("")
 
     # Tool recommendations
     tool_rem = rem.get("tool")
@@ -1188,6 +1198,8 @@ def render_remediate_html(data):
             "%s"
             "%s"
             "%s"
+            "%s"
+            "%s"
             "</div>"
         ) % (
             _esc(prompt_rem.get("changes", "")),
@@ -1204,6 +1216,14 @@ def render_remediate_html(data):
             else "",
             "<p><strong>Change Notes:</strong></p>%s" % change_notes_html
             if change_notes_html
+            else "",
+            "<h3>Original System Prompt</h3><pre>%s</pre>"
+            % _esc(prompt_rem.get("original_system_prompt", ""))
+            if "original_system_prompt" in prompt_rem
+            else "",
+            "<h3>Updated System Prompt</h3><pre>%s</pre>"
+            % _esc(prompt_rem.get("updated_system_prompt", ""))
+            if "updated_system_prompt" in prompt_rem
             else "",
         )
 

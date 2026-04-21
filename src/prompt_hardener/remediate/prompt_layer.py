@@ -47,6 +47,8 @@ def remediate_prompt(
         remediation = PromptRemediation(
             changes="Prompt rewrite skipped.",
             rewrite_applied=False,
+            original_system_prompt=original_system_prompt,
+            updated_system_prompt=original_system_prompt,
             techniques_selected=list(plan.selected_techniques),
             techniques_applied=[],
             findings_addressed=[],
@@ -112,6 +114,8 @@ def remediate_prompt(
             remediation = PromptRemediation(
                 changes="Constrained prompt rewrite accepted.",
                 rewrite_applied=True,
+                original_system_prompt=original_system_prompt,
+                updated_system_prompt=accepted_prompt,
                 techniques_selected=list(plan.selected_techniques),
                 techniques_applied=list(acceptance.fulfilled_techniques),
                 findings_addressed=list(plan.addressed_findings),
@@ -140,6 +144,8 @@ def remediate_prompt(
     remediation = PromptRemediation(
         changes="Prompt rewrite skipped after deterministic acceptance rejected proposed edits.",
         rewrite_applied=False,
+        original_system_prompt=original_system_prompt,
+        updated_system_prompt=original_system_prompt,
         techniques_selected=list(plan.selected_techniques),
         techniques_applied=[],
         findings_addressed=[],
