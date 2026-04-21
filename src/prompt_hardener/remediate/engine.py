@@ -13,6 +13,7 @@ from prompt_hardener.remediate.prompt_layer import remediate_prompt
 from prompt_hardener.remediate.report import RemediationReport
 from prompt_hardener.remediate.tool_layer import remediate_tool
 
+
 def _compute_safe_spec_patches(spec):
     """Compute deterministic, safe patches for the agent spec.
 
