@@ -51,7 +51,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Takumi Guard for PyPI
-        uses: flatt-security/setup-takumi-guard-pypi@7d825811bb293b9e0230477165442580a0074280 # v1.0.0
+        uses: flatt-security/setup-takumi-guard-pypi@733047c120b6377fa05fb77f714df8d8cd3a41a9 # v1.0.1
         with:
           bot-id: "BT01KNJSJ9PGFWK3H5T7NM3D4NSD"
 
