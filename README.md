@@ -1,5 +1,14 @@
 # Prompt Hardener
 
+> [!IMPORTANT]
+> **Maintenance Status: Inactive**
+>
+> This project is no longer actively maintained.
+> We currently have no plans for further development, bug fixes, or security updates.
+>
+> Issues and pull requests will not be accepted.
+> The repository will remain available for reference and forking.
+
 Prompt Hardener analyzes **prompt-injection risk in LLM-based agents and applications**.
 
 It gives you a single workflow to:
